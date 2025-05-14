@@ -202,7 +202,7 @@ const Dashboard = () => {
                 onClick={handleDeploy} 
                 disabled={deploymentStatus === 'running' || !selectedFT || selectedFiles.length === 0 || selectedTargets.length === 0}
                 className="w-full"
-                variant={deploymentStatus === 'success' ? "outline" : "default"}
+                variant={deploymentStatus === 'success' ? "secondary" : "default"}
               >
                 {deploymentStatus === 'success' ? 'Deploy Again' : 'Deploy'}
               </Button>
