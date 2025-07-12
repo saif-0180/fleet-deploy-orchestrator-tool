@@ -61,7 +61,7 @@ def get_inventory_value(key, inventory, db_inventory):
     return None
 
 def execute_file_deployment(deployment_id, step, inventory, db_inventory):
-    """Execute file deployment step"""
+    """Execute file deployment step using Ansible like in app.py"""
     from app import log_message, deployments, save_deployment_history, logger
     
     try:
@@ -74,6 +74,10 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
         target_user = step['targetUser']
         target_vms = step['targetVMs']
         
+        # Get logged in user from deployment
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment["logged_in_user"]
+        
         # Resolve target VMs from inventory if needed
         resolved_vms = []
         for vm in target_vms:
@@ -83,7 +87,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
             else:
                 resolved_vms.append(vm)
         
-        log_message(deployment_id, f"Deploying {len(files)} files to {len(resolved_vms)} VMs")
+        log_message(deployment_id, f"Deploying {len(files)} files to {len(resolved_vms)} VMs (initiated by {logged_in_user})")
         logger.info(f"[{deployment_id}] Deploying {len(files)} files to {len(resolved_vms)} VMs")
         
         for file_name in files:
@@ -95,7 +99,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
                 logger.error(f"[{deployment_id}] {error_msg}")
                 raise FileNotFoundError(error_msg)
             
-            log_message(deployment_id, f"Deploying file: {file_name}")
+            log_message(deployment_id, f"Deploying file: {file_name} (initiated by {logged_in_user})")
             
             # Generate ansible playbook for file deployment
             playbook_file = f"/tmp/file_deploy_{deployment_id}_{step['order']}.yml"
@@ -103,7 +107,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
             
             with open(playbook_file, 'w') as f:
                 f.write(f"""---
-- name: Deploy file {file_name} (Step {step['order']})
+- name: Deploy file {file_name} (Step {step['order']}) (initiated by {logged_in_user})
   hosts: deployment_targets
   gather_facts: false
   become: true
@@ -142,7 +146,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
       
     - name: Log success
       ansible.builtin.debug:
-        msg: "File {file_name} deployed successfully"
+        msg: "File {file_name} deployed successfully by {logged_in_user}"
       when: copy_result.changed
 """)
             
@@ -159,8 +163,31 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
                             f.write(f"{vm_name} ansible_host={vm_info['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n")
             
             # Execute ansible playbook
-            cmd = ["ansible-playbook", "-i", inventory_file, playbook_file]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            env_vars = os.environ.copy()
+            env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+            env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+            env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
+            env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
+            
+            cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
+            
+            log_message(deployment_id, f"Executing: {' '.join(cmd)}")
+            logger.info(f"Executing Ansible command: {' '.join(cmd)}")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=300)
+            
+            # Log the output line by line
+            if result.stdout:
+                log_message(deployment_id, "=== ANSIBLE OUTPUT ===")
+                for line in result.stdout.splitlines():
+                    if line.strip():
+                        log_message(deployment_id, line.strip())
+            
+            if result.stderr:
+                log_message(deployment_id, "=== ANSIBLE STDERR ===")
+                for line in result.stderr.splitlines():
+                    if line.strip():
+                        log_message(deployment_id, line.strip())
             
             if result.returncode == 0:
                 log_message(deployment_id, f"File {file_name} deployed successfully")
@@ -170,6 +197,13 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
                 log_message(deployment_id, f"ERROR: {error_msg}")
                 logger.error(f"[{deployment_id}] {error_msg}")
                 raise Exception(error_msg)
+            
+            # Clean up temporary files
+            try:
+                os.remove(playbook_file)
+                os.remove(inventory_file)
+            except Exception as e:
+                logger.warning(f"Error cleaning up temporary files: {str(e)}")
         
         log_message(deployment_id, f"File deployment step {step['order']} completed successfully")
         logger.info(f"[{deployment_id}] File deployment step {step['order']} completed successfully")
@@ -183,7 +217,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
         raise
 
 def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
-    """Execute SQL deployment step"""
+    """Execute SQL deployment step using proper database connections"""
     from app import log_message, deployments, save_deployment_history, logger
     
     try:
@@ -195,6 +229,10 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         db_password = step['dbPassword']
         files = step['files']
         ft_number = step['ftNumber']
+        
+        # Get logged in user from deployment
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment["logged_in_user"]
         
         # Resolve database connection details from inventory
         db_info = get_inventory_value(db_connection, inventory, db_inventory)
@@ -210,7 +248,7 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         except:
             decoded_password = db_password
         
-        log_message(deployment_id, f"Executing SQL files: {', '.join(files)}")
+        log_message(deployment_id, f"Executing SQL files: {', '.join(files)} (initiated by {logged_in_user})")
         logger.info(f"[{deployment_id}] Executing SQL files: {', '.join(files)}")
         
         for sql_file in files:
@@ -260,7 +298,7 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         raise
 
 def execute_service_restart(deployment_id, step, inventory, db_inventory):
-    """Execute service operation step using Ansible with comprehensive systemd management"""
+    """Execute service operation step using Ansible with comprehensive systemd management like in app.py"""
     from app import log_message, deployments, save_deployment_history, logger
 
     try:
@@ -511,7 +549,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         raise
 
 def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
-    """Execute ansible playbook step"""
+    """Execute ansible playbook step using proper playbook execution"""
     from app import log_message, deployments, save_deployment_history, logger
     
     try:
@@ -519,6 +557,10 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
         log_message(deployment_id, f"Starting ansible playbook step {step['order']}: {step['description']}")
         
         playbook = step['playbook']
+        
+        # Get logged in user from deployment
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment["logged_in_user"]
         
         # Find playbook file
         playbook_path = os.path.join("/app/ansible_playbooks", playbook)
@@ -539,7 +581,7 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
                 logger.error(f"[{deployment_id}] {error_msg}")
                 raise FileNotFoundError(error_msg)
         
-        log_message(deployment_id, f"Executing playbook: {playbook}")
+        log_message(deployment_id, f"Executing playbook: {playbook} (initiated by {logged_in_user})")
         logger.info(f"[{deployment_id}] Executing playbook: {playbook}")
         
         # Create inventory file with all VMs
@@ -550,8 +592,25 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
                 f.write(f"{vm['name']} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n")
         
         # Execute ansible playbook
-        cmd = ["ansible-playbook", "-i", inventory_file, playbook_path]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        env_vars = os.environ.copy()
+        env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+        env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+        
+        cmd = ["ansible-playbook", "-i", inventory_file, playbook_path, "-v"]
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=600)
+        
+        # Log the output line by line
+        if result.stdout:
+            log_message(deployment_id, "=== ANSIBLE PLAYBOOK OUTPUT ===")
+            for line in result.stdout.splitlines():
+                if line.strip():
+                    log_message(deployment_id, line.strip())
+        
+        if result.stderr:
+            log_message(deployment_id, "=== ANSIBLE PLAYBOOK STDERR ===")
+            for line in result.stderr.splitlines():
+                if line.strip():
+                    log_message(deployment_id, line.strip())
         
         if result.returncode == 0:
             log_message(deployment_id, f"Playbook {playbook} executed successfully")
@@ -561,6 +620,12 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
             log_message(deployment_id, f"ERROR: {error_msg}")
             logger.error(f"[{deployment_id}] {error_msg}")
             raise Exception(error_msg)
+        
+        # Clean up temporary files
+        try:
+            os.remove(inventory_file)
+        except Exception as e:
+            logger.warning(f"Error cleaning up temporary files: {str(e)}")
         
         log_message(deployment_id, f"Ansible playbook step {step['order']} completed successfully")
         logger.info(f"[{deployment_id}] Ansible playbook step {step['order']} completed successfully")
@@ -574,7 +639,7 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
         raise
 
 def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
-    """Execute helm upgrade step"""
+    """Execute helm upgrade step using proper helm commands"""
     from app import log_message, deployments, save_deployment_history, logger
     
     try:
@@ -582,6 +647,10 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
         log_message(deployment_id, f"Starting helm upgrade step {step['order']}: {step['description']}")
         
         helm_deployment_type = step['helmDeploymentType']
+        
+        # Get logged in user from deployment
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment["logged_in_user"]
         
         # Get helm configuration from inventory
         helm_config = get_inventory_value(f"helm_{helm_deployment_type}", inventory, db_inventory)
@@ -591,7 +660,7 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
             logger.error(f"[{deployment_id}] {error_msg}")
             raise Exception(error_msg)
         
-        log_message(deployment_id, f"Executing helm upgrade for: {helm_deployment_type}")
+        log_message(deployment_id, f"Executing helm upgrade for: {helm_deployment_type} (initiated by {logged_in_user})")
         logger.info(f"[{deployment_id}] Executing helm upgrade for: {helm_deployment_type}")
         
         # Construct helm upgrade command
@@ -649,8 +718,9 @@ def deploy_template_route():
             logger.warning("Missing 'template' key in request")
             return jsonify({"error": "Template name is required"}), 400
 
-        # You can replace this with real user logic if available
-        current_user = {"username": "mockuser", "role": "admin"}
+        # Get current user from request headers or session
+        # For now using a mock user - replace with actual user logic
+        current_user = {"username": "admin", "role": "admin"}
         logger.info(f"Initiating deployment for template: {template_name} by user: {current_user['username']}")
 
         # Call the deployment function
@@ -828,7 +898,7 @@ def process_template_deployment(deployment_id):
             log_message(deployment_id, f"Template deployment failed. Steps failed: {failed_steps}")
             logger.error(f"[{deployment_id}] Template deployment failed. Steps failed: {failed_steps}")
         else:
-            deployments[deployment_id]['status'] = 'completed'
+            deployments[deployment_id]['status'] = 'success'
             log_message(deployment_id, f"Template deployment completed successfully. Steps completed: {completed_steps}")
             logger.info(f"[{deployment_id}] Template deployment completed successfully. Steps completed: {completed_steps}")
         
@@ -858,7 +928,7 @@ def deploy_template(template_name, current_user):
         # Generate deployment ID
         deployment_id = str(uuid.uuid4())
         
-        # Store deployment information
+        # Store deployment information in the main app's deployments dict
         deployments[deployment_id] = {
             "id": deployment_id,
             "type": "template",
@@ -876,7 +946,7 @@ def deploy_template(template_name, current_user):
         save_deployment_history()
         
         # Start deployment in separate thread
-        threading.Thread(target=process_template_deployment, args=(deployment_id,)).start()
+        threading.Thread(target=process_template_deployment, args=(deployment_id,), daemon=True).start()
         
         return {
             "deploymentId": deployment_id,
