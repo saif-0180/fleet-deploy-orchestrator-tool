@@ -1,0 +1,18 @@
+
+{
+  "db_connections": [
+    {
+      "db_connection": "app_db",
+      "hostname": "10.172.145.204", 
+      "port": "5400", 
+      "db_name": "ocstc1t"
+    },
+    {
+      "db_connection": "asm_db",
+      "hostname": "10.172.145.204", 
+      "port": "5400", 
+      "db_name": "passpg"
+    }
+  ],
+  "db_users": ["xpidbo1refc", "xpidbo1cfg", "xpidbo1app"]
+}
