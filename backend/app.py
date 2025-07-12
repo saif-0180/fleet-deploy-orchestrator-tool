@@ -27,6 +27,8 @@ from routes.deploy_template import deploy_template_bp, load_template, TEMPLATE_D
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
+deployments = {}
+
 app.deployments = deployments
 app.save_deployment_history = save_deployment_history
 app.log_message = log_message
@@ -89,7 +91,7 @@ logger.debug(f"Deployment logs directory: {DEPLOYMENT_LOGS_DIR}")
 logger.debug(f"Application log file: {APP_LOG_FILE}")
 
 # Dictionary to store deployment information
-deployments = {}
+# deployments = {}
 
 # Store deployments in app config so it can be accessed via current_app
 app.config['deployments'] = deployments
