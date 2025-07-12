@@ -1108,6 +1108,63 @@ def process_template_deployment(deployment_id):
         save_deployment_history()
         logger.info(f"[{deployment_id}] Deployment history saved")
 
+def run_in_app_context(app, deployment_id):
+    with app.app_context():
+        process_template_deployment(deployment_id)
+
+# def deploy_template(template_name, current_user):
+#     """Main function to start template deployment"""
+#     try:
+#         logger.debug(f"DEBUG: Starting deploy_template for {template_name}")
+
+#         # Validate template exists
+#         template_path = os.path.join(TEMPLATE_DIR, template_name)
+#         if not os.path.exists(template_path):
+#             error_msg = f"Template not found: {template_name}"
+#             logger.error(f"DEBUG: {error_msg}")
+#             return {"error": error_msg}, 404
+
+#         # Generate deployment ID
+#         deployment_id = str(uuid.uuid4())
+#         logger.debug(f"DEBUG: Generated deployment ID: {deployment_id}")
+
+#         # Get app globals
+#         deployments, save_deployment_history, log_message, _ = get_app_globals()
+
+#         # Store deployment information in the main app's deployments dict
+#         deployments[deployment_id] = {
+#             "id": deployment_id,
+#             "type": "template",
+#             "template": template_name,
+#             "logged_in_user": "admin",
+#             "user_role": "admin",
+#             "status": "running",
+#             "timestamp": time.time(),
+#             "logs": []
+#         }
+
+#         logger.debug(f"DEBUG: Added deployment to deployments dict: {deployments[deployment_id]}")
+#         logger.info(f"[{deployment_id}] Template deployment initiated ")
+
+#         # Save deployment history
+#         save_deployment_history()
+#         logger.debug(f"DEBUG: Saved deployment history")
+
+#         # Start deployment in separate thread with app context
+#         logger.debug(f"DEBUG: Starting background thread for deployment")
+#         app = current_app._get_current_object()
+#         threading.Thread(target=lambda: app.app_context().push() or process_template_deployment(deployment_id)).start()
+
+#         return {
+#             "deploymentId": deployment_id,
+#             "template": template_name
+#         }, 200
+
+#     except Exception as e:
+#         error_msg = f"Failed to start template deployment: {str(e)}"
+#         logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
+#         return {"error": error_msg}, 500
+
 def deploy_template(template_name, current_user):
     """Main function to start template deployment"""
     try:
@@ -1132,8 +1189,8 @@ def deploy_template(template_name, current_user):
             "id": deployment_id,
             "type": "template",
             "template": template_name,
-            "logged_in_user": "admin",
-            "user_role": "admin",
+            "logged_in_user": current_user.get("username", "admin"),
+            "user_role": current_user.get("role", "admin"),
             "status": "running",
             "timestamp": time.time(),
             "logs": []
@@ -1146,10 +1203,14 @@ def deploy_template(template_name, current_user):
         save_deployment_history()
         logger.debug(f"DEBUG: Saved deployment history")
 
-        # Start deployment in separate thread with app context
-        logger.debug(f"DEBUG: Starting background thread for deployment")
+        # Push app context properly to the new thread
         app = current_app._get_current_object()
-        threading.Thread(target=lambda: app.app_context().push() or process_template_deployment(deployment_id)).start()
+
+        def run_in_app_context(app, deployment_id):
+            with app.app_context():
+                process_template_deployment(deployment_id)
+
+        threading.Thread(target=run_in_app_context, args=(app, deployment_id)).start()
 
         return {
             "deploymentId": deployment_id,
@@ -1160,4 +1221,3 @@ def deploy_template(template_name, current_user):
         error_msg = f"Failed to start template deployment: {str(e)}"
         logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
         return {"error": error_msg}, 500
-
