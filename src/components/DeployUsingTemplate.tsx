@@ -395,7 +395,8 @@ const getStepTypeLabel = (type: string) => {
 
               <Button
                 // onClick={handleDeploy}
-                type="submit"
+                // type="submit"
+                onClick={() => deployMutation.mutate(selectedTemplate)}
                 disabled={!selectedTemplate || deployMutation.isPending || logStatus === 'running'}
                 className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
               >
