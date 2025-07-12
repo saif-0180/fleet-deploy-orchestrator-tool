@@ -184,6 +184,16 @@ def list_templates():
         logger.error(f"Failed to list templates: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@deploy_template_bp.route('/api/template/<template_name>', methods=['GET'])
+def get_template_details(template_name):
+    """Get details of a specific template"""
+    try:
+        template = load_template(template_name)
+        return jsonify(template)
+    except Exception as e:
+        logger.error(f"Failed to get template details: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @deploy_template_bp.route('/api/deploy/template', methods=['POST'])
 def deploy_template():
     """Start template deployment - similar to deploy_sql in db_routes.py"""
