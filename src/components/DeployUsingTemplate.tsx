@@ -81,7 +81,7 @@ const { data: templatesData, isLoading: isLoadingTemplates } = useQuery({
     return data;
   },
   refetchInterval: 30000,
-  enabled: isAuthenticated,
+  // enabled: isAuthenticated,
 });
 
 const availableTemplates = templatesData?.templates || [];
@@ -272,16 +272,9 @@ const deployMutation = useMutation({
 //   }
 // }, [deploymentLogs]);
 
-const handleLoadTemplate = () => {
-  if (!isAuthenticated) {
-    toast({
-      title: "Authentication Required",
-      description: "Please log in to load templates",
-      variant: "destructive",
-    });
-    return;
-  }
+// 
 
+const handleLoadTemplate = () => {
   if (!selectedTemplate) {
     toast({
       title: "Error",
