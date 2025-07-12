@@ -295,28 +295,28 @@ const handleLoadTemplate = () => {
   loadTemplateMutation.mutate(selectedTemplate);
 };
 
-const handleDeploy = () => {
-  if (!isAuthenticated) {
-    toast({
-      title: "Authentication Required",
-      description: "Please log in to deploy templates",
-      variant: "destructive",
-    });
-    return;
-  }
+// const handleDeploy = () => {
+//   if (!isAuthenticated) {
+//     toast({
+//       title: "Authentication Required",
+//       description: "Please log in to deploy templates",
+//       variant: "destructive",
+//     });
+//     return;
+//   }
 
-  if (!selectedTemplate) {
-    toast({
-      title: "Error",
-      description: "Please select a template first",
-      variant: "destructive",
-    });
-    return;
-  }
+//   if (!selectedTemplate) {
+//     toast({
+//       title: "Error",
+//       description: "Please select a template first",
+//       variant: "destructive",
+//     });
+//     return;
+//   }
 
-  console.log("🚦 Handle deploy template:", selectedTemplate);
-  deployMutation.mutate(selectedTemplate);
-};
+//   console.log("🚦 Handle deploy template:", selectedTemplate);
+//   deployMutation.mutate(selectedTemplate);
+// };
 
 const getStepTypeIcon = (type: string) => {
   switch (type) {
@@ -340,17 +340,17 @@ const getStepTypeLabel = (type: string) => {
   }
 };
 
-if (!isAuthenticated) {
-  console.warn("🔒 User not authenticated, skipping content render.");
-}
+// if (!isAuthenticated) {
+//   console.warn("🔒 User not authenticated, skipping content render.");
+// }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-[#EEEEEE] text-lg">Please log in to access template deployment</p>
-      </div>
-    );
-  }
+//   if (!isAuthenticated) {
+//     return (
+//       <div className="flex items-center justify-center h-64">
+//         <p className="text-[#EEEEEE] text-lg">Please log in to access template deployment</p>
+//       </div>
+//     );
+//   }
 
   return (
     <div className="space-y-6">
