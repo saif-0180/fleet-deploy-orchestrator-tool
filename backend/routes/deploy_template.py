@@ -643,6 +643,16 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         save_deployment_history()
         raise
 
+@deploy_template_bp.route('/api/template/<template_name>', methods=['GET'])
+def get_template_details(template_name):
+    """Get details of a specific template"""
+    try:
+        template = load_template(template_name)
+        return jsonify(template)
+    except Exception as e:
+        logger.error(f"Failed to get template details: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @deploy_template_bp.route('/api/deploy/<deployment_id>/logs', methods=['GET'])
 def get_deployment_logs(deployment_id):
     """Get deployment logs - matching the working db_routes.py implementation"""
