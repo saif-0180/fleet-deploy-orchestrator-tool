@@ -27,12 +27,19 @@ from routes.deploy_template import deploy_template_bp, load_template, TEMPLATE_D
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
+app.deployments = deployments
+app.save_deployment_history = save_deployment_history
+app.log_message = log_message
+app.inventory = inventory
+
 # Register the blueprint
 app.register_blueprint(db_routes)
 app.register_blueprint(auth_bp)
 app.register_blueprint(template_bp)
 app.register_blueprint(deploy_template_bp)
 #app.register_blueprint(db_routes)
+
+
 
 # Directory where fix files are stored
 FIX_FILES_DIR = os.environ.get('FIX_FILES_DIR', '/app/fixfiles')

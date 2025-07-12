@@ -858,59 +858,210 @@ def can_execute_step(step, completed_steps, dependencies):
     
     return True
 
+# def process_template_deployment(deployment_id):
+#     """Process template deployment with dependency management"""
+#     logger.debug(f"[{deployment_id}] DEBUG: Starting process_template_deployment")
+    
+#     try:
+#         deployments, save_deployment_history, log_message, _ = get_app_globals()
+#     except Exception as e:
+#         logger.error(f"[{deployment_id}] Failed to get app globals: {str(e)}")
+#         return
+    
+#     if deployment_id not in deployments:
+#         logger.error(f"[{deployment_id}] DEBUG: Deployment ID not found in deployments")
+#         return
+        
+#     deployment = deployments[deployment_id]
+#     logger.debug(f"[{deployment_id}] DEBUG: Processing deployment: {deployment}")
+    
+#     try:
+#         template_name = deployment['template']
+        
+#         # Load template
+#         template = load_template(template_name)
+#         log_message(deployment_id, f"Loaded template: {template_name}")
+#         logger.info(f"[{deployment_id}] Loaded template: {template_name}")
+        
+#         # Load inventory
+#         inventory, db_inventory = load_inventory()
+#         log_message(deployment_id, f"Loaded inventory data")
+#         logger.info(f"[{deployment_id}] Loaded inventory data")
+        
+#         # Get steps and dependencies
+#         steps = template['steps']
+#         dependencies = template.get('dependencies', [])
+        
+#         log_message(deployment_id, f"Starting template deployment with {len(steps)} steps")
+#         logger.info(f"[{deployment_id}] Starting template deployment with {len(steps)} steps")
+        
+#         # Sort steps by order
+#         steps.sort(key=lambda x: x['order'])
+        
+#         completed_steps = set()
+#         failed_steps = set()
+        
+#         # Execute steps based on dependencies
+#         while len(completed_steps) < len(steps) and not failed_steps:
+#             ready_steps = []
+            
+#             for step in steps:
+#                 step_number = step['order']
+#                 if step_number not in completed_steps and step_number not in failed_steps:
+#                     if can_execute_step(step, completed_steps, dependencies):
+#                         ready_steps.append(step)
+            
+#             if not ready_steps:
+#                 if len(completed_steps) < len(steps):
+#                     error_msg = "No more steps can be executed due to dependencies"
+#                     log_message(deployment_id, f"ERROR: {error_msg}")
+#                     logger.error(f"[{deployment_id}] {error_msg}")
+#                     break
+#                 else:
+#                     break
+            
+#             # Execute ready steps
+#             for step in ready_steps:
+#                 try:
+#                     log_message(deployment_id, f"Executing step {step['order']}: {step['description']}")
+#                     logger.info(f"[{deployment_id}] Executing step {step['order']}: {step['description']}")
+#                     execute_step(deployment_id, step, inventory, db_inventory)
+#                     completed_steps.add(step['order'])
+#                     log_message(deployment_id, f"Step {step['order']} completed successfully")
+#                     logger.info(f"[{deployment_id}] Step {step['order']} completed successfully")
+#                 except Exception as e:
+#                     error_msg = f"Step {step['order']} failed: {str(e)}"
+#                     log_message(deployment_id, f"ERROR: {error_msg}")
+#                     logger.error(f"[{deployment_id}] {error_msg}")
+#                     failed_steps.add(step['order'])
+#                     break  # Stop execution on first failure
+        
+#         # Update deployment status
+#         if failed_steps:
+#             deployments[deployment_id]['status'] = 'failed'
+#             log_message(deployment_id, f"Template deployment failed. Steps failed: {failed_steps}")
+#             logger.error(f"[{deployment_id}] Template deployment failed. Steps failed: {failed_steps}")
+#         else:
+#             deployments[deployment_id]['status'] = 'success'
+#             log_message(deployment_id, f"Template deployment completed successfully. Steps completed: {completed_steps}")
+#             logger.info(f"[{deployment_id}] Template deployment completed successfully. Steps completed: {completed_steps}")
+        
+#     except Exception as e:
+#         error_msg = f"Template deployment failed: {str(e)}"
+#         log_message(deployment_id, f"ERROR: {error_msg}")
+#         logger.exception(f"[{deployment_id}] Template deployment critical error")
+#         deployments[deployment_id]['status'] = 'failed'
+    
+#     finally:
+#         # Save deployment history
+#         save_deployment_history()
+#         logger.info(f"[{deployment_id}] Deployment history saved")
+
+# def deploy_template(template_name, current_user):
+#     """Main function to start template deployment"""
+#     try:
+#         logger.debug(f"DEBUG: Starting deploy_template for {template_name}")
+        
+#         # Validate template exists
+#         template_path = os.path.join(TEMPLATE_DIR, template_name)
+#         if not os.path.exists(template_path):
+#             error_msg = f"Template not found: {template_name}"
+#             logger.error(f"DEBUG: {error_msg}")
+#             return {"error": error_msg}, 404
+        
+#         # Generate deployment ID
+#         deployment_id = str(uuid.uuid4())
+#         logger.debug(f"DEBUG: Generated deployment ID: {deployment_id}")
+        
+#         # Get app globals
+#         deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
+#         # Store deployment information in the main app's deployments dict
+#         deployments[deployment_id] = {
+#             "id": deployment_id,
+#             "type": "template",
+#             "template": template_name,
+#             "logged_in_user": "admin",
+#             "user_role": "admin",
+#             "status": "running",
+#             "timestamp": time.time(),
+#             "logs": []
+#         }
+        
+#         logger.debug(f"DEBUG: Added deployment to deployments dict: {deployments[deployment_id]}")
+#         logger.info(f"[{deployment_id}] Template deployment initiated ")
+        
+#         # Save deployment history
+#         save_deployment_history()
+#         logger.debug(f"DEBUG: Saved deployment history")
+        
+#         # Start deployment in separate thread
+#         logger.debug(f"DEBUG: Starting background thread for deployment")
+#         threading.Thread(target=process_template_deployment, args=(deployment_id,)).start()
+        
+#         return {
+#             "deploymentId": deployment_id,
+#             # "initiatedBy": current_user['username'],
+#             "template": template_name
+#         }, 200
+        
+#     except Exception as e:
+#         error_msg = f"Failed to start template deployment: {str(e)}"
+#         logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
+#         return {"error": error_msg}, 500
 def process_template_deployment(deployment_id):
     """Process template deployment with dependency management"""
     logger.debug(f"[{deployment_id}] DEBUG: Starting process_template_deployment")
-    
+
     try:
         deployments, save_deployment_history, log_message, _ = get_app_globals()
     except Exception as e:
         logger.error(f"[{deployment_id}] Failed to get app globals: {str(e)}")
         return
-    
+
     if deployment_id not in deployments:
         logger.error(f"[{deployment_id}] DEBUG: Deployment ID not found in deployments")
         return
-        
+
     deployment = deployments[deployment_id]
     logger.debug(f"[{deployment_id}] DEBUG: Processing deployment: {deployment}")
-    
+
     try:
         template_name = deployment['template']
-        
+
         # Load template
         template = load_template(template_name)
         log_message(deployment_id, f"Loaded template: {template_name}")
         logger.info(f"[{deployment_id}] Loaded template: {template_name}")
-        
+
         # Load inventory
         inventory, db_inventory = load_inventory()
         log_message(deployment_id, f"Loaded inventory data")
         logger.info(f"[{deployment_id}] Loaded inventory data")
-        
+
         # Get steps and dependencies
         steps = template['steps']
         dependencies = template.get('dependencies', [])
-        
+
         log_message(deployment_id, f"Starting template deployment with {len(steps)} steps")
         logger.info(f"[{deployment_id}] Starting template deployment with {len(steps)} steps")
-        
+
         # Sort steps by order
         steps.sort(key=lambda x: x['order'])
-        
+
         completed_steps = set()
         failed_steps = set()
-        
+
         # Execute steps based on dependencies
         while len(completed_steps) < len(steps) and not failed_steps:
             ready_steps = []
-            
+
             for step in steps:
                 step_number = step['order']
                 if step_number not in completed_steps and step_number not in failed_steps:
                     if can_execute_step(step, completed_steps, dependencies):
                         ready_steps.append(step)
-            
+
             if not ready_steps:
                 if len(completed_steps) < len(steps):
                     error_msg = "No more steps can be executed due to dependencies"
@@ -919,7 +1070,7 @@ def process_template_deployment(deployment_id):
                     break
                 else:
                     break
-            
+
             # Execute ready steps
             for step in ready_steps:
                 try:
@@ -935,7 +1086,7 @@ def process_template_deployment(deployment_id):
                     logger.error(f"[{deployment_id}] {error_msg}")
                     failed_steps.add(step['order'])
                     break  # Stop execution on first failure
-        
+
         # Update deployment status
         if failed_steps:
             deployments[deployment_id]['status'] = 'failed'
@@ -945,13 +1096,13 @@ def process_template_deployment(deployment_id):
             deployments[deployment_id]['status'] = 'success'
             log_message(deployment_id, f"Template deployment completed successfully. Steps completed: {completed_steps}")
             logger.info(f"[{deployment_id}] Template deployment completed successfully. Steps completed: {completed_steps}")
-        
+
     except Exception as e:
         error_msg = f"Template deployment failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.exception(f"[{deployment_id}] Template deployment critical error")
         deployments[deployment_id]['status'] = 'failed'
-    
+
     finally:
         # Save deployment history
         save_deployment_history()
@@ -961,21 +1112,21 @@ def deploy_template(template_name, current_user):
     """Main function to start template deployment"""
     try:
         logger.debug(f"DEBUG: Starting deploy_template for {template_name}")
-        
+
         # Validate template exists
         template_path = os.path.join(TEMPLATE_DIR, template_name)
         if not os.path.exists(template_path):
             error_msg = f"Template not found: {template_name}"
             logger.error(f"DEBUG: {error_msg}")
             return {"error": error_msg}, 404
-        
+
         # Generate deployment ID
         deployment_id = str(uuid.uuid4())
         logger.debug(f"DEBUG: Generated deployment ID: {deployment_id}")
-        
+
         # Get app globals
         deployments, save_deployment_history, log_message, _ = get_app_globals()
-        
+
         # Store deployment information in the main app's deployments dict
         deployments[deployment_id] = {
             "id": deployment_id,
@@ -987,24 +1138,24 @@ def deploy_template(template_name, current_user):
             "timestamp": time.time(),
             "logs": []
         }
-        
+
         logger.debug(f"DEBUG: Added deployment to deployments dict: {deployments[deployment_id]}")
         logger.info(f"[{deployment_id}] Template deployment initiated ")
-        
+
         # Save deployment history
         save_deployment_history()
         logger.debug(f"DEBUG: Saved deployment history")
-        
-        # Start deployment in separate thread
+
+        # Start deployment in separate thread with app context
         logger.debug(f"DEBUG: Starting background thread for deployment")
-        threading.Thread(target=process_template_deployment, args=(deployment_id,)).start()
-        
+        app = current_app._get_current_object()
+        threading.Thread(target=lambda: app.app_context().push() or process_template_deployment(deployment_id)).start()
+
         return {
             "deploymentId": deployment_id,
-            # "initiatedBy": current_user['username'],
             "template": template_name
         }, 200
-        
+
     except Exception as e:
         error_msg = f"Failed to start template deployment: {str(e)}"
         logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
