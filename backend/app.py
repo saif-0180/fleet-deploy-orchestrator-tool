@@ -24,15 +24,85 @@ from routes.deploy_template import deploy_template_bp, load_template, TEMPLATE_D
 # Register the blueprint
 #app.register_blueprint(db_blueprint, url_prefix='/api')
 
+deployments = {}
+
+def save_deployment_history():
+    try:
+        logger.info(f"Starting to save deployment history. Current deployments count: {len(deployments)}")
+        
+        # Ensure the deployment logs directory exists
+        try:
+            os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
+            logger.debug(f"Ensured directory exists: {DEPLOYMENT_LOGS_DIR}")
+        except Exception as e:
+            logger.error(f"Failed to create DEPLOYMENT_LOGS_DIR: {e}")
+            raise
+        
+        # Create a backup of the current history file if it exists
+        if os.path.exists(DEPLOYMENT_HISTORY_FILE):
+            # timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
+            backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_{timestamp}.json')
+            try:
+                with open(DEPLOYMENT_HISTORY_FILE, 'r') as src:
+                    with open(backup_file, 'w') as dst:
+                        dst.write(src.read())
+                logger.debug(f"Created backup of deployment history: {backup_file}")
+            except Exception as e:
+                logger.error(f"Error creating backup of history file: {str(e)}")
+                # Don't raise here, continue with saving
+        
+        # Ensure the directory for the main history file exists
+        history_dir = os.path.dirname(DEPLOYMENT_HISTORY_FILE)
+        if history_dir:
+            os.makedirs(history_dir, exist_ok=True)
+        
+        # Save the current deployment history
+        try:
+            with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
+                json.dump(deployments, f, default=str, indent=2)
+            logger.info(f"Saved {len(deployments)} deployments to history file: {DEPLOYMENT_HISTORY_FILE}")
+        except Exception as e:
+            logger.error(f"Failed to write deployment history file: {e}")
+            raise
+        
+        # Clean up old backup files (keep only last 10)
+        try:
+            backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')))
+            if len(backup_files) > 10:
+                for old_file in backup_files[:-10]:
+                    try:
+                        os.remove(old_file)
+                        logger.debug(f"Removed old backup file: {old_file}")
+                    except Exception as e:
+                        logger.error(f"Error removing old backup file {old_file}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error during backup cleanup: {e}")
+            # Don't raise here, the main save was successful
+            
+    except Exception as e:
+        logger.error(f"Failed to save deployment history: {str(e)}")
+        raise  # Re-raise so the API returns 500
+
+
+
+# Helper function to log message to deployment log
+def log_message(deployment_id, message):
+    """Log a message to the deployment logs and the application log"""
+    if deployment_id in deployments:
+        # Add to deployment logs
+        if "logs" not in deployments[deployment_id]:
+            deployments[deployment_id]["logs"] = []
+        deployments[deployment_id]["logs"].append(message)
+        
+        # Also log to application log
+        logger.debug(f"[{deployment_id}] {message}")
 
 app = Flask(__name__, static_folder='../frontend/dist')
-
-deployments = {}
 
 app.deployments = deployments
 app.save_deployment_history = save_deployment_history
 app.log_message = log_message
-app.inventory = inventory
 
 # Register the blueprint
 app.register_blueprint(db_routes)
@@ -147,77 +217,77 @@ except (FileNotFoundError, json.JSONDecodeError) as e:
 
 # Function to save deployment history with backup
 
-def save_deployment_history():
-    try:
-        logger.info(f"Starting to save deployment history. Current deployments count: {len(deployments)}")
+# def save_deployment_history():
+#     try:
+#         logger.info(f"Starting to save deployment history. Current deployments count: {len(deployments)}")
         
-        # Ensure the deployment logs directory exists
-        try:
-            os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
-            logger.debug(f"Ensured directory exists: {DEPLOYMENT_LOGS_DIR}")
-        except Exception as e:
-            logger.error(f"Failed to create DEPLOYMENT_LOGS_DIR: {e}")
-            raise
+#         # Ensure the deployment logs directory exists
+#         try:
+#             os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
+#             logger.debug(f"Ensured directory exists: {DEPLOYMENT_LOGS_DIR}")
+#         except Exception as e:
+#             logger.error(f"Failed to create DEPLOYMENT_LOGS_DIR: {e}")
+#             raise
         
-        # Create a backup of the current history file if it exists
-        if os.path.exists(DEPLOYMENT_HISTORY_FILE):
-            # timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
-            backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_{timestamp}.json')
-            try:
-                with open(DEPLOYMENT_HISTORY_FILE, 'r') as src:
-                    with open(backup_file, 'w') as dst:
-                        dst.write(src.read())
-                logger.debug(f"Created backup of deployment history: {backup_file}")
-            except Exception as e:
-                logger.error(f"Error creating backup of history file: {str(e)}")
-                # Don't raise here, continue with saving
+#         # Create a backup of the current history file if it exists
+#         if os.path.exists(DEPLOYMENT_HISTORY_FILE):
+#             # timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+#             timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
+#             backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_{timestamp}.json')
+#             try:
+#                 with open(DEPLOYMENT_HISTORY_FILE, 'r') as src:
+#                     with open(backup_file, 'w') as dst:
+#                         dst.write(src.read())
+#                 logger.debug(f"Created backup of deployment history: {backup_file}")
+#             except Exception as e:
+#                 logger.error(f"Error creating backup of history file: {str(e)}")
+#                 # Don't raise here, continue with saving
         
-        # Ensure the directory for the main history file exists
-        history_dir = os.path.dirname(DEPLOYMENT_HISTORY_FILE)
-        if history_dir:
-            os.makedirs(history_dir, exist_ok=True)
+#         # Ensure the directory for the main history file exists
+#         history_dir = os.path.dirname(DEPLOYMENT_HISTORY_FILE)
+#         if history_dir:
+#             os.makedirs(history_dir, exist_ok=True)
         
-        # Save the current deployment history
-        try:
-            with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
-                json.dump(deployments, f, default=str, indent=2)
-            logger.info(f"Saved {len(deployments)} deployments to history file: {DEPLOYMENT_HISTORY_FILE}")
-        except Exception as e:
-            logger.error(f"Failed to write deployment history file: {e}")
-            raise
+#         # Save the current deployment history
+#         try:
+#             with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
+#                 json.dump(deployments, f, default=str, indent=2)
+#             logger.info(f"Saved {len(deployments)} deployments to history file: {DEPLOYMENT_HISTORY_FILE}")
+#         except Exception as e:
+#             logger.error(f"Failed to write deployment history file: {e}")
+#             raise
         
-        # Clean up old backup files (keep only last 10)
-        try:
-            backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')))
-            if len(backup_files) > 10:
-                for old_file in backup_files[:-10]:
-                    try:
-                        os.remove(old_file)
-                        logger.debug(f"Removed old backup file: {old_file}")
-                    except Exception as e:
-                        logger.error(f"Error removing old backup file {old_file}: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error during backup cleanup: {e}")
-            # Don't raise here, the main save was successful
+#         # Clean up old backup files (keep only last 10)
+#         try:
+#             backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')))
+#             if len(backup_files) > 10:
+#                 for old_file in backup_files[:-10]:
+#                     try:
+#                         os.remove(old_file)
+#                         logger.debug(f"Removed old backup file: {old_file}")
+#                     except Exception as e:
+#                         logger.error(f"Error removing old backup file {old_file}: {str(e)}")
+#         except Exception as e:
+#             logger.error(f"Error during backup cleanup: {e}")
+#             # Don't raise here, the main save was successful
             
-    except Exception as e:
-        logger.error(f"Failed to save deployment history: {str(e)}")
-        raise  # Re-raise so the API returns 500
+#     except Exception as e:
+#         logger.error(f"Failed to save deployment history: {str(e)}")
+#         raise  # Re-raise so the API returns 500
 
 
 
-# Helper function to log message to deployment log
-def log_message(deployment_id, message):
-    """Log a message to the deployment logs and the application log"""
-    if deployment_id in deployments:
-        # Add to deployment logs
-        if "logs" not in deployments[deployment_id]:
-            deployments[deployment_id]["logs"] = []
-        deployments[deployment_id]["logs"].append(message)
+# # Helper function to log message to deployment log
+# def log_message(deployment_id, message):
+#     """Log a message to the deployment logs and the application log"""
+#     if deployment_id in deployments:
+#         # Add to deployment logs
+#         if "logs" not in deployments[deployment_id]:
+#             deployments[deployment_id]["logs"] = []
+#         deployments[deployment_id]["logs"].append(message)
         
-        # Also log to application log
-        logger.debug(f"[{deployment_id}] {message}")
+#         # Also log to application log
+#         logger.debug(f"[{deployment_id}] {message}")
 
 # Check SSH key permissions and setup
 def check_ssh_setup():

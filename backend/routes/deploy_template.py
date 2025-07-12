@@ -27,14 +27,14 @@ def get_app_globals():
     """Get shared objects from the main app through current_app context"""
     try:
         from flask import current_app
-        return current_app.deployments, current_app.save_deployment_history, current_app.log_message, current_app.inventory
+        return current_app.deployments, current_app.save_deployment_history, current_app.log_message
     except:
         # Fallback - import directly (this should be avoided in production)
         logger.warning("Using fallback import - this may cause issues")
         import sys
         sys.path.append('/app/backend')
         app_module = __import__('app')
-        return app_module.deployments, app_module.save_deployment_history, app_module.log_message, app_module.inventory
+        return app_module.deployments, app_module.save_deployment_history, app_module.log_message
 
 def load_template(template_name):
     """Load template from the deployment_templates directory"""
