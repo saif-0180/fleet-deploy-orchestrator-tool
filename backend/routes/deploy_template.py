@@ -9,8 +9,13 @@ import base64
 from flask import current_app, Blueprint, jsonify, request
 import logging
 
+
+logger = logging.getLogger('fix_deployment_orchestrator')
+logging.basicConfig(level=logging.DEBUG)
 deploy_template_bp = Blueprint('deploy_template', __name__)
 
+# Deploy directory for logs
+DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
 TEMPLATE_DIR = "/app/deployment_templates"
 INVENTORY_FILE = "/app/inventory/inventory.json"
 DB_INVENTORY_FILE = "/app/inventory/db_inventory.json"
@@ -312,7 +317,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         order = step.get("order")
         description = step.get("description", "")
         service = step.get("service")
-        operation = step.get("operation", "restart")
+        operation = step.get("operation", "status")
         target_vms = step.get("targetVMs", [])
 
         log_message(deployment_id, f"Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs (initiated by {logged_in_user})")
@@ -323,6 +328,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         
         with open(playbook_file, 'w') as f:
             f.write(f"""---
+# - name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
 - name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
   hosts: systemd_targets
   gather_facts: true
@@ -530,6 +536,8 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
 
         log_message(deployment_id, f"Step {order} completed: systemctl {operation} {service} on all VMs")
         logger.info(f"[{deployment_id}] Step {order} completed successfully")
+        # Save deployment history after completion
+        save_deployment_history()
         
     except subprocess.TimeoutExpired:
         error_msg = f"ERROR: Systemd {operation} operation timed out after 5 minutes"
@@ -933,14 +941,15 @@ def deploy_template(template_name, current_user):
             "id": deployment_id,
             "type": "template",
             "template": template_name,
-            "logged_in_user": current_user['username'],
-            "user_role": current_user['role'],
+            # "logged_in_user": current_user['username'],
+            # "user_role": current_user['role'],
             "status": "running",
             "timestamp": time.time(),
             "logs": []
         }
         
-        logger.info(f"[{deployment_id}] Template deployment initiated by {current_user['username']}")
+        # logger.info(f"[{deployment_id}] Template deployment initiated by {current_user['username']}")
+        logger.info(f"[{deployment_id}] Template deployment initiated")
         
         # Save deployment history
         save_deployment_history()
@@ -950,7 +959,7 @@ def deploy_template(template_name, current_user):
         
         return {
             "deploymentId": deployment_id,
-            "initiatedBy": current_user['username'],
+            # "initiatedBy": current_user['username'],
             "template": template_name
         }, 200
         
