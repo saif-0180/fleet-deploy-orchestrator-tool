@@ -118,38 +118,70 @@ def get_inventory_value(key, inventory, db_inventory):
     # If not found, return None or raise exception
     return None
 
+# @deploy_template_bp.route('/api/templates', methods=['GET'])
+# def list_templates():
+#     """List available templates"""
+#     try:
+#         templates = []
+#         # Create a simple templates directory if it doesn't exist
+#         templates_dir = './templates'
+#         if not os.path.exists(templates_dir):
+#             os.makedirs(templates_dir, exist_ok=True)
+#             # Create a sample template for testing
+#             sample_template = {
+#                 "name": "sample-deployment",
+#                 "description": "Sample deployment template",
+#                 "steps": [
+#                     {
+#                         "name": "test-step",
+#                         "type": "shell_command",
+#                         "command": "echo 'Hello from template deployment!'"
+#                     }
+#                 ]
+#             }
+#             with open(os.path.join(templates_dir, 'sample.json'), 'w') as f:
+#                 json.dump(sample_template, f, indent=2)
+        
+#         # List all json files in templates directory
+#         for filename in os.listdir(templates_dir):
+#             if filename.endswith('.json'):
+#                 templates.append(filename)
+        
+#         return jsonify(templates)
+#     except Exception as e:
+#         logger.error(f"Error listing templates: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
+
 @deploy_template_bp.route('/api/templates', methods=['GET'])
 def list_templates():
-    """List available templates"""
+    """List available deployment templates"""
     try:
         templates = []
-        # Create a simple templates directory if it doesn't exist
-        templates_dir = './templates'
-        if not os.path.exists(templates_dir):
-            os.makedirs(templates_dir, exist_ok=True)
-            # Create a sample template for testing
-            sample_template = {
-                "name": "sample-deployment",
-                "description": "Sample deployment template",
-                "steps": [
-                    {
-                        "name": "test-step",
-                        "type": "shell_command",
-                        "command": "echo 'Hello from template deployment!'"
-                    }
-                ]
-            }
-            with open(os.path.join(templates_dir, 'sample.json'), 'w') as f:
-                json.dump(sample_template, f, indent=2)
-        
-        # List all json files in templates directory
-        for filename in os.listdir(templates_dir):
-            if filename.endswith('.json'):
-                templates.append(filename)
-        
-        return jsonify(templates)
+        if os.path.exists(TEMPLATE_DIR):
+            for file_name in os.listdir(TEMPLATE_DIR):
+                if file_name.endswith('.json'):
+                    try:
+                        template = load_template(file_name)
+                        templates.append({
+                            "name": file_name,
+                            "description": template.get('metadata', {}).get('description', ''),
+                            "ft_number": template.get('metadata', {}).get('ft_number', ''),
+                            "total_steps": template.get('metadata', {}).get('total_steps', len(template.get('steps', []))),
+                            "steps": [
+                                {
+                                    "order": step.get('order'),
+                                    "type": step.get('type'),
+                                    "description": step.get('description', '')
+                                } for step in template.get('steps', [])
+                            ]
+                        })
+                    except Exception as e:
+                        logger.warning(f"Failed to load template {file_name}: {str(e)}")
+                        continue
+
+        return jsonify({"templates": templates})
     except Exception as e:
-        logger.error(f"Error listing templates: {str(e)}")
+        logger.error(f"Failed to list templates: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @deploy_template_bp.route('/api/deploy/template', methods=['POST'])
