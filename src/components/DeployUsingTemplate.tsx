@@ -389,9 +389,6 @@ const getStepTypeLabel = (type: string) => {
                     <div>Steps: {loadedTemplate.steps.length}</div>
                     <div>Description: {loadedTemplate.metadata.description}</div>
                     <div>Generated: {new Date(loadedTemplate.metadata.generated_at).toLocaleString()}</div>
-                    {user && (
-                      <div>User: {user.username} ({user.role})</div>
-                    )}
                   </div>
                 </div>
               )}
