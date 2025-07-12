@@ -170,28 +170,98 @@ const deployMutation = useMutation({
   },
 });
 
-// Fetch deployment logs
-const { data: deploymentLogs } = useQuery({
-  queryKey: ['template-deployment-logs', deploymentId],
-  queryFn: async () => {
-    if (!deploymentId) return { logs: [], status: 'idle' };
-    
-    console.log("📖 Fetching deployment logs for ID:", deploymentId);
-    const response = await fetch(`/api/deploy/status/${deploymentId}`);
-    console.log("📡 Logs response status:", response.status);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Error fetching logs:", errorText);
-      throw new Error('Failed to fetch deployment logs');
-    }
 
-    const data = await response.json();
-    console.log("📋 Deployment logs data:", data);
-    return data;
-  },
-  enabled: !!deploymentId && isAuthenticated,
-  refetchInterval: 2000,
-});
+// Poll logs when deployment starts
+  const pollLogs = async (id: string) => {
+    try {
+      setLogStatus('loading');
+      
+      // Set up SSE for real-time logs
+      const evtSource = new EventSource(`/api/deploy/${id}/logs`);
+      
+      evtSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.message) {
+          setLogs(prev => [...prev, data.message]);
+        }
+        
+        if (data.status && data.status !== 'running') {
+          setLogStatus(data.status);
+          evtSource.close();
+        }
+      };
+      
+      evtSource.onerror = () => {
+        evtSource.close();
+        // Fallback to normal polling if SSE fails
+        fetchLogs(id);
+      };
+      
+      return () => {
+        evtSource.close();
+      };
+    } catch (error) {
+      console.error('Error setting up log polling:', error);
+      // Fallback to regular polling
+      fetchLogs(id);
+    }
+  };
+  
+  const fetchLogs = async (id: string) => {
+    try {
+      const response = await fetch(`/api/deploy/${id}/logs`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs');
+      }
+      
+      const data = await response.json();
+      setLogs(data.logs || []);
+      
+      if (data.status) {
+        setLogStatus(data.status);
+      }
+      
+      // Continue polling if still running
+      if (data.status === 'running') {
+        setTimeout(() => fetchLogs(id), 2000);
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      setLogStatus('failed');
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLogs([]);
+    deployMutation.mutate();
+  };
+
+
+// Fetch deployment logs
+// const { data: deploymentLogs } = useQuery({
+//   queryKey: ['template-deployment-logs', deploymentId],
+//   queryFn: async () => {
+//     if (!deploymentId) return { logs: [], status: 'idle' };
+    
+//     console.log("📖 Fetching deployment logs for ID:", deploymentId);
+//     const response = await fetch(`/api/deploy/status/${deploymentId}`);
+//     console.log("📡 Logs response status:", response.status);
+//     if (!response.ok) {
+//       const errorText = await response.text();
+//       console.error("❌ Error fetching logs:", errorText);
+//       throw new Error('Failed to fetch deployment logs');
+//     }
+
+//     const data = await response.json();
+//     console.log("📋 Deployment logs data:", data);
+//     return data;
+//   },
+//   enabled: !!deploymentId && isAuthenticated,
+//   refetchInterval: 2000,
+// });
 
 // Update logs and status from API
 useEffect(() => {
@@ -273,182 +343,6 @@ const getStepTypeLabel = (type: string) => {
 if (!isAuthenticated) {
   console.warn("🔒 User not authenticated, skipping content render.");
 }
-
-
-  // // Check authentication
-  // useEffect(() => {
-  //   if (!isAuthenticated) {
-  //     toast({
-  //       title: "Authentication Required",
-  //       description: "Please log in to access this feature",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // }, [isAuthenticated, toast]);
-
-  // // Fetch available templates
-  // const { data: templatesData, isLoading: isLoadingTemplates } = useQuery({
-  //   queryKey: ['available-templates'],
-  //   queryFn: async () => {
-  //     const response = await fetch('/api/templates');
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch templates');
-  //     }
-  //     return response.json();
-  //   },
-  //   refetchInterval: 30000, // Refresh every 30 seconds
-  //   enabled: isAuthenticated,
-  // });
-
-  // const availableTemplates = templatesData?.templates || [];
-
-  // // Load specific template
-  // const loadTemplateMutation = useMutation({
-  //   mutationFn: async (templateName: string) => {
-  //     const response = await fetch(`/api/template/${templateName}`);
-  //     if (!response.ok) {
-  //       throw new Error('Failed to load template');
-  //     }
-  //     return response.json();
-  //   },
-  //   onSuccess: (template) => {
-  //     setLoadedTemplate(template);
-  //     toast({
-  //       title: "Success",
-  //       description: `Template ${selectedTemplate} loaded successfully`,
-  //     });
-  //   },
-  //   onError: (error) => {
-  //     toast({
-  //       title: "Error",
-  //       description: `Failed to load template: ${error instanceof Error ? error.message : 'Unknown error'}`,
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
-
-  // // Deploy using template
-  // const deployMutation = useMutation({
-  //   mutationFn: async (templateName: string) => {
-  //     const response = await fetch('/api/deploy/template', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         template: templateName
-  //       }),
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error('Failed to start template deployment');
-  //     }
-  //     return response.json();
-  //   },
-  //   onSuccess: (data) => {
-  //     setDeploymentId(data.deploymentId);
-  //     setDeploymentStatus('running');
-  //     toast({
-  //       title: "Deployment Started",
-  //       description: `Template deployment initiated with ID: ${data.deploymentId}`,
-  //     });
-  //   },
-  //   onError: (error) => {
-  //     setDeploymentStatus('failed');
-  //     toast({
-  //       title: "Deployment Failed",
-  //       description: `Failed to start deployment: ${error instanceof Error ? error.message : 'Unknown error'}`,
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
-
-  // // Fetch deployment logs
-  // const { data: deploymentLogs } = useQuery({
-  //   queryKey: ['template-deployment-logs', deploymentId],
-  //   queryFn: async () => {
-  //     if (!deploymentId) return { logs: [], status: 'idle' };
-      
-  //     const response = await fetch(`/api/deploy/status/${deploymentId}`);
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch deployment logs');
-  //     }
-  //     return response.json();
-  //   },
-  //   enabled: !!deploymentId && isAuthenticated,
-  //   refetchInterval: 2000, // Poll every 2 seconds
-  // });
-
-  // // Update logs and status from API
-  // useEffect(() => {
-  //   if (deploymentLogs) {
-  //     setLogs(deploymentLogs.logs || []);
-  //     setDeploymentStatus(deploymentLogs.status || 'idle');
-  //   }
-  // }, [deploymentLogs]);
-
-  // const handleLoadTemplate = () => {
-  //   if (!isAuthenticated) {
-  //     toast({
-  //       title: "Authentication Required",
-  //       description: "Please log in to load templates",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   if (!selectedTemplate) {
-  //     toast({
-  //       title: "Error",
-  //       description: "Please select a template",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-  //   loadTemplateMutation.mutate(selectedTemplate);
-  // };
-
-  // const handleDeploy = () => {
-  //   if (!isAuthenticated) {
-  //     toast({
-  //       title: "Authentication Required",
-  //       description: "Please log in to deploy templates",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   if (!selectedTemplate) {
-  //     toast({
-  //       title: "Error",
-  //       description: "Please select a template first",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-  //   deployMutation.mutate(selectedTemplate);
-  // };
-
-  // const getStepTypeIcon = (type: string) => {
-  //   switch (type) {
-  //     case 'file_deployment': return '📁';
-  //     case 'sql_deployment': return '🗄️';
-  //     case 'service_restart': return '🔄';
-  //     case 'ansible_playbook': return '🎭';
-  //     case 'helm_upgrade': return '⚙️';
-  //     default: return '📋';
-  //   }
-  // };
-
-  // const getStepTypeLabel = (type: string) => {
-  //   switch (type) {
-  //     case 'file_deployment': return 'File Deployment';
-  //     case 'sql_deployment': return 'SQL Deployment';
-  //     case 'service_restart': return 'Service Management';
-  //     case 'ansible_playbook': return 'Ansible Playbook';
-  //     case 'helm_upgrade': return 'Helm Upgrade';
-  //     default: return type;
-  //   }
-  // };
 
   if (!isAuthenticated) {
     return (
