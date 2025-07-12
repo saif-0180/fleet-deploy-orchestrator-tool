@@ -260,7 +260,7 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         raise
 
 def execute_service_restart(deployment_id, step, inventory, db_inventory):
-    """Execute service operation step using raw systemctl shell commands with unified logging"""
+    """Execute service operation step using Ansible with comprehensive systemd management"""
     from app import log_message, deployments, save_deployment_history, logger
 
     try:
@@ -268,79 +268,239 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
             logger.error(f"Deployment ID {deployment_id} not found")
             return
 
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment["logged_in_user"]
+        
         order = step.get("order")
         description = step.get("description", "")
         service = step.get("service")
         operation = step.get("operation", "restart")
         target_vms = step.get("targetVMs", [])
 
-        log_message(deployment_id, f"Starting service operation step {order}: {description}")
-        logger.info(f"[{deployment_id}] Starting systemctl '{operation}' on '{service}' for {len(target_vms)} VM(s)")
+        log_message(deployment_id, f"Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs (initiated by {logged_in_user})")
+        logger.info(f"[{deployment_id}] Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs")
 
-        for vm in target_vms:
-            # Resolve IP from inventory
-            vm_info = next((v for v in inventory.get("vms", []) if v["name"] == vm), None)
-            if not vm_info or "ip" not in vm_info:
-                error_msg = f"Could not resolve IP for VM: {vm}"
-                log_message(deployment_id, f"ERROR: {error_msg}")
-                logger.error(f"[{deployment_id}] {error_msg}")
-                deployments[deployment_id]["status"] = "failed"
-                save_deployment_history()
-                continue
+        # Generate an ansible playbook for systemd operation
+        playbook_file = f"/tmp/systemd_{deployment_id}_{order}.yml"
+        
+        with open(playbook_file, 'w') as f:
+            f.write(f"""---
+- name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
+  hosts: systemd_targets
+  gather_facts: true
+  vars:
+    service_name: "{service}"
+    operation_type: "{operation}"
+  tasks:
+    - name: Test connection
+      ansible.builtin.ping:
+      
+    - name: Check if service unit file exists
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{{{ service_name }}}}"
+      register: service_file_etc
+      
+    - name: Check if service unit file exists in lib
+      ansible.builtin.stat:
+        path: "/usr/lib/systemd/system/{{{{ service_name }}}}"
+      register: service_file_lib
+      
+    - name: Check if service unit file exists in local
+      ansible.builtin.stat:
+        path: "/usr/local/lib/systemd/system/{{{{ service_name }}}}"
+      register: service_file_local
+      
+    - name: Set service exists fact
+      ansible.builtin.set_fact:
+        service_exists: "{{{{ service_file_etc.stat.exists or service_file_lib.stat.exists or service_file_local.stat.exists }}}}"
+        
+    - name: Report if service doesn't exist
+      ansible.builtin.debug:
+        msg: "ERROR: Service '{{{{ service_name }}}}' unit file not found on {{{{ inventory_hostname }}}}"
+      when: not service_exists
+      
+    - name: Get detailed service status
+      ansible.builtin.systemd:
+        name: "{{{{ service_name }}}}"
+      register: service_status
+      when: service_exists
+      failed_when: false
+      
+    - name: Get service status with systemctl
+      ansible.builtin.shell: |
+        systemctl status {{{{ service_name }}}} --no-pager -l || true
+        echo "---SEPARATOR---"
+        systemctl show {{{{ service_name }}}} --property=ActiveState,SubState,LoadState,UnitFileState,ExecMainStartTimestamp,ExecMainPID,MainPID || true
+      register: service_details
+      when: service_exists
+      
+    - name: Parse service uptime
+      ansible.builtin.shell: |
+        if systemctl is-active {{{{ service_name }}}} >/dev/null 2>&1; then
+          start_time=$(systemctl show {{{{ service_name }}}} --property=ExecMainStartTimestamp --value)
+          if [ -n "$start_time" ] && [ "$start_time" != "n/a" ]; then
+            echo "Service started at: $start_time"
+            # Calculate uptime
+            start_epoch=$(date -d "$start_time" +%s 2>/dev/null || echo "0")
+            current_epoch=$(date +%s)
+            if [ "$start_epoch" -gt 0 ]; then
+              uptime_seconds=$((current_epoch - start_epoch))
+              uptime_days=$((uptime_seconds / 86400))
+              uptime_hours=$(((uptime_seconds % 86400) / 3600))
+              uptime_minutes=$(((uptime_seconds % 3600) / 60))
+              echo "Uptime: ${{uptime_days}}d ${{uptime_hours}}h ${{uptime_minutes}}m"
+            else
+              echo "Uptime: Unable to calculate"
+            fi
+          else
+            echo "Service start time: Not available"
+            echo "Uptime: Not available"
+          fi
+        else
+          echo "Service is not active"
+        fi
+      register: service_uptime
+      when: service_exists
+      
+    - name: Display comprehensive service status
+      ansible.builtin.debug:
+        msg: |
+          ===========================================
+          SERVICE STATUS REPORT for {{{{ inventory_hostname }}}}
+          ===========================================
+          Service Name: {{{{ service_name }}}}
+          Active State: {{{{ service_status.status.ActiveState | default('unknown') }}}}
+          Sub State: {{{{ service_status.status.SubState | default('unknown') }}}}
+          Load State: {{{{ service_status.status.LoadState | default('unknown') }}}}
+          Unit File State: {{{{ service_status.status.UnitFileState | default('unknown') }}}}
+          Main PID: {{{{ service_status.status.MainPID | default('N/A') }}}}
+          
+          {{{{ service_uptime.stdout | default('Uptime info not available') }}}}
+          
+          Status: {{{{ 'ACTIVE' if service_status.status.ActiveState == 'active' else 'INACTIVE/DEAD' }}}}
+          Enabled: {{{{ 'YES' if service_status.status.UnitFileState in ['enabled', 'enabled-runtime'] else 'NO' }}}}
+          ===========================================
+      when: service_exists and operation_type == 'status'
 
-            ip = vm_info["ip"]
-            user = "infadm"
+    - name: Perform systemd START operation
+      ansible.builtin.shell: |
+        sudo systemctl start {{{{ service_name }}}}
+      register: start_result
+      when: service_exists and operation_type == 'start'
 
-            ssh_cmd = f"ssh -o StrictHostKeyChecking=no {user}@{ip} 'sudo systemctl {operation} {service}'"
-            log_message(deployment_id, f"[{vm}] Executing: systemctl {operation} {service}")
-            logger.debug(f"[{deployment_id}] [{vm}] SSH command: {ssh_cmd}")
+    - name: Perform systemd STOP operation
+      ansible.builtin.shell: |
+        sudo systemctl stop {{{{ service_name }}}}
+      register: stop_result
+      when: service_exists and operation_type == 'stop'
 
-            try:
-                result = subprocess.run(
-                    ssh_cmd,
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
+    - name: Perform systemd RESTART operation
+      ansible.builtin.shell: |
+        sudo systemctl restart {{{{ service_name }}}}
+      register: restart_result
+      when: service_exists and operation_type == 'restart'
+      
+    - name: Verify operation result
+      ansible.builtin.systemd:
+        name: "{{{{ service_name }}}}"
+      register: post_operation_status
+      when: service_exists and operation_type in ['start', 'stop', 'restart']
+      failed_when: false
+      
+    - name: Report operation success
+      ansible.builtin.debug:
+        msg: |
+          ===========================================
+          OPERATION RESULT for {{{{ inventory_hostname }}}}
+          ===========================================
+          Service: {{{{ service_name }}}}
+          Operation: {{{{ operation_type | upper }}}}
+          Result: SUCCESS
+          New Status: {{{{ post_operation_status.status.ActiveState | default('unknown') }}}} ({{{{ post_operation_status.status.SubState | default('unknown') }}}})
+          Enabled: {{{{ 'YES' if post_operation_status.status.UnitFileState in ['enabled', 'enabled-runtime'] else 'NO' }}}}
+          ===========================================
+      when: service_exists and operation_type in ['start', 'stop', 'restart']
+      
+    - name: Get final service status for logging
+      ansible.builtin.shell: systemctl is-active {{{{ service_name }}}} || echo "inactive"
+      register: final_status
+      when: service_exists
+      
+    - name: Log final status
+      ansible.builtin.debug:
+        msg: "Final service status on {{{{ inventory_hostname }}}}: {{{{ final_status.stdout | default('unknown') }}}}"
+      when: service_exists
+""")
 
-                stdout = result.stdout.strip()
-                stderr = result.stderr.strip()
-
-                if result.returncode == 0:
-                    log_message(deployment_id, f"[{vm}] SUCCESS: {operation} on {service}")
-                    if stdout:
-                        log_message(deployment_id, f"[{vm}] STDOUT: {stdout}")
-                    logger.info(f"[{deployment_id}] [{vm}] systemctl {operation} successful")
-                else:
-                    error_msg = f"[{vm}] ERROR: systemctl {operation} failed with code {result.returncode}"
-                    log_message(deployment_id, error_msg)
-                    if stderr:
-                        log_message(deployment_id, f"[{vm}] STDERR: {stderr}")
-                    logger.error(f"[{deployment_id}] [{vm}] systemctl {operation} failed: {stderr}")
-                    deployments[deployment_id]["status"] = "failed"
-                    save_deployment_history()
-                    return
-
-            except subprocess.TimeoutExpired:
-                error_msg = f"[{vm}] ERROR: Timeout while running systemctl {operation} {service}"
-                log_message(deployment_id, error_msg)
-                logger.error(f"[{deployment_id}] [{vm}] systemctl command timed out")
-                deployments[deployment_id]["status"] = "failed"
-                save_deployment_history()
-                return
-
-            except Exception as e:
-                error_msg = f"[{vm}] ERROR: Exception: {str(e)}"
-                log_message(deployment_id, error_msg)
-                logger.exception(f"[{deployment_id}] [{vm}] Unexpected error during systemctl operation")
-                deployments[deployment_id]["status"] = "failed"
-                save_deployment_history()
-                return
+        # Generate inventory file for ansible
+        inventory_file = f"/tmp/inventory_{deployment_id}_{order}"
+        
+        with open(inventory_file, 'w') as f:
+            f.write("[systemd_targets]\n")
+            for vm_name in target_vms:
+                # Find VM IP from inventory
+                vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
+                if vm:
+                    f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+        
+        # Run ansible playbook
+        env_vars = os.environ.copy()
+        env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+        env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
+        
+        cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
+        
+        log_message(deployment_id, f"Executing: {' '.join(cmd)}")
+        logger.info(f"Executing Ansible command: {' '.join(cmd)}")
+        
+        # Use subprocess.run with capture_output=True instead of Popen
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=300)
+        
+        # Log the output line by line
+        if result.stdout:
+            log_message(deployment_id, "=== ANSIBLE OUTPUT ===")
+            for line in result.stdout.splitlines():
+                if line.strip():  # Only log non-empty lines
+                    log_message(deployment_id, line.strip())
+        
+        if result.stderr:
+            log_message(deployment_id, "=== ANSIBLE STDERR ===")
+            for line in result.stderr.splitlines():
+                if line.strip():  # Only log non-empty lines
+                    log_message(deployment_id, line.strip())
+        
+        # Check result and update status
+        if result.returncode == 0:
+            log_message(deployment_id, f"SUCCESS: Systemd {operation} operation completed successfully (initiated by {logged_in_user})")
+            logger.info(f"Systemd operation {deployment_id} completed successfully (initiated by {logged_in_user})")
+        else:
+            error_msg = f"ERROR: Systemd {operation} operation failed with return code {result.returncode} (initiated by {logged_in_user})"
+            log_message(deployment_id, error_msg)
+            logger.error(f"Systemd operation {deployment_id} failed with return code {result.returncode} (initiated by {logged_in_user})")
+            deployments[deployment_id]['status'] = 'failed'
+            save_deployment_history()
+            raise Exception(error_msg)
+        
+        # Clean up temporary files
+        try:
+            os.remove(playbook_file)
+            os.remove(inventory_file)
+        except Exception as e:
+            logger.warning(f"Error cleaning up temporary files: {str(e)}")
 
         log_message(deployment_id, f"Step {order} completed: systemctl {operation} {service} on all VMs")
         logger.info(f"[{deployment_id}] Step {order} completed successfully")
-
+        
+    except subprocess.TimeoutExpired:
+        error_msg = f"ERROR: Systemd {operation} operation timed out after 5 minutes"
+        log_message(deployment_id, error_msg)
+        deployments[deployment_id]["status"] = "failed"
+        logger.error(f"Systemd operation {deployment_id} timed out")
+        save_deployment_history()
+        raise Exception(error_msg)
+        
     except Exception as e:
         error_msg = f"ERROR: Service operation failed: {str(e)}"
         log_message(deployment_id, error_msg)
@@ -348,6 +508,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         if deployment_id in deployments:
             deployments[deployment_id]["status"] = "failed"
             save_deployment_history()
+        raise
 
 def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
     """Execute ansible playbook step"""
