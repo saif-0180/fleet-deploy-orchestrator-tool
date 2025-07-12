@@ -9,6 +9,8 @@ import base64
 from flask import current_app, Blueprint, jsonify, request
 import logging
 
+# Import shared components from main app
+from app import deployments, save_deployment_history, log_message, inventory
 
 logger = logging.getLogger('fix_deployment_orchestrator')
 logging.basicConfig(level=logging.DEBUG)
@@ -67,8 +69,6 @@ def get_inventory_value(key, inventory, db_inventory):
 
 def execute_file_deployment(deployment_id, step, inventory, db_inventory):
     """Execute file deployment step using Ansible like in app.py"""
-    from app import log_message, deployments, save_deployment_history, logger
-    
     try:
         logger.info(f"[{deployment_id}] Starting file deployment step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting file deployment step {step['order']}: {step['description']}")
@@ -81,7 +81,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
         
         # Get logged in user from deployment
         deployment = deployments[deployment_id]
-        logged_in_user = deployment["logged_in_user"]
+        logged_in_user = deployment.get("logged_in_user", "system")
         
         # Resolve target VMs from inventory if needed
         resolved_vms = []
@@ -221,98 +221,20 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
         save_deployment_history()
         raise
 
-def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
-    """Execute SQL deployment step using proper database connections"""
-    from app import log_message, deployments, save_deployment_history, logger
-    
-    try:
-        logger.info(f"[{deployment_id}] Starting SQL deployment step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting SQL deployment step {step['order']}: {step['description']}")
-        
-        db_connection = step['dbConnection']
-        db_user = step['dbUser']
-        db_password = step['dbPassword']
-        files = step['files']
-        ft_number = step['ftNumber']
-        
-        # Get logged in user from deployment
-        deployment = deployments[deployment_id]
-        logged_in_user = deployment["logged_in_user"]
-        
-        # Resolve database connection details from inventory
-        db_info = get_inventory_value(db_connection, inventory, db_inventory)
-        if not db_info:
-            error_msg = f"Database connection '{db_connection}' not found in inventory"
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            logger.error(f"[{deployment_id}] {error_msg}")
-            raise Exception(error_msg)
-        
-        # Decode password if it's base64 encoded
-        try:
-            decoded_password = base64.b64decode(db_password).decode('utf-8')
-        except:
-            decoded_password = db_password
-        
-        log_message(deployment_id, f"Executing SQL files: {', '.join(files)} (initiated by {logged_in_user})")
-        logger.info(f"[{deployment_id}] Executing SQL files: {', '.join(files)}")
-        
-        for sql_file in files:
-            source_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, sql_file)
-            
-            if not os.path.exists(source_file):
-                error_msg = f"SQL file not found: {source_file}"
-                log_message(deployment_id, f"ERROR: {error_msg}")
-                logger.error(f"[{deployment_id}] {error_msg}")
-                raise FileNotFoundError(error_msg)
-            
-            log_message(deployment_id, f"Executing SQL file: {sql_file}")
-            
-            # Execute SQL file (adjust based on your database type)
-            if 'oracle' in db_info.get('type', '').lower():
-                cmd = ["sqlplus", "-s", f"{db_user}/{decoded_password}@{db_info['host']}:{db_info['port']}/{db_info['service']}", f"@{source_file}"]
-            elif 'mysql' in db_info.get('type', '').lower():
-                cmd = ["mysql", "-h", db_info['host'], "-P", str(db_info['port']), "-u", db_user, f"-p{decoded_password}", "-e", f"source {source_file}"]
-            elif 'postgres' in db_info.get('type', '').lower():
-                cmd = ["psql", "-h", db_info['host'], "-p", str(db_info['port']), "-U", db_user, "-d", db_info['database'], "-f", source_file]
-            else:
-                error_msg = f"Unsupported database type: {db_info.get('type', 'unknown')}"
-                log_message(deployment_id, f"ERROR: {error_msg}")
-                logger.error(f"[{deployment_id}] {error_msg}")
-                raise Exception(error_msg)
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            
-            if result.returncode == 0:
-                log_message(deployment_id, f"SQL file {sql_file} executed successfully")
-                logger.info(f"[{deployment_id}] SQL file {sql_file} executed successfully")
-            else:
-                error_msg = f"SQL execution failed: {result.stderr}"
-                log_message(deployment_id, f"ERROR: {error_msg}")
-                logger.error(f"[{deployment_id}] {error_msg}")
-                raise Exception(error_msg)
-        
-        log_message(deployment_id, f"SQL deployment step {step['order']} completed successfully")
-        logger.info(f"[{deployment_id}] SQL deployment step {step['order']} completed successfully")
-        
-    except Exception as e:
-        error_msg = f"SQL deployment step {step['order']} failed: {str(e)}"
-        log_message(deployment_id, f"ERROR: {error_msg}")
-        logger.error(f"[{deployment_id}] {error_msg}")
-        deployments[deployment_id]['status'] = 'failed'
-        save_deployment_history()
-        raise
-
 def execute_service_restart(deployment_id, step, inventory, db_inventory):
     """Execute service operation step using Ansible with comprehensive systemd management like in app.py"""
-    from app import log_message, deployments, save_deployment_history, logger
-
     try:
+        logger.debug(f"[{deployment_id}] DEBUG: Starting execute_service_restart")
+        logger.debug(f"[{deployment_id}] DEBUG: Step data: {step}")
+        
         if deployment_id not in deployments:
-            logger.error(f"Deployment ID {deployment_id} not found")
+            logger.error(f"[{deployment_id}] DEBUG: Deployment ID not found in deployments")
             return
 
         deployment = deployments[deployment_id]
-        logged_in_user = deployment["logged_in_user"]
+        logger.debug(f"[{deployment_id}] DEBUG: Found deployment: {deployment}")
+        
+        logged_in_user = deployment.get("logged_in_user", "system")
         
         order = step.get("order")
         description = step.get("description", "")
@@ -320,15 +242,17 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         operation = step.get("operation", "status")
         target_vms = step.get("targetVMs", [])
 
+        logger.debug(f"[{deployment_id}] DEBUG: Service={service}, Operation={operation}, VMs={target_vms}")
+        
         log_message(deployment_id, f"Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs (initiated by {logged_in_user})")
         logger.info(f"[{deployment_id}] Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs")
 
         # Generate an ansible playbook for systemd operation
         playbook_file = f"/tmp/systemd_{deployment_id}_{order}.yml"
+        logger.debug(f"[{deployment_id}] DEBUG: Creating playbook at {playbook_file}")
         
         with open(playbook_file, 'w') as f:
             f.write(f"""---
-# - name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
 - name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
   hosts: systemd_targets
   gather_facts: true
@@ -478,6 +402,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
 
         # Generate inventory file for ansible
         inventory_file = f"/tmp/inventory_{deployment_id}_{order}"
+        logger.debug(f"[{deployment_id}] DEBUG: Creating inventory at {inventory_file}")
         
         with open(inventory_file, 'w') as f:
             f.write("[systemd_targets]\n")
@@ -498,9 +423,12 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         
         log_message(deployment_id, f"Executing: {' '.join(cmd)}")
         logger.info(f"Executing Ansible command: {' '.join(cmd)}")
+        logger.debug(f"[{deployment_id}] DEBUG: Running command: {' '.join(cmd)}")
         
         # Use subprocess.run with capture_output=True instead of Popen
         result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=300)
+        
+        logger.debug(f"[{deployment_id}] DEBUG: Command completed with return code: {result.returncode}")
         
         # Log the output line by line
         if result.stdout:
@@ -556,10 +484,89 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
             save_deployment_history()
         raise
 
+# ... keep existing code (other execute functions like sql_deployment, ansible_playbook, helm_upgrade)
+
+def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
+    """Execute SQL deployment step using proper database connections"""
+    try:
+        logger.info(f"[{deployment_id}] Starting SQL deployment step {step['order']}: {step['description']}")
+        log_message(deployment_id, f"Starting SQL deployment step {step['order']}: {step['description']}")
+        
+        db_connection = step['dbConnection']
+        db_user = step['dbUser']
+        db_password = step['dbPassword']
+        files = step['files']
+        ft_number = step['ftNumber']
+        
+        # Get logged in user from deployment
+        deployment = deployments[deployment_id]
+        logged_in_user = deployment.get("logged_in_user", "system")
+        
+        # Resolve database connection details from inventory
+        db_info = get_inventory_value(db_connection, inventory, db_inventory)
+        if not db_info:
+            error_msg = f"Database connection '{db_connection}' not found in inventory"
+            log_message(deployment_id, f"ERROR: {error_msg}")
+            logger.error(f"[{deployment_id}] {error_msg}")
+            raise Exception(error_msg)
+        
+        # Decode password if it's base64 encoded
+        try:
+            decoded_password = base64.b64decode(db_password).decode('utf-8')
+        except:
+            decoded_password = db_password
+        
+        log_message(deployment_id, f"Executing SQL files: {', '.join(files)} (initiated by {logged_in_user})")
+        logger.info(f"[{deployment_id}] Executing SQL files: {', '.join(files)}")
+        
+        for sql_file in files:
+            source_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, sql_file)
+            
+            if not os.path.exists(source_file):
+                error_msg = f"SQL file not found: {source_file}"
+                log_message(deployment_id, f"ERROR: {error_msg}")
+                logger.error(f"[{deployment_id}] {error_msg}")
+                raise FileNotFoundError(error_msg)
+            
+            log_message(deployment_id, f"Executing SQL file: {sql_file}")
+            
+            # Execute SQL file (adjust based on your database type)
+            if 'oracle' in db_info.get('type', '').lower():
+                cmd = ["sqlplus", "-s", f"{db_user}/{decoded_password}@{db_info['host']}:{db_info['port']}/{db_info['service']}", f"@{source_file}"]
+            elif 'mysql' in db_info.get('type', '').lower():
+                cmd = ["mysql", "-h", db_info['host'], "-P", str(db_info['port']), "-u", db_user, f"-p{decoded_password}", "-e", f"source {source_file}"]
+            elif 'postgres' in db_info.get('type', '').lower():
+                cmd = ["psql", "-h", db_info['host'], "-p", str(db_info['port']), "-U", db_user, "-d", db_info['database'], "-f", source_file]
+            else:
+                error_msg = f"Unsupported database type: {db_info.get('type', 'unknown')}"
+                log_message(deployment_id, f"ERROR: {error_msg}")
+                logger.error(f"[{deployment_id}] {error_msg}")
+                raise Exception(error_msg)
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            
+            if result.returncode == 0:
+                log_message(deployment_id, f"SQL file {sql_file} executed successfully")
+                logger.info(f"[{deployment_id}] SQL file {sql_file} executed successfully")
+            else:
+                error_msg = f"SQL execution failed: {result.stderr}"
+                log_message(deployment_id, f"ERROR: {error_msg}")
+                logger.error(f"[{deployment_id}] {error_msg}")
+                raise Exception(error_msg)
+        
+        log_message(deployment_id, f"SQL deployment step {step['order']} completed successfully")
+        logger.info(f"[{deployment_id}] SQL deployment step {step['order']} completed successfully")
+        
+    except Exception as e:
+        error_msg = f"SQL deployment step {step['order']} failed: {str(e)}"
+        log_message(deployment_id, f"ERROR: {error_msg}")
+        logger.error(f"[{deployment_id}] {error_msg}")
+        deployments[deployment_id]['status'] = 'failed'
+        save_deployment_history()
+        raise
+
 def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
     """Execute ansible playbook step using proper playbook execution"""
-    from app import log_message, deployments, save_deployment_history, logger
-    
     try:
         logger.info(f"[{deployment_id}] Starting ansible playbook step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting ansible playbook step {step['order']}: {step['description']}")
@@ -568,7 +575,7 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
         
         # Get logged in user from deployment
         deployment = deployments[deployment_id]
-        logged_in_user = deployment["logged_in_user"]
+        logged_in_user = deployment.get("logged_in_user", "system")
         
         # Find playbook file
         playbook_path = os.path.join("/app/ansible_playbooks", playbook)
@@ -648,8 +655,6 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
 
 def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
     """Execute helm upgrade step using proper helm commands"""
-    from app import log_message, deployments, save_deployment_history, logger
-    
     try:
         logger.info(f"[{deployment_id}] Starting helm upgrade step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting helm upgrade step {step['order']}: {step['description']}")
@@ -658,7 +663,7 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
         
         # Get logged in user from deployment
         deployment = deployments[deployment_id]
-        logged_in_user = deployment["logged_in_user"]
+        logged_in_user = deployment.get("logged_in_user", "system")
         
         # Get helm configuration from inventory
         helm_config = get_inventory_value(f"helm_{helm_deployment_type}", inventory, db_inventory)
@@ -715,37 +720,32 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
 
 @deploy_template_bp.route('/api/deploy/template', methods=['POST'])
 def deploy_template_route():
-    from app import deployments, save_deployment_history, logger
-
     try:
         data = request.get_json()
-        logger.debug(f"Received JSON payload: {data}")
+        logger.debug(f"DEBUG: Received JSON payload: {data}")
 
         template_name = data.get('template')
         if not template_name:
-            logger.warning("Missing 'template' key in request")
+            logger.warning("DEBUG: Missing 'template' key in request")
             return jsonify({"error": "Template name is required"}), 400
 
-        # Get current user from request headers or session
-        # For now using a mock user - replace with actual user logic
+        # Get current user from request headers or use default
         current_user = {"username": "admin", "role": "admin"}
-        logger.info(f"Initiating deployment for template: {template_name} by user: {current_user['username']}")
+        logger.info(f"DEBUG: Initiating deployment for template: {template_name} by user: {current_user['username']}")
 
         # Call the deployment function
         result, status_code = deploy_template(template_name, current_user)
-        logger.info(f"Deployment started: {result.get('deploymentId')} (Status code: {status_code})")
+        logger.info(f"DEBUG: Deployment started: {result.get('deploymentId')} (Status code: {status_code})")
 
         return jsonify(result), status_code
 
     except Exception as e:
-        logger.exception("Error occurred while handling template deployment")
+        logger.exception("DEBUG: Error occurred while handling template deployment")
         return jsonify({"error": str(e)}), 500
 
 @deploy_template_bp.route('/api/templates', methods=['GET'])
 def list_templates():
     """List available deployment templates"""
-    from app import logger
-    
     try:
         templates = []
         if os.path.exists(TEMPLATE_DIR):
@@ -778,8 +778,6 @@ def list_templates():
 @deploy_template_bp.route('/api/template/<template_name>', methods=['GET'])
 def get_template_details(template_name):
     """Get details of a specific template"""
-    from app import logger
-    
     try:
         template = load_template(template_name)
         return jsonify(template)
@@ -790,6 +788,7 @@ def get_template_details(template_name):
 def execute_step(deployment_id, step, inventory, db_inventory):
     """Execute a single step based on its type"""
     step_type = step['type']
+    logger.debug(f"[{deployment_id}] DEBUG: Executing step type: {step_type}")
     
     if step_type == 'file_deployment':
         execute_file_deployment(deployment_id, step, inventory, db_inventory)
@@ -802,7 +801,6 @@ def execute_step(deployment_id, step, inventory, db_inventory):
     elif step_type == 'helm_upgrade':
         execute_helm_upgrade(deployment_id, step, inventory, db_inventory)
     else:
-        from app import log_message, logger
         error_msg = f"Unknown step type: {step_type}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -831,13 +829,14 @@ def can_execute_step(step, completed_steps, dependencies):
 
 def process_template_deployment(deployment_id):
     """Process template deployment with dependency management"""
-    from app import deployments, save_deployment_history, log_message, logger
+    logger.debug(f"[{deployment_id}] DEBUG: Starting process_template_deployment")
     
     if deployment_id not in deployments:
-        logger.error(f"Deployment ID {deployment_id} not found in deployments")
+        logger.error(f"[{deployment_id}] DEBUG: Deployment ID not found in deployments")
         return
         
     deployment = deployments[deployment_id]
+    logger.debug(f"[{deployment_id}] DEBUG: Processing deployment: {deployment}")
     
     try:
         template_name = deployment['template']
@@ -923,47 +922,50 @@ def process_template_deployment(deployment_id):
 
 def deploy_template(template_name, current_user):
     """Main function to start template deployment"""
-    from app import deployments, save_deployment_history, logger
-    
     try:
+        logger.debug(f"DEBUG: Starting deploy_template for {template_name}")
+        
         # Validate template exists
         template_path = os.path.join(TEMPLATE_DIR, template_name)
         if not os.path.exists(template_path):
             error_msg = f"Template not found: {template_name}"
-            logger.error(error_msg)
+            logger.error(f"DEBUG: {error_msg}")
             return {"error": error_msg}, 404
         
         # Generate deployment ID
         deployment_id = str(uuid.uuid4())
+        logger.debug(f"DEBUG: Generated deployment ID: {deployment_id}")
         
         # Store deployment information in the main app's deployments dict
         deployments[deployment_id] = {
             "id": deployment_id,
             "type": "template",
             "template": template_name,
-            # "logged_in_user": current_user['username'],
-            # "user_role": current_user['role'],
+            "logged_in_user": current_user['username'],
+            "user_role": current_user['role'],
             "status": "running",
             "timestamp": time.time(),
             "logs": []
         }
         
-        # logger.info(f"[{deployment_id}] Template deployment initiated by {current_user['username']}")
-        logger.info(f"[{deployment_id}] Template deployment initiated")
+        logger.debug(f"DEBUG: Added deployment to deployments dict: {deployments[deployment_id]}")
+        logger.info(f"[{deployment_id}] Template deployment initiated by {current_user['username']}")
         
         # Save deployment history
         save_deployment_history()
+        logger.debug(f"DEBUG: Saved deployment history")
         
         # Start deployment in separate thread
+        logger.debug(f"DEBUG: Starting background thread for deployment")
         threading.Thread(target=process_template_deployment, args=(deployment_id,), daemon=True).start()
         
         return {
             "deploymentId": deployment_id,
-            # "initiatedBy": current_user['username'],
+            "initiatedBy": current_user['username'],
             "template": template_name
         }, 200
         
     except Exception as e:
         error_msg = f"Failed to start template deployment: {str(e)}"
-        logger.exception("Critical error in deploy_template")
+        logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
         return {"error": error_msg}, 500
