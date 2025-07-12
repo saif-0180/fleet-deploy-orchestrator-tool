@@ -997,7 +997,7 @@ def deploy_template(template_name, current_user):
         
         # Start deployment in separate thread
         logger.debug(f"DEBUG: Starting background thread for deployment")
-        threading.Thread(target=process_template_deployment, args=(deployment_id)).start()
+        threading.Thread(target=process_template_deployment, args=(deployment_id,)).start()
         
         return {
             "deploymentId": deployment_id,
