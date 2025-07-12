@@ -1,4 +1,5 @@
 
+
 import os
 import json
 import subprocess
@@ -9,12 +10,11 @@ import base64
 from flask import current_app, Blueprint, jsonify, request
 import logging
 
-# Import shared components from main app
-from app import deployments, save_deployment_history, log_message, inventory
+# Create the blueprint without importing from app
+deploy_template_bp = Blueprint('deploy_template', __name__)
 
 logger = logging.getLogger('fix_deployment_orchestrator')
 logging.basicConfig(level=logging.DEBUG)
-deploy_template_bp = Blueprint('deploy_template', __name__)
 
 # Deploy directory for logs
 DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
@@ -22,6 +22,19 @@ TEMPLATE_DIR = "/app/deployment_templates"
 INVENTORY_FILE = "/app/inventory/inventory.json"
 DB_INVENTORY_FILE = "/app/inventory/db_inventory.json"
 FIX_FILES_DIR = "/app/fixfiles"
+
+def get_app_globals():
+    """Get shared objects from the main app through current_app context"""
+    try:
+        from flask import current_app
+        return current_app.deployments, current_app.save_deployment_history, current_app.log_message, current_app.inventory
+    except:
+        # Fallback - import directly (this should be avoided in production)
+        logger.warning("Using fallback import - this may cause issues")
+        import sys
+        sys.path.append('/app/backend')
+        app_module = __import__('app')
+        return app_module.deployments, app_module.save_deployment_history, app_module.log_message, app_module.inventory
 
 def load_template(template_name):
     """Load template from the deployment_templates directory"""
@@ -70,6 +83,8 @@ def get_inventory_value(key, inventory, db_inventory):
 def execute_file_deployment(deployment_id, step, inventory, db_inventory):
     """Execute file deployment step using Ansible like in app.py"""
     try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         logger.info(f"[{deployment_id}] Starting file deployment step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting file deployment step {step['order']}: {step['description']}")
         
@@ -214,6 +229,7 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
         logger.info(f"[{deployment_id}] File deployment step {step['order']} completed successfully")
         
     except Exception as e:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"File deployment step {step['order']} failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -224,6 +240,8 @@ def execute_file_deployment(deployment_id, step, inventory, db_inventory):
 def execute_service_restart(deployment_id, step, inventory, db_inventory):
     """Execute service operation step using Ansible with comprehensive systemd management like in app.py"""
     try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         logger.debug(f"[{deployment_id}] DEBUG: Starting execute_service_restart")
         logger.debug(f"[{deployment_id}] DEBUG: Step data: {step}")
         
@@ -468,6 +486,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         save_deployment_history()
         
     except subprocess.TimeoutExpired:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"ERROR: Systemd {operation} operation timed out after 5 minutes"
         log_message(deployment_id, error_msg)
         deployments[deployment_id]["status"] = "failed"
@@ -476,6 +495,7 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         raise Exception(error_msg)
         
     except Exception as e:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"ERROR: Service operation failed: {str(e)}"
         log_message(deployment_id, error_msg)
         logger.exception(f"[{deployment_id}] Critical error in execute_service_restart()")
@@ -489,6 +509,8 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
 def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
     """Execute SQL deployment step using proper database connections"""
     try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         logger.info(f"[{deployment_id}] Starting SQL deployment step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting SQL deployment step {step['order']}: {step['description']}")
         
@@ -558,6 +580,7 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
         logger.info(f"[{deployment_id}] SQL deployment step {step['order']} completed successfully")
         
     except Exception as e:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"SQL deployment step {step['order']} failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -568,6 +591,8 @@ def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
 def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
     """Execute ansible playbook step using proper playbook execution"""
     try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         logger.info(f"[{deployment_id}] Starting ansible playbook step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting ansible playbook step {step['order']}: {step['description']}")
         
@@ -646,6 +671,7 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
         logger.info(f"[{deployment_id}] Ansible playbook step {step['order']} completed successfully")
         
     except Exception as e:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"Ansible playbook step {step['order']} failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -656,6 +682,8 @@ def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
 def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
     """Execute helm upgrade step using proper helm commands"""
     try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         logger.info(f"[{deployment_id}] Starting helm upgrade step {step['order']}: {step['description']}")
         log_message(deployment_id, f"Starting helm upgrade step {step['order']}: {step['description']}")
         
@@ -711,6 +739,7 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
         logger.info(f"[{deployment_id}] Helm upgrade step {step['order']} completed successfully")
         
     except Exception as e:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"Helm upgrade step {step['order']} failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -801,6 +830,7 @@ def execute_step(deployment_id, step, inventory, db_inventory):
     elif step_type == 'helm_upgrade':
         execute_helm_upgrade(deployment_id, step, inventory, db_inventory)
     else:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
         error_msg = f"Unknown step type: {step_type}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
@@ -830,6 +860,12 @@ def can_execute_step(step, completed_steps, dependencies):
 def process_template_deployment(deployment_id):
     """Process template deployment with dependency management"""
     logger.debug(f"[{deployment_id}] DEBUG: Starting process_template_deployment")
+    
+    try:
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+    except Exception as e:
+        logger.error(f"[{deployment_id}] Failed to get app globals: {str(e)}")
+        return
     
     if deployment_id not in deployments:
         logger.error(f"[{deployment_id}] DEBUG: Deployment ID not found in deployments")
@@ -936,6 +972,9 @@ def deploy_template(template_name, current_user):
         deployment_id = str(uuid.uuid4())
         logger.debug(f"DEBUG: Generated deployment ID: {deployment_id}")
         
+        # Get app globals
+        deployments, save_deployment_history, log_message, _ = get_app_globals()
+        
         # Store deployment information in the main app's deployments dict
         deployments[deployment_id] = {
             "id": deployment_id,
@@ -969,3 +1008,4 @@ def deploy_template(template_name, current_user):
         error_msg = f"Failed to start template deployment: {str(e)}"
         logger.exception(f"DEBUG: Critical error in deploy_template: {error_msg}")
         return {"error": error_msg}, 500
+
