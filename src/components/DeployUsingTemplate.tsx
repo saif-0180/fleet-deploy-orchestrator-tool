@@ -264,13 +264,13 @@ const deployMutation = useMutation({
 // });
 
 // Update logs and status from API
-useEffect(() => {
-  if (deploymentLogs) {
-    console.log("📲 Updating UI with logs and status:", deploymentLogs);
-    setLogs(deploymentLogs.logs || []);
-    setDeploymentStatus(deploymentLogs.status || 'idle');
-  }
-}, [deploymentLogs]);
+// useEffect(() => {
+//   if (deploymentLogs) {
+//     console.log("📲 Updating UI with logs and status:", deploymentLogs);
+//     setLogs(deploymentLogs.logs || []);
+//     setDeploymentStatus(deploymentLogs.status || 'idle');
+//   }
+// }, [deploymentLogs]);
 
 const handleLoadTemplate = () => {
   if (!isAuthenticated) {
