@@ -1210,8 +1210,8 @@ def deploy_template(template_name, current_user):
             with app.app_context():
                 process_template_deployment(deployment_id)
 
+        app = current_app._get_current_object()
         threading.Thread(target=run_in_app_context, args=(app, deployment_id)).start()
-
         return {
             "deploymentId": deployment_id,
             "template": template_name
