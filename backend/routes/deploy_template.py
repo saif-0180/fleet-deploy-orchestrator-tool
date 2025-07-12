@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Deploy directory for logs - use relative paths like db_routes.py
 DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', './logs')
-TEMPLATE_DIR = "./templates"
+TEMPLATE_DIR = "./deployment_templates"
 INVENTORY_FILE = "./inventory/inventory.json"
 DB_INVENTORY_FILE = "./inventory/db_inventory.json"
 FIX_FILES_DIR = "./fixfiles"
