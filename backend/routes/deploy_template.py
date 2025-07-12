@@ -15,11 +15,11 @@ logger = logging.getLogger('fix_deployment_orchestrator')
 logging.basicConfig(level=logging.DEBUG)
 
 # Deploy directory for logs - use relative paths like db_routes.py
-DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', './logs')
-TEMPLATE_DIR = "./deployment_templates"
-INVENTORY_FILE = "./inventory/inventory.json"
-DB_INVENTORY_FILE = "./inventory/db_inventory.json"
-FIX_FILES_DIR = "./fixfiles"
+DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
+TEMPLATE_DIR = "/app/deployment_templates"
+INVENTORY_FILE = "/app/inventory/inventory.json"
+DB_INVENTORY_FILE = "/app/inventory/db_inventory.json"
+FIX_FILES_DIR = "/app/fixfiles"
 
 def get_app_globals():
     """Get shared objects from the main app - fixed to work like db_routes.py"""
