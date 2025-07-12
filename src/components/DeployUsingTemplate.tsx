@@ -56,12 +56,12 @@ interface TemplateInfo {
 }
 
 const DeployUsingTemplate: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  // const { user, isAuthenticated } = useAuth();
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [loadedTemplate, setLoadedTemplate] = useState<DeploymentTemplate | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'loading' | 'running' | 'completed' | 'failed'>('idle');
+  const [logStatus, setlogStatus] = useState<'idle' | 'loading' | 'running' | 'completed' | 'failed'>('idle');
   const { toast } = useToast();
 
   // Fetch available templates
@@ -152,7 +152,7 @@ const deployMutation = useMutation({
   },
   onSuccess: (data) => {
     setDeploymentId(data.deploymentId);
-    setDeploymentStatus('running');
+    setlogStatus('running');
     console.log("✅ Deployment ID:", data.deploymentId);
     toast({
       title: "Deployment Started",
@@ -161,7 +161,7 @@ const deployMutation = useMutation({
   },
   onError: (error) => {
     console.error("❌ Deployment error:", error);
-    setDeploymentStatus('failed');
+    setlogStatus('failed');
     toast({
       title: "Deployment Failed",
       description: `Failed to start deployment: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -268,7 +268,7 @@ const deployMutation = useMutation({
 //   if (deploymentLogs) {
 //     console.log("📲 Updating UI with logs and status:", deploymentLogs);
 //     setLogs(deploymentLogs.logs || []);
-//     setDeploymentStatus(deploymentLogs.status || 'idle');
+//     setlogStatus(deploymentLogs.status || 'idle');
 //   }
 // }, [deploymentLogs]);
 
@@ -406,10 +406,10 @@ const getStepTypeLabel = (type: string) => {
               <Button
                 // onClick={handleDeploy}
                 type="submit"
-                disabled={!selectedTemplate || deployMutation.isPending || deploymentStatus === 'running'}
+                disabled={!selectedTemplate || deployMutation.isPending || logStatus === 'running'}
                 className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
               >
-                {deployMutation.isPending || deploymentStatus === 'running' ? "Deploying..." : "Deploy"}
+                {deployMutation.isPending || logStatus === 'running' ? "Deploying..." : "Deploy"}
               </Button>
 
               {deploymentId && (
@@ -418,10 +418,10 @@ const getStepTypeLabel = (type: string) => {
                   <div className="text-sm text-[#EEEEEE] space-y-1">
                     <div>ID: {deploymentId}</div>
                     <div>Status: <span className={`capitalize ${
-                      deploymentStatus === 'completed' ? 'text-green-400' : 
-                      deploymentStatus === 'failed' ? 'text-red-400' :
-                      deploymentStatus === 'running' ? 'text-yellow-400' : 'text-gray-400'
-                    }`}>{deploymentStatus}</span></div>
+                      logStatus === 'completed' ? 'text-green-400' : 
+                      logStatus === 'failed' ? 'text-red-400' :
+                      logStatus === 'running' ? 'text-yellow-400' : 'text-gray-400'
+                    }`}>{logStatus}</span></div>
                   </div>
                 </div>
               )}
@@ -485,7 +485,7 @@ const getStepTypeLabel = (type: string) => {
             height="838px"
             fixedHeight={true}
             title="Template Deployment Logs"
-            status={deploymentStatus}
+            status={logStatus}
           />
         </div>
       </div>
