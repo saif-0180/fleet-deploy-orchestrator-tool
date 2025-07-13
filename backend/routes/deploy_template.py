@@ -26,11 +26,14 @@ def get_app_globals():
     """Get shared objects from the main app via current_app context"""
     try:
         # Access deployments - handle if it's empty
-        deployments = getattr(current_app, 'deployments', None)
-        if deployments is None:
-            deployments = current_app.config.get('deployments', {})
-        if not isinstance(deployments, dict):
-            deployments = {}
+        # deployments = getattr(current_app, 'deployments', None)
+        # if deployments is None:
+        #     deployments = current_app.config.get('deployments', {})
+        # if not isinstance(deployments, dict):
+        #     deployments = {}
+        if not hasattr(current_app, 'deployments'):
+            current_app.deployments = {}
+        deployments = current_app.deployments
         
         # Access save_deployment_history function
         save_deployment_history = getattr(current_app, 'save_deployment_history', None)
@@ -312,13 +315,20 @@ def deploy_template():
             "logged_in_user": "infadm"
         }
         
-        # Make sure we're storing in the actual app's deployments dictionary
-        if hasattr(current_app, 'deployments'):
-            current_app.deployments[deployment_id] = deployment_data
-            logger.info(f"Stored deployment in current_app.deployments. Total: {len(current_app.deployments)}")
-        else:
-            deployments[deployment_id] = deployment_data
-            logger.info(f"Stored deployment in local dict. Total: {len(deployments)}")
+        # # Make sure we're storing in the actual app's deployments dictionary
+        # if hasattr(current_app, 'deployments'):
+        #     current_app.deployments[deployment_id] = deployment_data
+        #     logger.info(f"Stored deployment in current_app.deployments. Total: {len(current_app.deployments)}")
+        # else:
+        #     deployments[deployment_id] = deployment_data
+        #     logger.info(f"Stored deployment in local dict. Total: {len(deployments)}")
+        # CRITICAL FIX: Always use current_app.deployments directly
+
+
+        # This ensures we're storing in the main app's deployment dictionary
+        current_app.deployments[deployment_id] = deployment_data
+        logger.info(f"Stored deployment in current_app.deployments. Total: {len(current_app.deployments)}")
+
         
         # Log initial message
         log_message(deployment_id, f"Template deployment initiated: {template_name}")
@@ -409,14 +419,19 @@ def process_template_deployment(deployment_id, template_name, ft_number, variabl
         logger.info(f"=== STARTING TEMPLATE DEPLOYMENT PROCESSING: {deployment_id} ===")
         
         # Check if deployment exists in app's deployments or local deployments
-        deployment = None
-        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
-            deployment = current_app.deployments[deployment_id]
-        elif deployment_id in deployments:
-            deployment = deployments[deployment_id]
+        # deployment = None
+        # if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+        #     deployment = current_app.deployments[deployment_id]
+        # elif deployment_id in deployments:
+        #     deployment = deployments[deployment_id]
         
-        if not deployment:
-            logger.error(f"Deployment ID {deployment_id} not found in any deployments dictionary")
+        # if not deployment:
+        #     logger.error(f"Deployment ID {deployment_id} not found in any deployments dictionary")
+        #     return
+
+        # CRITICAL FIX: Always use current_app.deployments directly
+        if deployment_id not in current_app.deployments:
+            logger.error(f"Deployment ID {deployment_id} not found in current_app.deployments")
             return
             
         logger.info(f"Processing template deployment: {template_name}")
@@ -645,13 +660,18 @@ def get_deployment_logs(deployment_id):
         logger.debug(f"Looking for deployment: {deployment_id}")
         
         # Check both app.deployments and local deployments first
+        # deployment = None
+        # if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+        #     deployment = current_app.deployments[deployment_id]
+        #     logger.debug(f"Found deployment in current_app.deployments")
+        # elif deployment_id in deployments:
+        #     deployment = deployments[deployment_id]
+        #     logger.debug(f"Found deployment in local deployments")
         deployment = None
-        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+        if deployment_id in current_app.deployments:
             deployment = current_app.deployments[deployment_id]
             logger.debug(f"Found deployment in current_app.deployments")
-        elif deployment_id in deployments:
-            deployment = deployments[deployment_id]
-            logger.debug(f"Found deployment in local deployments")
+
         else:
             # If not found in current deployments, try to load from historical files
             logger.info(f"Deployment {deployment_id} not found in current session, checking historical files")
@@ -682,12 +702,17 @@ def get_deployment_status(deployment_id):
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
-        # Check both app.deployments and local deployments first
+        # # Check both app.deployments and local deployments first
+        # deployment = None
+        # if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+        #     deployment = current_app.deployments[deployment_id]
+        # elif deployment_id in deployments:
+        #     deployment = deployments[deployment_id]
+
         deployment = None
-        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+        if deployment_id in current_app.deployments:
             deployment = current_app.deployments[deployment_id]
-        elif deployment_id in deployments:
-            deployment = deployments[deployment_id]
+            
         else:
             # If not found in current deployments, try to load from historical files
             deployment = load_historical_deployment(deployment_id)
