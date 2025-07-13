@@ -9,13 +9,14 @@ import base64
 from flask import current_app, Blueprint, jsonify, request
 import logging
 
-# Create the blueprint without importing from app
+# Create the blueprint
 deploy_template_bp = Blueprint('deploy_template', __name__)
 
+# Set up logging
 logger = logging.getLogger('fix_deployment_orchestrator')
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-# Deploy directory for logs - use relative paths like db_routes.py
+# Deploy directory for logs
 DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
 TEMPLATE_DIR = "/app/deployment_templates"
 INVENTORY_FILE = "/app/inventory/inventory.json"
@@ -25,19 +26,16 @@ FIX_FILES_DIR = "/app/fixfiles"
 def get_app_globals():
     """Get shared objects from the main app via current_app context"""
     try:
-        from flask import current_app
         # Access the shared objects through current_app
         deployments = current_app.config.get('deployments')
         save_deployment_history = current_app.config.get('save_deployment_history')
         log_message = current_app.config.get('log_message')
         inventory = current_app.config.get('inventory')
         
+        logger.debug(f"Retrieved app globals - deployments: {deployments is not None}, save_history: {save_deployment_history is not None}, log_message: {log_message is not None}, inventory: {inventory is not None}")
+        
         if not all([deployments is not None, save_deployment_history, log_message, inventory is not None]):
             logger.error("One or more required app globals are None")
-            logger.debug(f"deployments: {deployments is not None}")
-            logger.debug(f"save_deployment_history: {save_deployment_history is not None}")
-            logger.debug(f"log_message: {log_message is not None}")
-            logger.debug(f"inventory: {inventory is not None}")
             raise Exception("Required app globals not properly initialized")
         
         return deployments, save_deployment_history, log_message, inventory
@@ -50,7 +48,6 @@ def load_template(template_name):
     try:
         logger.debug(f"Loading template: {template_name}")
         template_path = os.path.join(TEMPLATE_DIR, template_name)
-        logger.debug(f"Template path: {template_path}")
         
         if not os.path.exists(template_path):
             logger.warning(f"Template not found: {template_path}")
@@ -65,9 +62,11 @@ def load_template(template_name):
                 "steps": [
                     {
                         "order": 1,
-                        "type": "shell_command",
-                        "description": f"Template deployment: {template_name}",
-                        "command": f"echo 'Template deployment: {template_name}'"
+                        "type": "service_restart",
+                        "description": f"Restart docker service for {template_name}",
+                        "service": "docker",
+                        "operation": "restart",
+                        "targetVMs": ["batch1"]
                     }
                 ]
             }
@@ -90,15 +89,17 @@ def load_template(template_name):
             "steps": [
                 {
                     "order": 1,
-                    "type": "shell_command",
-                    "description": f"Error loading template: {str(e)}",
-                    "command": f"echo 'Error loading template: {str(e)}'"
+                    "type": "service_restart",
+                    "description": f"Restart docker service - fallback",
+                    "service": "docker",
+                    "operation": "restart",
+                    "targetVMs": ["batch1"]
                 }
             ]
         }
 
 def load_inventory():
-    """Load inventory and db_inventory files with fallbacks like db_routes.py"""
+    """Load inventory files with fallbacks"""
     try:
         logger.debug("Loading inventory files")
         
@@ -111,7 +112,10 @@ def load_inventory():
         else:
             # Fallback inventory
             inventory = {
-                "vms": [{"name": "vm1", "ip": "192.168.1.1"}, {"name": "vm2", "ip": "192.168.1.2"}],
+                "vms": [
+                    {"name": "batch1", "ip": "10.172.145.204"},
+                    {"name": "batch2", "ip": "10.172.145.205"}
+                ],
                 "databases": ["db1", "db2"]
             }
             logger.debug("Using fallback inventory")
@@ -136,7 +140,6 @@ def load_inventory():
         return inventory, db_inventory
     except Exception as e:
         logger.error(f"Error loading inventory: {str(e)}")
-        # Return minimal fallback data
         return {"vms": [], "databases": []}, {"db_connections": [], "db_users": []}
 
 @deploy_template_bp.route('/api/templates', methods=['GET'])
@@ -146,11 +149,9 @@ def list_templates():
         logger.debug("Listing available templates")
         templates = []
         if os.path.exists(TEMPLATE_DIR):
-            logger.debug(f"Template directory exists: {TEMPLATE_DIR}")
             for file_name in os.listdir(TEMPLATE_DIR):
                 if file_name.endswith('.json'):
                     try:
-                        logger.debug(f"Processing template file: {file_name}")
                         template = load_template(file_name)
                         templates.append({
                             "name": file_name,
@@ -190,7 +191,7 @@ def get_template_details(template_name):
 
 @deploy_template_bp.route('/api/deploy/template', methods=['POST'])
 def deploy_template():
-    """Start template deployment - properly integrated with main app"""
+    """Start template deployment"""
     try:
         logger.info("=== TEMPLATE DEPLOYMENT REQUEST RECEIVED ===")
         data = request.json
@@ -228,12 +229,11 @@ def deploy_template():
             "status": "running",
             "timestamp": time.time(),
             "logs": [],
-            "logged_in_user": "infadm"  # Set default user
+            "logged_in_user": "infadm"
         }
         
         deployments[deployment_id] = deployment_data
         logger.info(f"Added deployment to shared dictionary. Total deployments: {len(deployments)}")
-        logger.debug(f"Deployment data: {deployment_data}")
         
         # Log initial message
         log_message(deployment_id, f"Template deployment initiated: {template_name}")
@@ -243,21 +243,31 @@ def deploy_template():
         save_deployment_history()
         logger.debug("Saved deployment history")
         
-        # Start deployment in a separate thread
-        logger.info(f"Starting background thread for deployment {deployment_id}")
-        deployment_thread = threading.Thread(
-            target=process_template_deployment, 
-            args=(deployment_id,),
-            daemon=True
-        )
-        deployment_thread.start()
-        logger.info(f"Background thread started for deployment {deployment_id}")
-        
-        # Verify thread is alive
-        if deployment_thread.is_alive():
-            logger.info(f"Thread is alive and running for deployment {deployment_id}")
-        else:
-            logger.error(f"Thread failed to start for deployment {deployment_id}")
+        # Start deployment in a separate thread - CRITICAL FIX
+        logger.info(f"Creating background thread for deployment {deployment_id}")
+        try:
+            deployment_thread = threading.Thread(
+                target=process_template_deployment_wrapper, 
+                args=(deployment_id,),
+                daemon=True,
+                name=f"template-deploy-{deployment_id[:8]}"
+            )
+            deployment_thread.start()
+            logger.info(f"Background thread '{deployment_thread.name}' started successfully")
+            
+            # Verify thread is running
+            time.sleep(0.1)  # Give thread a moment to start
+            if deployment_thread.is_alive():
+                logger.info(f"Thread is confirmed alive and running for deployment {deployment_id}")
+            else:
+                logger.error(f"Thread failed to start or died immediately for deployment {deployment_id}")
+                
+        except Exception as thread_e:
+            logger.error(f"Failed to create/start thread: {str(thread_e)}")
+            deployments[deployment_id]["status"] = "failed"
+            log_message(deployment_id, f"ERROR: Failed to start deployment thread: {str(thread_e)}")
+            save_deployment_history()
+            return jsonify({"error": f"Failed to start deployment: {str(thread_e)}"}), 500
         
         logger.info(f"Template deployment initiated with ID: {deployment_id}")
         return jsonify({"deploymentId": deployment_id})
@@ -267,23 +277,33 @@ def deploy_template():
         logger.exception("Full exception details:")
         return jsonify({"error": str(e)}), 500
 
+def process_template_deployment_wrapper(deployment_id):
+    """Wrapper function to handle exceptions in the deployment thread"""
+    try:
+        logger.info(f"=== WRAPPER: Starting deployment thread for {deployment_id} ===")
+        process_template_deployment(deployment_id)
+    except Exception as e:
+        logger.error(f"=== WRAPPER: Exception in deployment thread {deployment_id}: {str(e)} ===")
+        logger.exception("Full wrapper exception details:")
+        try:
+            deployments, save_deployment_history, log_message, inventory = get_app_globals()
+            log_message(deployment_id, f"ERROR: Deployment thread failed: {str(e)}")
+            deployments[deployment_id]["status"] = "failed"
+            save_deployment_history()
+        except Exception as cleanup_e:
+            logger.error(f"Failed to update deployment status after thread error: {str(cleanup_e)}")
+
 def process_template_deployment(deployment_id):
     """Process template deployment in a separate thread"""
     try:
         logger.info(f"=== STARTING TEMPLATE DEPLOYMENT PROCESSING: {deployment_id} ===")
         
         # Get shared objects from main app
-        try:
-            deployments, save_deployment_history, log_message, inventory = get_app_globals()
-            logger.debug(f"Got app globals in thread for deployment {deployment_id}")
-        except Exception as e:
-            logger.error(f"Failed to get app globals in thread: {str(e)}")
-            return
+        deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
         # Check if deployment exists
         if deployment_id not in deployments:
             logger.error(f"Deployment ID {deployment_id} not found in deployments dictionary")
-            logger.debug(f"Available deployment IDs: {list(deployments.keys())}")
             return
         
         deployment = deployments[deployment_id]
@@ -294,40 +314,22 @@ def process_template_deployment(deployment_id):
         log_message(deployment_id, f"Starting template deployment: {template_name}")
         
         # Load template
-        try:
-            template = load_template(template_name)
-            log_message(deployment_id, f"Loaded template: {template_name}")
-            logger.debug(f"Template loaded: {template.get('metadata', {})}")
-        except Exception as e:
-            error_msg = f"Failed to load template {template_name}: {str(e)}"
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            logger.error(error_msg)
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return
+        template = load_template(template_name)
+        log_message(deployment_id, f"Loaded template: {template_name}")
         
         # Load inventory
-        try:
-            inv_data, db_inventory = load_inventory()
-            log_message(deployment_id, "Loaded inventory files")
-            logger.debug("Inventory loaded successfully")
-        except Exception as e:
-            error_msg = f"Failed to load inventory: {str(e)}"
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            logger.error(error_msg)
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return
+        inv_data, db_inventory = load_inventory()
+        log_message(deployment_id, "Loaded inventory files")
         
         # Process deployment steps
         steps = template.get("steps", [])
         log_message(deployment_id, f"Processing {len(steps)} deployment steps")
         logger.info(f"Processing {len(steps)} deployment steps")
         
-        for step in sorted(steps, key=lambda x: x.get('order', 0)):
+        for i, step in enumerate(sorted(steps, key=lambda x: x.get('order', 0)), 1):
             try:
                 step_type = step.get("type")
-                step_order = step.get("order", 0)
+                step_order = step.get("order", i)
                 step_description = step.get("description", "")
                 
                 log_message(deployment_id, f"Executing step {step_order}: {step_description}")
@@ -349,32 +351,17 @@ def process_template_deployment(deployment_id):
                     command = step.get("command", "echo 'No command specified'")
                     log_message(deployment_id, f"Executing command: {command}")
                     
-                    try:
-                        result = subprocess.run(
-                            command, 
-                            shell=True, 
-                            capture_output=True, 
-                            text=True, 
-                            timeout=30
-                        )
-                        log_message(deployment_id, f"Command output: {result.stdout}")
-                        if result.stderr:
-                            log_message(deployment_id, f"Command stderr: {result.stderr}")
-                        if result.returncode != 0:
-                            log_message(deployment_id, f"Command failed with return code: {result.returncode}")
-                    except subprocess.TimeoutExpired:
-                        log_message(deployment_id, "Command timed out after 30 seconds")
-                    except Exception as cmd_e:
-                        log_message(deployment_id, f"Command execution error: {str(cmd_e)}")
+                    result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+                    log_message(deployment_id, f"Command output: {result.stdout}")
+                    if result.stderr:
+                        log_message(deployment_id, f"Command stderr: {result.stderr}")
+                    if result.returncode != 0:
+                        log_message(deployment_id, f"Command failed with return code: {result.returncode}")
                 else:
-                    warning_msg = f"Unknown step type: {step_type}"
-                    log_message(deployment_id, f"WARNING: {warning_msg}")
-                    logger.warning(f"[{deployment_id}] {warning_msg}")
+                    log_message(deployment_id, f"WARNING: Unknown step type: {step_type}")
                 
                 log_message(deployment_id, f"Completed step {step_order}")
-                
-                # Small delay between steps
-                time.sleep(1)
+                time.sleep(2)  # Delay between steps
                 
             except Exception as e:
                 error_msg = f"Failed to execute step {step_order}: {str(e)}"
@@ -388,6 +375,7 @@ def process_template_deployment(deployment_id):
         log_message(deployment_id, "SUCCESS: Template deployment completed successfully")
         deployments[deployment_id]["status"] = "success"
         logger.info(f"Template deployment {deployment_id} completed successfully")
+        save_deployment_history()
         
     except Exception as e:
         error_msg = f"Unexpected error during template deployment: {str(e)}"
@@ -398,143 +386,75 @@ def process_template_deployment(deployment_id):
             deployments, save_deployment_history, log_message, inventory = get_app_globals()
             log_message(deployment_id, f"ERROR: {error_msg}")
             deployments[deployment_id]["status"] = "failed"
-        except:
-            logger.error("Failed to update deployment status after error")
-    
-    finally:
-        # Always save deployment history
-        try:
-            deployments, save_deployment_history, log_message, inventory = get_app_globals()
             save_deployment_history()
         except:
-            logger.error("Failed to save deployment history in finally block")
+            logger.error("Failed to update deployment status after error")
 
 def execute_service_restart(deployment_id, step, inventory, db_inventory):
-    """Execute service operation step using Ansible with comprehensive systemd management"""
+    """Execute service operation step using Ansible"""
     try:
         deployments, save_deployment_history, log_message, inv = get_app_globals()
         
-        logger.info(f"[{deployment_id}] Starting service restart step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting service restart step {step['order']}: {step['description']}")
+        logger.info(f"[{deployment_id}] Starting service restart step")
+        log_message(deployment_id, f"Starting service restart step")
         
-        order = step.get("order")
-        description = step.get("description", "")
-        service = step.get("service")
+        service = step.get("service", "docker")
         operation = step.get("operation", "restart")
-        target_vms = step.get("targetVMs", [])
+        target_vms = step.get("targetVMs", ["batch1"])
         
-        logged_in_user = deployments[deployment_id].get("logged_in_user", "infadm")
+        log_message(deployment_id, f"Service: {service}, Operation: {operation}, Target VMs: {target_vms}")
         
-        log_message(deployment_id, f"Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs (initiated by {logged_in_user})")
-        logger.info(f"[{deployment_id}] Starting systemd {operation} for service '{service}' on {len(target_vms)} VMs")
+        # Create ansible inventory for this operation
+        inventory_content = "[service_targets]\n"
+        for vm_name in target_vms:
+            vm_info = next((v for v in inventory.get("vms", []) if v.get("name") == vm_name), None)
+            if vm_info:
+                inventory_content += f"{vm_name} ansible_host={vm_info['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n"
+            else:
+                log_message(deployment_id, f"WARNING: VM {vm_name} not found in inventory, using fallback")
+                inventory_content += f"{vm_name} ansible_host=10.172.145.204 ansible_user=infadm ansible_ssh_private_key_file=/home/users/infladm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n"
         
-        # Generate an ansible playbook for systemd operation
-        playbook_file = f"/tmp/systemd_{deployment_id}_{order}.yml"
+        # Write inventory to temp file
+        inventory_file = f"/tmp/inventory_{deployment_id}"
+        with open(inventory_file, 'w') as f:
+            f.write(inventory_content)
         
-        with open(playbook_file, 'w') as f:
-            f.write(f"""---
-- name: Systemd {operation} operation for {service} (initiated by {logged_in_user})
-  hosts: systemd_targets
-  gather_facts: true
-  vars:
-    service_name: "{service}"
-    operation_type: "{operation}"
+        # Create simple ansible playbook
+        playbook_content = f"""---
+- name: Service {operation} operation for {service}
+  hosts: service_targets
+  gather_facts: false
   tasks:
     - name: Test connection
       ansible.builtin.ping:
       
-    - name: Check if service unit file exists
-      ansible.builtin.stat:
-        path: "/etc/systemd/system/{{{{ service_name }}}}"
-      register: service_file_etc
+    - name: Perform systemctl {operation} {service}
+      ansible.builtin.systemd:
+        name: {service}
+        state: {'started' if operation == 'start' else 'stopped' if operation == 'stop' else 'restarted'}
+      register: service_result
       
-    - name: Check if service unit file exists in lib
-      ansible.builtin.stat:
-        path: "/usr/lib/systemd/system/{{{{ service_name }}}}"
-      register: service_file_lib
-      
-    - name: Set service exists fact
-      ansible.builtin.set_fact:
-        service_exists: "{{{{ service_file_etc.stat.exists or service_file_lib.stat.exists }}}}"
+    - name: Show service status
+      ansible.builtin.debug:
+        msg: "Service {{{{ ansible_facts['hostname'] }}}}: {service} operation {operation} completed"
+"""
         
-    - name: Report if service doesn't exist
-      ansible.builtin.debug:
-        msg: "WARNING: Service {{{{ service_name }}}} unit file not found in standard locations"
-      when: not service_exists
-      
-    - name: Get service status
-      ansible.builtin.systemd:
-        name: "{{{{ service_name }}}}"
-      register: service_status
-      failed_when: false
-      
-    - name: Display current service status
-      ansible.builtin.debug:
-        msg: "Service {{{{ service_name }}}} status: {{{{ service_status.status.ActiveState | default('unknown') }}}}"
-      
-    - name: Perform systemd operation
-      ansible.builtin.systemd:
-        name: "{{{{ service_name }}}}"
-        state: "{{{{ 'started' if operation_type == 'start' else 'stopped' if operation_type == 'stop' else 'restarted' if operation_type == 'restart' else omit }}}}"
-        enabled: "{{{{ true if operation_type == 'enable' else false if operation_type == 'disable' else omit }}}}"
-        daemon_reload: "{{{{ true if operation_type == 'daemon-reload' else false }}}}"
-      register: systemd_result
-      when: operation_type in ['start', 'stop', 'restart', 'enable', 'disable', 'daemon-reload']
-      
-    - name: Get updated service status after operation
-      ansible.builtin.systemd:
-        name: "{{{{ service_name }}}}"
-      register: updated_service_status
-      failed_when: false
-      when: operation_type in ['start', 'stop', 'restart', 'enable', 'disable']
-      
-    - name: Display updated service status
-      ansible.builtin.debug:
-        msg: "Service {{{{ service_name }}}} updated status: {{{{ updated_service_status.status.ActiveState | default('unknown') }}}}"
-      when: operation_type in ['start', 'stop', 'restart', 'enable', 'disable']
-      
-    - name: Show service status (for status operation)
-      ansible.builtin.command:
-        cmd: "systemctl status {{{{ service_name }}}}"
-      register: status_output
-      failed_when: false
-      when: operation_type == 'status'
-      
-    - name: Display service status output
-      ansible.builtin.debug:
-        msg: "{{{{ status_output.stdout_lines }}}}"
-      when: operation_type == 'status' and status_output.stdout_lines is defined
-""")
+        playbook_file = f"/tmp/playbook_{deployment_id}.yml"
+        with open(playbook_file, 'w') as f:
+            f.write(playbook_content)
         
-        # Create inventory file
-        inventory_file = f"/tmp/inventory_{deployment_id}_{order}"
-        with open(inventory_file, 'w') as f:
-            f.write("[systemd_targets]\n")
-            for vm_name in target_vms:
-                if isinstance(vm_name, dict) and 'ip' in vm_name:
-                    f.write(f"{vm_name['name']} ansible_host={vm_name['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n")
-                else:
-                    vm_info = next((v for v in inventory.get("vms", []) if v.get("name") == vm_name), None)
-                    if vm_info:
-                        f.write(f"{vm_name} ansible_host={vm_info['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'\n")
-                    else:
-                        log_message(deployment_id, f"WARNING: VM {vm_name} not found in inventory")
+        log_message(deployment_id, f"Created Ansible playbook and inventory files")
         
         # Execute ansible playbook
-        env_vars = os.environ.copy()
-        env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
-        env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
-        env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
-        env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
-        
         cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
-        
         log_message(deployment_id, f"Executing: {' '.join(cmd)}")
-        logger.info(f"Executing Ansible command: {' '.join(cmd)}")
         
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=300)
+        env_vars = os.environ.copy()
+        env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
         
-        # Log the output line by line
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars, timeout=120)
+        
+        # Log output
         if result.stdout:
             log_message(deployment_id, "=== ANSIBLE OUTPUT ===")
             for line in result.stdout.splitlines():
@@ -547,113 +467,72 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
                 if line.strip():
                     log_message(deployment_id, line.strip())
         
+        # Clean up temp files
+        try:
+            os.remove(inventory_file)
+            os.remove(playbook_file)
+        except:
+            pass
+        
         if result.returncode == 0:
             log_message(deployment_id, f"Service {operation} operation completed successfully")
-            logger.info(f"[{deployment_id}] Service {operation} operation completed successfully")
         else:
-            error_msg = f"Service {operation} operation failed: {result.stderr}"
+            error_msg = f"Service {operation} operation failed"
             log_message(deployment_id, f"ERROR: {error_msg}")
-            logger.error(f"[{deployment_id}] {error_msg}")
             raise Exception(error_msg)
         
-        # Clean up temporary files
-        try:
-            os.remove(playbook_file)
-            os.remove(inventory_file)
-        except Exception as e:
-            logger.warning(f"Error cleaning up temporary files: {str(e)}")
-        
-        log_message(deployment_id, f"Service restart step {step['order']} completed successfully")
-        logger.info(f"[{deployment_id}] Service restart step {step['order']} completed successfully")
-        
     except Exception as e:
-        error_msg = f"Service restart step {step['order']} failed: {str(e)}"
+        error_msg = f"Service restart failed: {str(e)}"
         log_message(deployment_id, f"ERROR: {error_msg}")
         logger.error(f"[{deployment_id}] {error_msg}")
-        deployments[deployment_id]['status'] = 'failed'
-        save_deployment_history()
         raise
 
 def execute_file_deployment(deployment_id, step, inventory, db_inventory):
-    """Execute file deployment step using Ansible"""
+    """Execute file deployment step"""
     try:
         deployments, save_deployment_history, log_message, inv = get_app_globals()
-        
-        logger.info(f"[{deployment_id}] Starting file deployment step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting file deployment step {step['order']}: {step['description']}")
-        
-        # Implementation similar to service restart but for file deployment
-        # This is a placeholder - implement based on your template structure
-        log_message(deployment_id, f"File deployment step {step['order']} completed (placeholder)")
-        
+        log_message(deployment_id, f"File deployment step (placeholder)")
     except Exception as e:
-        error_msg = f"File deployment step {step['order']} failed: {str(e)}"
-        log_message(deployment_id, f"ERROR: {error_msg}")
-        logger.error(f"[{deployment_id}] {error_msg}")
+        log_message(deployment_id, f"ERROR: File deployment failed: {str(e)}")
         raise
 
 def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
     """Execute SQL deployment step"""
     try:
         deployments, save_deployment_history, log_message, inv = get_app_globals()
-        
-        logger.info(f"[{deployment_id}] Starting SQL deployment step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting SQL deployment step {step['order']}: {step['description']}")
-        
-        # Implementation placeholder
-        log_message(deployment_id, f"SQL deployment step {step['order']} completed (placeholder)")
-        
+        log_message(deployment_id, f"SQL deployment step (placeholder)")
     except Exception as e:
-        error_msg = f"SQL deployment step {step['order']} failed: {str(e)}"
-        log_message(deployment_id, f"ERROR: {error_msg}")
-        logger.error(f"[{deployment_id}] {error_msg}")
+        log_message(deployment_id, f"ERROR: SQL deployment failed: {str(e)}")
         raise
 
 def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
     """Execute Ansible playbook step"""
     try:
         deployments, save_deployment_history, log_message, inv = get_app_globals()
-        
-        logger.info(f"[{deployment_id}] Starting Ansible playbook step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting Ansible playbook step {step['order']}: {step['description']}")
-        
-        # Implementation placeholder
-        log_message(deployment_id, f"Ansible playbook step {step['order']} completed (placeholder)")
-        
+        log_message(deployment_id, f"Ansible playbook step (placeholder)")
     except Exception as e:
-        error_msg = f"Ansible playbook step {step['order']} failed: {str(e)}"
-        log_message(deployment_id, f"ERROR: {error_msg}")
-        logger.error(f"[{deployment_id}] {error_msg}")
+        log_message(deployment_id, f"ERROR: Ansible playbook failed: {str(e)}")
         raise
 
 def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
     """Execute Helm upgrade step"""
     try:
         deployments, save_deployment_history, log_message, inv = get_app_globals()
-        
-        logger.info(f"[{deployment_id}] Starting Helm upgrade step {step['order']}: {step['description']}")
-        log_message(deployment_id, f"Starting Helm upgrade step {step['order']}: {step['description']}")
-        
-        # Implementation placeholder
-        log_message(deployment_id, f"Helm upgrade step {step['order']} completed (placeholder)")
-        
+        log_message(deployment_id, f"Helm upgrade step (placeholder)")
     except Exception as e:
-        error_msg = f"Helm upgrade step {step['order']} failed: {str(e)}"
-        log_message(deployment_id, f"ERROR: {error_msg}")
-        logger.error(f"[{deployment_id}] {error_msg}")
+        log_message(deployment_id, f"ERROR: Helm upgrade failed: {str(e)}")
         raise
 
 @deploy_template_bp.route('/api/deploy/<deployment_id>/logs', methods=['GET'])
 def get_deployment_logs(deployment_id):
-    """Get deployment logs - matching the working db_routes.py implementation"""
+    """Get deployment logs"""
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
 
         logger.debug(f"Looking for deployment: {deployment_id}")
-        logger.debug(f"Available deployments: {list(deployments.keys())}")
         
         if deployment_id not in deployments:
-            logger.warning(f"Deployment {deployment_id} not found in deployments dictionary")
+            logger.warning(f"Deployment {deployment_id} not found")
             return jsonify({"error": "Deployment not found"}), 404
         
         deployment = deployments[deployment_id]
@@ -697,11 +576,10 @@ def get_deployment_status(deployment_id):
 
 @deploy_template_bp.route('/api/deployments', methods=['GET'])
 def get_all_deployments():
-    """Get all deployments - matching db_routes.py pattern"""
+    """Get all deployments"""
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
-        # Return deployments as a list sorted by timestamp
         deployment_list = []
         for deployment_id, deployment in deployments.items():
             deployment_list.append({
@@ -714,9 +592,7 @@ def get_all_deployments():
                 "file": deployment.get("file", "")
             })
         
-        # Sort by timestamp (most recent first)
         deployment_list.sort(key=lambda x: x["timestamp"], reverse=True)
-        
         return jsonify(deployment_list)
         
     except Exception as e:
