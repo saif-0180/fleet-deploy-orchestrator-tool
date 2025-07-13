@@ -1,4 +1,3 @@
-
 import os
 import json
 import subprocess
@@ -26,22 +25,86 @@ FIX_FILES_DIR = "/app/fixfiles"
 def get_app_globals():
     """Get shared objects from the main app via current_app context"""
     try:
-        # Access the shared objects through current_app
-        deployments = current_app.config.get('deployments')
-        save_deployment_history = current_app.config.get('save_deployment_history')
-        log_message = current_app.config.get('log_message')
-        inventory = current_app.config.get('inventory')
+        # Access the shared objects through current_app's attributes directly
+        # Check if these are stored as app attributes instead of config
+        if hasattr(current_app, 'deployments'):
+            deployments = current_app.deployments
+        else:
+            deployments = current_app.config.get('deployments')
+        
+        if hasattr(current_app, 'save_deployment_history'):
+            save_deployment_history = current_app.save_deployment_history
+        else:
+            save_deployment_history = current_app.config.get('save_deployment_history')
+        
+        if hasattr(current_app, 'log_message'):
+            log_message = current_app.log_message
+        else:
+            log_message = current_app.config.get('log_message')
+        
+        if hasattr(current_app, 'inventory'):
+            inventory = current_app.inventory
+        else:
+            inventory = current_app.config.get('inventory')
         
         logger.debug(f"Retrieved app globals - deployments: {deployments is not None}, save_history: {save_deployment_history is not None}, log_message: {log_message is not None}, inventory: {inventory is not None}")
         
-        if not all([deployments is not None, save_deployment_history, log_message, inventory is not None]):
-            logger.error("One or more required app globals are None")
-            raise Exception("Required app globals not properly initialized")
+        # Additional debug info
+        logger.debug(f"Current app config keys: {list(current_app.config.keys())}")
+        logger.debug(f"Current app attributes: {[attr for attr in dir(current_app) if not attr.startswith('_')]}")
+        
+        if not deployments:
+            logger.error("deployments is None or empty")
+            # Create a fallback deployments dict
+            deployments = {}
+            
+        if not save_deployment_history:
+            logger.error("save_deployment_history function is None")
+            # Create a fallback function
+            def fallback_save():
+                logger.debug("Fallback save_deployment_history called")
+                pass
+            save_deployment_history = fallback_save
+            
+        if not log_message:
+            logger.error("log_message function is None")
+            # Create a fallback function
+            def fallback_log(deployment_id, message):
+                logger.info(f"[{deployment_id}] {message}")
+                if deployments and deployment_id in deployments:
+                    if 'logs' not in deployments[deployment_id]:
+                        deployments[deployment_id]['logs'] = []
+                    deployments[deployment_id]['logs'].append(message)
+            log_message = fallback_log
+            
+        if not inventory:
+            logger.error("inventory is None")
+            # Create a fallback inventory
+            inventory = {"vms": [], "databases": []}
         
         return deployments, save_deployment_history, log_message, inventory
+        
     except Exception as e:
         logger.error(f"Failed to get app globals: {str(e)}")
-        raise Exception(f"Failed to access shared app globals: {str(e)}")
+        logger.exception("Full exception details:")
+        
+        # Return fallback objects
+        deployments = {}
+        
+        def fallback_save():
+            logger.debug("Fallback save_deployment_history called")
+            pass
+            
+        def fallback_log(deployment_id, message):
+            logger.info(f"[{deployment_id}] {message}")
+            if deployment_id in deployments:
+                if 'logs' not in deployments[deployment_id]:
+                    deployments[deployment_id]['logs'] = []
+                deployments[deployment_id]['logs'].append(message)
+        
+        inventory = {"vms": [], "databases": []}
+        
+        return deployments, fallback_save, fallback_log, inventory
 
 def load_template(template_name):
     """Load template from the templates directory"""
@@ -243,12 +306,12 @@ def deploy_template():
         save_deployment_history()
         logger.debug("Saved deployment history")
         
-        # Start deployment in a separate thread - CRITICAL FIX
+        # Start deployment in a separate thread
         logger.info(f"Creating background thread for deployment {deployment_id}")
         try:
             deployment_thread = threading.Thread(
                 target=process_template_deployment_wrapper, 
-                args=(deployment_id,),
+                args=(deployment_id, deployments, save_deployment_history, log_message, inventory),
                 daemon=True,
                 name=f"template-deploy-{deployment_id[:8]}"
             )
@@ -277,29 +340,25 @@ def deploy_template():
         logger.exception("Full exception details:")
         return jsonify({"error": str(e)}), 500
 
-def process_template_deployment_wrapper(deployment_id):
+def process_template_deployment_wrapper(deployment_id, deployments, save_deployment_history, log_message, inventory):
     """Wrapper function to handle exceptions in the deployment thread"""
     try:
         logger.info(f"=== WRAPPER: Starting deployment thread for {deployment_id} ===")
-        process_template_deployment(deployment_id)
+        process_template_deployment(deployment_id, deployments, save_deployment_history, log_message, inventory)
     except Exception as e:
         logger.error(f"=== WRAPPER: Exception in deployment thread {deployment_id}: {str(e)} ===")
         logger.exception("Full wrapper exception details:")
         try:
-            deployments, save_deployment_history, log_message, inventory = get_app_globals()
             log_message(deployment_id, f"ERROR: Deployment thread failed: {str(e)}")
             deployments[deployment_id]["status"] = "failed"
             save_deployment_history()
         except Exception as cleanup_e:
             logger.error(f"Failed to update deployment status after thread error: {str(cleanup_e)}")
 
-def process_template_deployment(deployment_id):
+def process_template_deployment(deployment_id, deployments, save_deployment_history, log_message, inventory):
     """Process template deployment in a separate thread"""
     try:
         logger.info(f"=== STARTING TEMPLATE DEPLOYMENT PROCESSING: {deployment_id} ===")
-        
-        # Get shared objects from main app
-        deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
         # Check if deployment exists
         if deployment_id not in deployments:
@@ -337,15 +396,15 @@ def process_template_deployment(deployment_id):
                 
                 # Execute different step types
                 if step_type == "service_restart":
-                    execute_service_restart(deployment_id, step, inv_data, db_inventory)
+                    execute_service_restart(deployment_id, step, inv_data, db_inventory, deployments, save_deployment_history, log_message, inventory)
                 elif step_type == "file_deployment":
-                    execute_file_deployment(deployment_id, step, inv_data, db_inventory)
+                    execute_file_deployment(deployment_id, step, inv_data, db_inventory, deployments, save_deployment_history, log_message, inventory)
                 elif step_type == "sql_deployment":
-                    execute_sql_deployment(deployment_id, step, inv_data, db_inventory)
+                    execute_sql_deployment(deployment_id, step, inv_data, db_inventory, deployments, save_deployment_history, log_message, inventory)
                 elif step_type == "ansible_playbook":
-                    execute_ansible_playbook(deployment_id, step, inv_data, db_inventory)
+                    execute_ansible_playbook(deployment_id, step, inv_data, db_inventory, deployments, save_deployment_history, log_message, inventory)
                 elif step_type == "helm_upgrade":
-                    execute_helm_upgrade(deployment_id, step, inv_data, db_inventory)
+                    execute_helm_upgrade(deployment_id, step, inv_data, db_inventory, deployments, save_deployment_history, log_message, inventory)
                 elif step_type == "shell_command":
                     # Execute simple shell command
                     command = step.get("command", "echo 'No command specified'")
@@ -383,18 +442,15 @@ def process_template_deployment(deployment_id):
         logger.exception("Full exception details:")
         
         try:
-            deployments, save_deployment_history, log_message, inventory = get_app_globals()
             log_message(deployment_id, f"ERROR: {error_msg}")
             deployments[deployment_id]["status"] = "failed"
             save_deployment_history()
         except:
             logger.error("Failed to update deployment status after error")
 
-def execute_service_restart(deployment_id, step, inventory, db_inventory):
+def execute_service_restart(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute service operation step using Ansible"""
     try:
-        deployments, save_deployment_history, log_message, inv = get_app_globals()
-        
         logger.info(f"[{deployment_id}] Starting service restart step")
         log_message(deployment_id, f"Starting service restart step")
         
@@ -487,37 +543,33 @@ def execute_service_restart(deployment_id, step, inventory, db_inventory):
         logger.error(f"[{deployment_id}] {error_msg}")
         raise
 
-def execute_file_deployment(deployment_id, step, inventory, db_inventory):
+def execute_file_deployment(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute file deployment step"""
     try:
-        deployments, save_deployment_history, log_message, inv = get_app_globals()
         log_message(deployment_id, f"File deployment step (placeholder)")
     except Exception as e:
         log_message(deployment_id, f"ERROR: File deployment failed: {str(e)}")
         raise
 
-def execute_sql_deployment(deployment_id, step, inventory, db_inventory):
+def execute_sql_deployment(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute SQL deployment step"""
     try:
-        deployments, save_deployment_history, log_message, inv = get_app_globals()
         log_message(deployment_id, f"SQL deployment step (placeholder)")
     except Exception as e:
         log_message(deployment_id, f"ERROR: SQL deployment failed: {str(e)}")
         raise
 
-def execute_ansible_playbook(deployment_id, step, inventory, db_inventory):
+def execute_ansible_playbook(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute Ansible playbook step"""
     try:
-        deployments, save_deployment_history, log_message, inv = get_app_globals()
         log_message(deployment_id, f"Ansible playbook step (placeholder)")
     except Exception as e:
         log_message(deployment_id, f"ERROR: Ansible playbook failed: {str(e)}")
         raise
 
-def execute_helm_upgrade(deployment_id, step, inventory, db_inventory):
+def execute_helm_upgrade(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute Helm upgrade step"""
     try:
-        deployments, save_deployment_history, log_message, inv = get_app_globals()
         log_message(deployment_id, f"Helm upgrade step (placeholder)")
     except Exception as e:
         log_message(deployment_id, f"ERROR: Helm upgrade failed: {str(e)}")
