@@ -1,4 +1,3 @@
-
 import os
 import json
 import subprocess
@@ -99,6 +98,33 @@ def get_app_globals():
         inventory = {"vms": [], "databases": []}
         
         return deployments, fallback_save, fallback_log, inventory
+
+def load_historical_deployment(deployment_id):
+    """Load deployment from historical JSON files"""
+    try:
+        # Check main deployment logs directory
+        logs_dir = DEPLOYMENT_LOGS_DIR
+        if os.path.exists(logs_dir):
+            for filename in os.listdir(logs_dir):
+                if filename.startswith('deployment_') and filename.endswith('.json'):
+                    filepath = os.path.join(logs_dir, filename)
+                    try:
+                        with open(filepath, 'r') as f:
+                            deployments_data = json.load(f)
+                            if isinstance(deployments_data, dict):
+                                for dep_id, dep_data in deployments_data.items():
+                                    if dep_id == deployment_id:
+                                        logger.info(f"Found historical deployment {deployment_id} in {filename}")
+                                        return dep_data
+                    except Exception as e:
+                        logger.warning(f"Failed to load {filename}: {str(e)}")
+                        continue
+        
+        logger.warning(f"Historical deployment {deployment_id} not found in any JSON files")
+        return None
+    except Exception as e:
+        logger.error(f"Error loading historical deployment {deployment_id}: {str(e)}")
+        return None
 
 def load_template(template_name):
     """Load template from the templates directory"""
@@ -612,13 +638,13 @@ def execute_helm_upgrade(deployment_id, step, inventory, db_inventory, deploymen
 
 @deploy_template_bp.route('/api/deploy/<deployment_id>/logs', methods=['GET'])
 def get_deployment_logs(deployment_id):
-    """Get deployment logs"""
+    """Get deployment logs - check both current deployments and historical ones"""
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
 
         logger.debug(f"Looking for deployment: {deployment_id}")
         
-        # Check both app.deployments and local deployments
+        # Check both app.deployments and local deployments first
         deployment = None
         if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
             deployment = current_app.deployments[deployment_id]
@@ -626,10 +652,15 @@ def get_deployment_logs(deployment_id):
         elif deployment_id in deployments:
             deployment = deployments[deployment_id]
             logger.debug(f"Found deployment in local deployments")
-        
-        if not deployment:
-            logger.warning(f"Deployment {deployment_id} not found")
-            return jsonify({"error": "Deployment not found"}), 404
+        else:
+            # If not found in current deployments, try to load from historical files
+            logger.info(f"Deployment {deployment_id} not found in current session, checking historical files")
+            deployment = load_historical_deployment(deployment_id)
+            if deployment:
+                logger.info(f"Found deployment {deployment_id} in historical files")
+            else:
+                logger.warning(f"Deployment {deployment_id} not found anywhere")
+                return jsonify({"error": "Deployment not found"}), 404
         
         logs = deployment.get('logs', [])
         
@@ -647,19 +678,21 @@ def get_deployment_logs(deployment_id):
 
 @deploy_template_bp.route('/api/deploy/<deployment_id>/status', methods=['GET'])
 def get_deployment_status(deployment_id):
-    """Get deployment status"""
+    """Get deployment status - check both current deployments and historical ones"""
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
-        # Check both app.deployments and local deployments
+        # Check both app.deployments and local deployments first
         deployment = None
         if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
             deployment = current_app.deployments[deployment_id]
         elif deployment_id in deployments:
             deployment = deployments[deployment_id]
-        
-        if not deployment:
-            return jsonify({"error": "Deployment not found"}), 404
+        else:
+            # If not found in current deployments, try to load from historical files
+            deployment = load_historical_deployment(deployment_id)
+            if not deployment:
+                return jsonify({"error": "Deployment not found"}), 404
         
         return jsonify({
             "deploymentId": deployment_id,
