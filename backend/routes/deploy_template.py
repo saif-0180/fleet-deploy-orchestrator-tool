@@ -1,3 +1,4 @@
+
 import os
 import json
 import subprocess
@@ -25,62 +26,55 @@ FIX_FILES_DIR = "/app/fixfiles"
 def get_app_globals():
     """Get shared objects from the main app via current_app context"""
     try:
-        # Access the shared objects through current_app's attributes directly
-        # Check if these are stored as app attributes instead of config
-        if hasattr(current_app, 'deployments'):
-            deployments = current_app.deployments
-        else:
-            deployments = current_app.config.get('deployments')
+        # Access deployments - handle if it's empty
+        deployments = getattr(current_app, 'deployments', None)
+        if deployments is None:
+            deployments = current_app.config.get('deployments', {})
+        if not isinstance(deployments, dict):
+            deployments = {}
         
-        if hasattr(current_app, 'save_deployment_history'):
-            save_deployment_history = current_app.save_deployment_history
-        else:
+        # Access save_deployment_history function
+        save_deployment_history = getattr(current_app, 'save_deployment_history', None)
+        if save_deployment_history is None:
             save_deployment_history = current_app.config.get('save_deployment_history')
         
-        if hasattr(current_app, 'log_message'):
-            log_message = current_app.log_message
-        else:
+        # Access log_message function
+        log_message = getattr(current_app, 'log_message', None)
+        if log_message is None:
             log_message = current_app.config.get('log_message')
         
-        if hasattr(current_app, 'inventory'):
-            inventory = current_app.inventory
-        else:
-            inventory = current_app.config.get('inventory')
+        # Access inventory - handle if it's empty
+        inventory = getattr(current_app, 'inventory', None)
+        if inventory is None:
+            inventory = current_app.config.get('inventory', {"vms": [], "databases": []})
+        if not isinstance(inventory, dict):
+            inventory = {"vms": [], "databases": []}
         
-        logger.debug(f"Retrieved app globals - deployments: {deployments is not None}, save_history: {save_deployment_history is not None}, log_message: {log_message is not None}, inventory: {inventory is not None}")
+        logger.debug(f"Retrieved app globals - deployments: {deployments is not None and len(deployments) >= 0}, save_history: {save_deployment_history is not None}, log_message: {log_message is not None}, inventory: {inventory is not None and len(inventory) > 0}")
         
-        # Additional debug info
-        logger.debug(f"Current app config keys: {list(current_app.config.keys())}")
-        logger.debug(f"Current app attributes: {[attr for attr in dir(current_app) if not attr.startswith('_')]}")
-        
-        if not deployments:
-            logger.error("deployments is None or empty")
-            # Create a fallback deployments dict
-            deployments = {}
-            
+        # Create fallback functions if needed
         if not save_deployment_history:
-            logger.error("save_deployment_history function is None")
-            # Create a fallback function
+            logger.warning("save_deployment_history function is None, creating fallback")
             def fallback_save():
                 logger.debug("Fallback save_deployment_history called")
                 pass
             save_deployment_history = fallback_save
             
         if not log_message:
-            logger.error("log_message function is None")
-            # Create a fallback function
+            logger.warning("log_message function is None, creating fallback")
             def fallback_log(deployment_id, message):
                 logger.info(f"[{deployment_id}] {message}")
-                if deployments and deployment_id in deployments:
+                if deployment_id in deployments:
                     if 'logs' not in deployments[deployment_id]:
                         deployments[deployment_id]['logs'] = []
                     deployments[deployment_id]['logs'].append(message)
             log_message = fallback_log
-            
-        if not inventory:
-            logger.error("inventory is None")
-            # Create a fallback inventory
-            inventory = {"vms": [], "databases": []}
+        
+        # Ensure inventory has proper structure
+        if 'vms' not in inventory:
+            inventory['vms'] = []
+        if 'databases' not in inventory:
+            inventory['databases'] = []
         
         return deployments, save_deployment_history, log_message, inventory
         
@@ -255,6 +249,7 @@ def get_template_details(template_name):
 @deploy_template_bp.route('/api/deploy/template', methods=['POST'])
 def deploy_template():
     """Start template deployment"""
+    deployment_id = None
     try:
         logger.info("=== TEMPLATE DEPLOYMENT REQUEST RECEIVED ===")
         data = request.json
@@ -271,12 +266,8 @@ def deploy_template():
             return jsonify({"error": "Missing template name"}), 400
         
         # Get shared objects from main app
-        try:
-            deployments, save_deployment_history, log_message, inventory = get_app_globals()
-            logger.debug("Successfully got app globals")
-        except Exception as e:
-            logger.error(f"Failed to get app globals: {str(e)}")
-            return jsonify({"error": f"App integration error: {str(e)}"}), 500
+        deployments, save_deployment_history, log_message, inventory = get_app_globals()
+        logger.debug("Successfully got app globals")
         
         # Generate a unique deployment ID
         deployment_id = str(uuid.uuid4())
@@ -295,23 +286,31 @@ def deploy_template():
             "logged_in_user": "infadm"
         }
         
-        deployments[deployment_id] = deployment_data
-        logger.info(f"Added deployment to shared dictionary. Total deployments: {len(deployments)}")
+        # Make sure we're storing in the actual app's deployments dictionary
+        if hasattr(current_app, 'deployments'):
+            current_app.deployments[deployment_id] = deployment_data
+            logger.info(f"Stored deployment in current_app.deployments. Total: {len(current_app.deployments)}")
+        else:
+            deployments[deployment_id] = deployment_data
+            logger.info(f"Stored deployment in local dict. Total: {len(deployments)}")
         
         # Log initial message
         log_message(deployment_id, f"Template deployment initiated: {template_name}")
         logger.info(f"Logged initial message for deployment {deployment_id}")
         
         # Save deployment history
-        save_deployment_history()
-        logger.debug("Saved deployment history")
+        try:
+            save_deployment_history()
+            logger.debug("Saved deployment history")
+        except Exception as save_e:
+            logger.warning(f"Failed to save deployment history: {str(save_e)}")
         
         # Start deployment in a separate thread
         logger.info(f"Creating background thread for deployment {deployment_id}")
         try:
             deployment_thread = threading.Thread(
                 target=process_template_deployment_wrapper, 
-                args=(deployment_id, deployments, save_deployment_history, log_message, inventory),
+                args=(deployment_id, template_name, ft_number, variables),
                 daemon=True,
                 name=f"template-deploy-{deployment_id[:8]}"
             )
@@ -327,7 +326,10 @@ def deploy_template():
                 
         except Exception as thread_e:
             logger.error(f"Failed to create/start thread: {str(thread_e)}")
-            deployments[deployment_id]["status"] = "failed"
+            if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+                current_app.deployments[deployment_id]["status"] = "failed"
+            elif deployment_id in deployments:
+                deployments[deployment_id]["status"] = "failed"
             log_message(deployment_id, f"ERROR: Failed to start deployment thread: {str(thread_e)}")
             save_deployment_history()
             return jsonify({"error": f"Failed to start deployment: {str(thread_e)}"}), 500
@@ -338,37 +340,59 @@ def deploy_template():
     except Exception as e:
         logger.error(f"Error starting template deployment: {str(e)}")
         logger.exception("Full exception details:")
+        if deployment_id:
+            try:
+                deployments, save_deployment_history, log_message, inventory = get_app_globals()
+                if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+                    current_app.deployments[deployment_id]["status"] = "failed"
+                elif deployment_id in deployments:
+                    deployments[deployment_id]["status"] = "failed"
+                log_message(deployment_id, f"ERROR: {str(e)}")
+                save_deployment_history()
+            except:
+                pass
         return jsonify({"error": str(e)}), 500
 
-def process_template_deployment_wrapper(deployment_id, deployments, save_deployment_history, log_message, inventory):
+def process_template_deployment_wrapper(deployment_id, template_name, ft_number, variables):
     """Wrapper function to handle exceptions in the deployment thread"""
     try:
         logger.info(f"=== WRAPPER: Starting deployment thread for {deployment_id} ===")
-        process_template_deployment(deployment_id, deployments, save_deployment_history, log_message, inventory)
+        
+        # Get fresh app globals in the thread context
+        with current_app.app_context():
+            deployments, save_deployment_history, log_message, inventory = get_app_globals()
+            process_template_deployment(deployment_id, template_name, ft_number, variables, deployments, save_deployment_history, log_message, inventory)
     except Exception as e:
         logger.error(f"=== WRAPPER: Exception in deployment thread {deployment_id}: {str(e)} ===")
         logger.exception("Full wrapper exception details:")
         try:
-            log_message(deployment_id, f"ERROR: Deployment thread failed: {str(e)}")
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
+            with current_app.app_context():
+                deployments, save_deployment_history, log_message, inventory = get_app_globals()
+                log_message(deployment_id, f"ERROR: Deployment thread failed: {str(e)}")
+                if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+                    current_app.deployments[deployment_id]["status"] = "failed"
+                elif deployment_id in deployments:
+                    deployments[deployment_id]["status"] = "failed"
+                save_deployment_history()
         except Exception as cleanup_e:
             logger.error(f"Failed to update deployment status after thread error: {str(cleanup_e)}")
 
-def process_template_deployment(deployment_id, deployments, save_deployment_history, log_message, inventory):
+def process_template_deployment(deployment_id, template_name, ft_number, variables, deployments, save_deployment_history, log_message, inventory):
     """Process template deployment in a separate thread"""
     try:
         logger.info(f"=== STARTING TEMPLATE DEPLOYMENT PROCESSING: {deployment_id} ===")
         
-        # Check if deployment exists
-        if deployment_id not in deployments:
-            logger.error(f"Deployment ID {deployment_id} not found in deployments dictionary")
+        # Check if deployment exists in app's deployments or local deployments
+        deployment = None
+        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+            deployment = current_app.deployments[deployment_id]
+        elif deployment_id in deployments:
+            deployment = deployments[deployment_id]
+        
+        if not deployment:
+            logger.error(f"Deployment ID {deployment_id} not found in any deployments dictionary")
             return
-        
-        deployment = deployments[deployment_id]
-        template_name = deployment["template"]
-        variables = deployment.get("variables", {})
-        
+            
         logger.info(f"Processing template deployment: {template_name}")
         log_message(deployment_id, f"Starting template deployment: {template_name}")
         
@@ -426,13 +450,19 @@ def process_template_deployment(deployment_id, deployments, save_deployment_hist
                 error_msg = f"Failed to execute step {step_order}: {str(e)}"
                 log_message(deployment_id, f"ERROR: {error_msg}")
                 logger.error(f"[{deployment_id}] {error_msg}")
-                deployments[deployment_id]["status"] = "failed"
+                if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+                    current_app.deployments[deployment_id]["status"] = "failed"
+                elif deployment_id in deployments:
+                    deployments[deployment_id]["status"] = "failed"
                 save_deployment_history()
                 return
         
         # If we get here, all steps completed successfully
         log_message(deployment_id, "SUCCESS: Template deployment completed successfully")
-        deployments[deployment_id]["status"] = "success"
+        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+            current_app.deployments[deployment_id]["status"] = "success"
+        elif deployment_id in deployments:
+            deployments[deployment_id]["status"] = "success"
         logger.info(f"Template deployment {deployment_id} completed successfully")
         save_deployment_history()
         
@@ -443,10 +473,15 @@ def process_template_deployment(deployment_id, deployments, save_deployment_hist
         
         try:
             log_message(deployment_id, f"ERROR: {error_msg}")
-            deployments[deployment_id]["status"] = "failed"
+            if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+                current_app.deployments[deployment_id]["status"] = "failed"
+            elif deployment_id in deployments:
+                deployments[deployment_id]["status"] = "failed"
             save_deployment_history()
         except:
             logger.error("Failed to update deployment status after error")
+
+# ... keep existing code (execute_service_restart, execute_file_deployment, execute_sql_deployment, execute_ansible_playbook, execute_helm_upgrade functions)
 
 def execute_service_restart(deployment_id, step, inventory, db_inventory, deployments, save_deployment_history, log_message, inv):
     """Execute service operation step using Ansible"""
@@ -583,11 +618,19 @@ def get_deployment_logs(deployment_id):
 
         logger.debug(f"Looking for deployment: {deployment_id}")
         
-        if deployment_id not in deployments:
+        # Check both app.deployments and local deployments
+        deployment = None
+        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+            deployment = current_app.deployments[deployment_id]
+            logger.debug(f"Found deployment in current_app.deployments")
+        elif deployment_id in deployments:
+            deployment = deployments[deployment_id]
+            logger.debug(f"Found deployment in local deployments")
+        
+        if not deployment:
             logger.warning(f"Deployment {deployment_id} not found")
             return jsonify({"error": "Deployment not found"}), 404
         
-        deployment = deployments[deployment_id]
         logs = deployment.get('logs', [])
         
         return jsonify({
@@ -608,10 +651,15 @@ def get_deployment_status(deployment_id):
     try:
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
-        if deployment_id not in deployments:
-            return jsonify({"error": "Deployment not found"}), 404
+        # Check both app.deployments and local deployments
+        deployment = None
+        if hasattr(current_app, 'deployments') and deployment_id in current_app.deployments:
+            deployment = current_app.deployments[deployment_id]
+        elif deployment_id in deployments:
+            deployment = deployments[deployment_id]
         
-        deployment = deployments[deployment_id]
+        if not deployment:
+            return jsonify({"error": "Deployment not found"}), 404
         
         return jsonify({
             "deploymentId": deployment_id,
@@ -633,7 +681,14 @@ def get_all_deployments():
         deployments, save_deployment_history, log_message, inventory = get_app_globals()
         
         deployment_list = []
-        for deployment_id, deployment in deployments.items():
+        
+        # Check both app.deployments and local deployments
+        all_deployments = {}
+        if hasattr(current_app, 'deployments'):
+            all_deployments.update(current_app.deployments)
+        all_deployments.update(deployments)
+        
+        for deployment_id, deployment in all_deployments.items():
             deployment_list.append({
                 "id": deployment_id,
                 "type": deployment.get("type", "unknown"),
