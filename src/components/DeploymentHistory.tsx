@@ -75,31 +75,34 @@ const DeploymentHistory: React.FC = () => {
         
         const data = await response.json();
         console.log("Received deployment history data:", data);
+        setLastRefreshedTime(new Date().toLocaleTimeString());
+        setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
+        return data as Deployment[];
         
-        // Transform the data to ensure proper timestamp handling
-        const transformedData = Object.entries(data).map(([id, deployment]: [string, any]) => {
-          console.log(`Processing deployment ${id}:`, deployment);
+        // // Transform the data to ensure proper timestamp handling
+        // const transformedData = Object.entries(data).map(([id, deployment]: [string, any]) => {
+        //   console.log(`Processing deployment ${id}:`, deployment);
           
-          // For template deployments, use start_time or end_time as the actual timestamp
-          let actualTimestamp = deployment.timestamp;
-          if (deployment.type === 'template') {
-            // Use end_time if available (completed), otherwise start_time
-            if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
-              actualTimestamp = deployment.end_time;
-            } else if (deployment.start_time && deployment.start_time !== "1970-01-01T00:00:00Z") {
-              actualTimestamp = deployment.start_time;
-            }
-            console.log(`Template deployment ${id} timestamp: ${actualTimestamp}`);
-          }
+        // //   // For template deployments, use start_time or end_time as the actual timestamp
+        //   let actualTimestamp = deployment.timestamp;
+        //   if (deployment.type === 'template') {
+        //     // Use end_time if available (completed), otherwise start_time
+        //     if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
+        //       actualTimestamp = deployment.end_time;
+        //     } else if (deployment.start_time && deployment.start_time !== "1970-01-01T00:00:00Z") {
+        //       actualTimestamp = deployment.start_time;
+        //     }
+        //     console.log(`Template deployment ${id} timestamp: ${actualTimestamp}`);
+        //   }
           
-          return {
-            ...deployment,
-            id,
-            timestamp: actualTimestamp,
-            // Ensure template fields are properly mapped
-            ft: deployment.ft || deployment.ft_number,
-          };
-        });
+        //   return {
+        //     ...deployment,
+        //     id,
+        //     timestamp: actualTimestamp,
+        //     // Ensure template fields are properly mapped
+        //     ft: deployment.ft || deployment.ft_number,
+        //   };
+        // });
         
         // Sort by timestamp (newest first)
         const sortedData = transformedData.sort((a, b) => {
@@ -178,6 +181,7 @@ const DeploymentHistory: React.FC = () => {
         setLogStatus(data.status === 'running' ? 'running' : 'completed');
       } else {
         // If no logs in response, check if the selected deployment has logs
+        const selectedDeployment = deployments.find(d => d.id === deploymentId);
         if (selectedDeployment?.logs && selectedDeployment.logs.length > 0) {
           setDeploymentLogs(selectedDeployment.logs);
           setLogStatus(selectedDeployment.status === 'running' ? 'running' : 'completed');
@@ -294,6 +298,7 @@ const DeploymentHistory: React.FC = () => {
 
   // Format deployment summary for display with username at the beginning and proper UTC time
   const formatDeploymentSummary = (deployment: Deployment): string => {
+    console.log('Raw timestamp:', deployment.timestamp);
     console.log('Formatting deployment summary for:', deployment);
     
     const dateTime = deployment.timestamp ? 
