@@ -20,11 +20,129 @@ from routes.auth_routes import get_current_user
 # Import DB routes
 from routes.db_routes import db_routes
 from routes.template_routes import template_bp
-from routes.deploy_template import deploy_template_bp, load_template, TEMPLATE_DIR
 # Register the blueprint
 #app.register_blueprint(db_blueprint, url_prefix='/api')
 
+
+app = Flask(__name__, static_folder='../frontend/dist')
+
+
+# Register the blueprint
+app.register_blueprint(db_routes)
+app.register_blueprint(auth_bp)
+app.register_blueprint(template_bp)
+#app.register_blueprint(db_routes)
+
+
+
+# Directory where fix files are stored
+FIX_FILES_DIR = os.environ.get('FIX_FILES_DIR', '/app/fixfiles')
+
+# Directory for deployment logs
+DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
+APP_LOG_FILE = os.environ.get('APP_LOG_FILE', os.path.join(DEPLOYMENT_LOGS_DIR, 'application.log'))
+DEPLOYMENT_HISTORY_FILE = os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history.json')
+
+
+# Configure application logging
+logger = logging.getLogger('fix_deployment_orchestrator')
+logger.setLevel(logging.DEBUG)
+# Add this logger configuration near the top of your app.py
+deploy_template_logger = logging.getLogger('deploy_template')
+deploy_template_logger.setLevel(logging.DEBUG)
+
+# Create logs directory if it doesn't exist
+os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
+os.makedirs('/tmp/ansible-ssh', exist_ok=True)  # Ensure ansible control path directory exists
+# os.chmod('/tmp/ansible-ssh', 0o777)  # Set proper permissions for ansible control path
+
+try:
+    os.chmod('/tmp/ansible-ssh', 0o777)  # Set proper permissions for ansible control path
+except PermissionError:
+    logger.info("Could not set permissions on /tmp/ansible-ssh - continuing with existing permissions")
+
+
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(console_format)
+
+# File handler (with rotation)
+os.makedirs(os.path.dirname(APP_LOG_FILE), exist_ok=True)  # Ensure log directory exists
+file_handler = RotatingFileHandler(APP_LOG_FILE, maxBytes=10485760, backupCount=10) # 10MB per file, keep 10 files
+file_handler.setLevel(logging.DEBUG)
+file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_format)
+
+# Add handlers
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
+logger.info("Starting Fix Deployment Orchestrator with enhanced logging")
+logger.debug(f"Application environment: FLASK_ENV={os.environ.get('FLASK_ENV', 'production')}")
+logger.debug(f"Fix files directory: {FIX_FILES_DIR}")
+logger.debug(f"Deployment logs directory: {DEPLOYMENT_LOGS_DIR}")
+logger.debug(f"Application log file: {APP_LOG_FILE}")
+
+# Dictionary to store deployment information
 deployments = {}
+
+# Store deployments in app config so it can be accessed via current_app
+app.config['deployments'] = deployments
+
+# Try to load previous deployments if they exist
+try:
+    if os.path.exists(DEPLOYMENT_HISTORY_FILE):
+        with open(DEPLOYMENT_HISTORY_FILE, 'r') as f:
+            try:
+                deployments = json.load(f)
+                logger.info(f"Loaded {len(deployments)} previous deployments from history file")
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing deployment history file: {str(e)}")
+                # Create a backup of the corrupted file
+                backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_corrupt_{int(time.time())}.json')
+                os.rename(DEPLOYMENT_HISTORY_FILE, backup_file)
+                logger.info(f"Renamed corrupted history file to {backup_file}")
+                deployments = {}
+    else:
+        # Look for backup history files in the logs directory
+        backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')), reverse=True)
+        if backup_files:
+            logger.info(f"Found {len(backup_files)} backup deployment history files, loading most recent")
+            for backup_file in backup_files:
+                try:
+                    with open(backup_file, 'r') as f:
+                        deployments = json.load(f)
+                    logger.info(f"Loaded {len(deployments)} previous deployments from backup file {backup_file}")
+                    break
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.error(f"Error loading from backup file {backup_file}: {str(e)}")
+                    continue
+        else:
+            logger.info("No deployment history file found, creating new one")
+            # Create an empty history file
+            with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
+                json.dump({}, f)
+except Exception as e:
+    logger.error(f"Failed to load deployment history: {str(e)}")
+
+# Load inventory from file or create a default one
+INVENTORY_FILE = os.environ.get('INVENTORY_FILE', '/app/inventory/inventory.json')
+os.makedirs(os.path.dirname(INVENTORY_FILE), exist_ok=True)
+
+try:
+    with open(INVENTORY_FILE, 'r') as f:
+        inventory = json.load(f)
+    logger.info(f"Loaded inventory with {len(inventory.get('vms', []))} VMs")
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    logger.error(f"Error loading inventory: {str(e)} - Please create/fix inventory.json manually")
+    inventory = {"vms": [], "users": [], "systemd_services": []}
+    # Don't save the empty inventory - let user create it manually
+
+# Function to save deployment history with backup
+
 
 def save_deployment_history():
     try:
@@ -98,196 +216,6 @@ def log_message(deployment_id, message):
         # Also log to application log
         logger.debug(f"[{deployment_id}] {message}")
 
-app = Flask(__name__, static_folder='../frontend/dist')
-
-app.deployments = deployments
-app.save_deployment_history = save_deployment_history
-app.log_message = log_message
-
-# Register the blueprint
-app.register_blueprint(db_routes)
-app.register_blueprint(auth_bp)
-app.register_blueprint(template_bp)
-app.register_blueprint(deploy_template_bp)
-#app.register_blueprint(db_routes)
-
-
-
-# Directory where fix files are stored
-FIX_FILES_DIR = os.environ.get('FIX_FILES_DIR', '/app/fixfiles')
-
-# Directory for deployment logs
-DEPLOYMENT_LOGS_DIR = os.environ.get('DEPLOYMENT_LOGS_DIR', '/app/logs')
-APP_LOG_FILE = os.environ.get('APP_LOG_FILE', os.path.join(DEPLOYMENT_LOGS_DIR, 'application.log'))
-DEPLOYMENT_HISTORY_FILE = os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history.json')
-
-
-# Configure application logging
-logger = logging.getLogger('fix_deployment_orchestrator')
-logger.setLevel(logging.DEBUG)
-# Create logs directory if it doesn't exist
-os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
-os.makedirs('/tmp/ansible-ssh', exist_ok=True)  # Ensure ansible control path directory exists
-# os.chmod('/tmp/ansible-ssh', 0o777)  # Set proper permissions for ansible control path
-
-try:
-    os.chmod('/tmp/ansible-ssh', 0o777)  # Set proper permissions for ansible control path
-except PermissionError:
-    logger.info("Could not set permissions on /tmp/ansible-ssh - continuing with existing permissions")
-
-
-
-# Console handler
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(console_format)
-
-# File handler (with rotation)
-os.makedirs(os.path.dirname(APP_LOG_FILE), exist_ok=True)  # Ensure log directory exists
-file_handler = RotatingFileHandler(APP_LOG_FILE, maxBytes=10485760, backupCount=10) # 10MB per file, keep 10 files
-file_handler.setLevel(logging.DEBUG)
-file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(file_format)
-
-# Add handlers
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
-
-logger.info("Starting Fix Deployment Orchestrator with enhanced logging")
-logger.debug(f"Application environment: FLASK_ENV={os.environ.get('FLASK_ENV', 'production')}")
-logger.debug(f"Fix files directory: {FIX_FILES_DIR}")
-logger.debug(f"Deployment logs directory: {DEPLOYMENT_LOGS_DIR}")
-logger.debug(f"Application log file: {APP_LOG_FILE}")
-
-# Dictionary to store deployment information
-# deployments = {}
-
-# Store deployments in app config so it can be accessed via current_app
-app.config['deployments'] = deployments
-# Try to load previous deployments if they exist
-try:
-    if os.path.exists(DEPLOYMENT_HISTORY_FILE):
-        with open(DEPLOYMENT_HISTORY_FILE, 'r') as f:
-            try:
-                deployments = json.load(f)
-                logger.info(f"Loaded {len(deployments)} previous deployments from history file")
-            except json.JSONDecodeError as e:
-                logger.error(f"Error parsing deployment history file: {str(e)}")
-                # Create a backup of the corrupted file
-                backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_corrupt_{int(time.time())}.json')
-                os.rename(DEPLOYMENT_HISTORY_FILE, backup_file)
-                logger.info(f"Renamed corrupted history file to {backup_file}")
-                deployments = {}
-    else:
-        # Look for backup history files in the logs directory
-        backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')), reverse=True)
-        if backup_files:
-            logger.info(f"Found {len(backup_files)} backup deployment history files, loading most recent")
-            for backup_file in backup_files:
-                try:
-                    with open(backup_file, 'r') as f:
-                        deployments = json.load(f)
-                    logger.info(f"Loaded {len(deployments)} previous deployments from backup file {backup_file}")
-                    break
-                except (json.JSONDecodeError, Exception) as e:
-                    logger.error(f"Error loading from backup file {backup_file}: {str(e)}")
-                    continue
-        else:
-            logger.info("No deployment history file found, creating new one")
-            # Create an empty history file
-            with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
-                json.dump({}, f)
-except Exception as e:
-    logger.error(f"Failed to load deployment history: {str(e)}")
-
-# Load inventory from file or create a default one
-INVENTORY_FILE = os.environ.get('INVENTORY_FILE', '/app/inventory/inventory.json')
-os.makedirs(os.path.dirname(INVENTORY_FILE), exist_ok=True)
-
-try:
-    with open(INVENTORY_FILE, 'r') as f:
-        inventory = json.load(f)
-    logger.info(f"Loaded inventory with {len(inventory.get('vms', []))} VMs")
-except (FileNotFoundError, json.JSONDecodeError) as e:
-    logger.error(f"Error loading inventory: {str(e)} - Please create/fix inventory.json manually")
-    inventory = {"vms": [], "users": [], "systemd_services": []}
-    # Don't save the empty inventory - let user create it manually
-
-
-# Function to save deployment history with backup
-
-# def save_deployment_history():
-#     try:
-#         logger.info(f"Starting to save deployment history. Current deployments count: {len(deployments)}")
-        
-#         # Ensure the deployment logs directory exists
-#         try:
-#             os.makedirs(DEPLOYMENT_LOGS_DIR, exist_ok=True)
-#             logger.debug(f"Ensured directory exists: {DEPLOYMENT_LOGS_DIR}")
-#         except Exception as e:
-#             logger.error(f"Failed to create DEPLOYMENT_LOGS_DIR: {e}")
-#             raise
-        
-#         # Create a backup of the current history file if it exists
-#         if os.path.exists(DEPLOYMENT_HISTORY_FILE):
-#             # timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-#             timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
-#             backup_file = os.path.join(DEPLOYMENT_LOGS_DIR, f'deployment_history_{timestamp}.json')
-#             try:
-#                 with open(DEPLOYMENT_HISTORY_FILE, 'r') as src:
-#                     with open(backup_file, 'w') as dst:
-#                         dst.write(src.read())
-#                 logger.debug(f"Created backup of deployment history: {backup_file}")
-#             except Exception as e:
-#                 logger.error(f"Error creating backup of history file: {str(e)}")
-#                 # Don't raise here, continue with saving
-        
-#         # Ensure the directory for the main history file exists
-#         history_dir = os.path.dirname(DEPLOYMENT_HISTORY_FILE)
-#         if history_dir:
-#             os.makedirs(history_dir, exist_ok=True)
-        
-#         # Save the current deployment history
-#         try:
-#             with open(DEPLOYMENT_HISTORY_FILE, 'w') as f:
-#                 json.dump(deployments, f, default=str, indent=2)
-#             logger.info(f"Saved {len(deployments)} deployments to history file: {DEPLOYMENT_HISTORY_FILE}")
-#         except Exception as e:
-#             logger.error(f"Failed to write deployment history file: {e}")
-#             raise
-        
-#         # Clean up old backup files (keep only last 10)
-#         try:
-#             backup_files = sorted(glob.glob(os.path.join(DEPLOYMENT_LOGS_DIR, 'deployment_history_*.json')))
-#             if len(backup_files) > 10:
-#                 for old_file in backup_files[:-10]:
-#                     try:
-#                         os.remove(old_file)
-#                         logger.debug(f"Removed old backup file: {old_file}")
-#                     except Exception as e:
-#                         logger.error(f"Error removing old backup file {old_file}: {str(e)}")
-#         except Exception as e:
-#             logger.error(f"Error during backup cleanup: {e}")
-#             # Don't raise here, the main save was successful
-            
-#     except Exception as e:
-#         logger.error(f"Failed to save deployment history: {str(e)}")
-#         raise  # Re-raise so the API returns 500
-
-
-
-# # Helper function to log message to deployment log
-# def log_message(deployment_id, message):
-#     """Log a message to the deployment logs and the application log"""
-#     if deployment_id in deployments:
-#         # Add to deployment logs
-#         if "logs" not in deployments[deployment_id]:
-#             deployments[deployment_id]["logs"] = []
-#         deployments[deployment_id]["logs"].append(message)
-        
-#         # Also log to application log
-#         logger.debug(f"[{deployment_id}] {message}")
 
 # Check SSH key permissions and setup
 def check_ssh_setup():
@@ -434,79 +362,544 @@ def get_systemd_services():
 
 # # New APIs for template generator and Oneclick deploy using template
 
-# @app.route('/api/deploy/template', methods=['POST'])
-# def deploy_template_route():
-#     """Deploy a template with multiple steps"""
-#     # Get current authenticated user
-#     # current_user = get_current_user()
-#     # if not current_user:
-#     #     return jsonify({"error": "Authentication required"}), 401
+# =============================================================================
+# HELPER FUNCTIONS - Add these functions to your app.py
+# =============================================================================
 
-#     data = request.json
-#     template_name = data.get('template')
+def load_inventory():
+    """Load inventory data from JSON files"""
+    try:
+        with open('/app/inventory/inventory.json', 'r') as f:
+            inventory = json.load(f)
+        with open('/app/inventory/db_inventory.json', 'r') as f:
+            db_inventory = json.load(f)
+        return inventory, db_inventory
+    except Exception as e:
+        deploy_template_logger.error(f"Error loading inventory: {str(e)}")
+        return None, None
 
-#     if not template_name:
-#         return jsonify({"error": "Template name is required"}), 400
+def get_vm_ip(vm_name, inventory):
+    """Get VM IP from inventory"""
+    for vm in inventory.get('vms', []):
+        if vm['name'] == vm_name:
+            return vm['ip']
+    return None
 
-#     logger.info(f"Template deployment request received from {current_user['username']}: {template_name}")
+def get_db_connection_details(db_connection, db_inventory):
+    """Get database connection details from inventory"""
+    for conn in db_inventory.get('db_connections', []):
+        if conn['db_connection'] == db_connection:
+            return conn
+    return None
 
-#     try:
-#         result, status_code = deploy_template(template_name, current_user)
-#         return jsonify(result), status_code
-#     except Exception as e:
-#         logger.error(f"Template deployment error: {str(e)}")
-#         return jsonify({"error": str(e)}), 500
+def get_playbook_details(playbook_name, inventory):
+    """Get playbook details from inventory"""
+    for playbook in inventory.get('playbooks', []):
+        if playbook['name'] == playbook_name:
+            return playbook
+    return None
 
-# @app.route('/api/templates', methods=['GET'])
-# def list_templates():
-#     """List available deployment templates"""
-#     # current_user = get_current_user()
-#     # if not current_user:
-#     #     return jsonify({"error": "Authentication required"}), 401
+def get_helm_command(helm_type, inventory):
+    """Get helm command from inventory"""
+    for helm in inventory.get('helm_upgrades', []):
+        if helm['pod_name'] == helm_type:
+            return helm['command']
+    return None
 
-#     try:
-#         templates = []
-#         if os.path.exists(TEMPLATE_DIR):
-#             for file_name in os.listdir(TEMPLATE_DIR):
-#                 if file_name.endswith('.json'):
-#                     try:
-#                         template = load_template(file_name)
-#                         templates.append({
-#                             "name": file_name,
-#                             "description": template.get('metadata', {}).get('description', ''),
-#                             "ft_number": template.get('metadata', {}).get('ft_number', ''),
-#                             "total_steps": template.get('metadata', {}).get('total_steps', len(template.get('steps', []))),
-#                             "steps": [
-#                                 {
-#                                     "order": step.get('order'),
-#                                     "type": step.get('type'),
-#                                     "description": step.get('description', '')
-#                                 } for step in template.get('steps', [])
-#                             ]
-#                         })
-#                     except Exception as e:
-#                         logger.warning(f"Failed to load template {file_name}: {str(e)}")
-#                         continue
+def run_ansible_command(command, logs):
+    """Run ansible command and capture output"""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=300)
+        
+        if result.stdout:
+            logs.extend(result.stdout.split('\n'))
+        if result.stderr:
+            logs.extend(result.stderr.split('\n'))
+        
+        if result.returncode == 0:
+            logs.append(f"Command executed successfully: {' '.join(command)}")
+            return True
+        else:
+            logs.append(f"Command failed with return code {result.returncode}: {' '.join(command)}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logs.append(f"Command timed out: {' '.join(command)}")
+        return False
+    except Exception as e:
+        logs.append(f"Error executing command: {str(e)}")
+        return False
 
-#         return jsonify({"templates": templates})
-#     except Exception as e:
-#         logger.error(f"Failed to list templates: {str(e)}")
-#         return jsonify({"error": str(e)}), 500
+def run_command_with_logging(command, logs):
+    """Run command and capture output with logging"""
+    try:
+        logs.append(f"Executing command: {' '.join(command)}")
+        
+        result = subprocess.run(command, capture_output=True, text=True, timeout=600)
+        
+        if result.stdout:
+            for line in result.stdout.split('\n'):
+                if line.strip():
+                    logs.append(f"STDOUT: {line}")
+        
+        if result.stderr:
+            for line in result.stderr.split('\n'):
+                if line.strip():
+                    logs.append(f"STDERR: {line}")
+        
+        if result.returncode == 0:
+            logs.append(f"Command completed successfully")
+            return True
+        else:
+            logs.append(f"Command failed with return code {result.returncode}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logs.append(f"Command timed out after 10 minutes")
+        return False
+    except Exception as e:
+        logs.append(f"Error executing command: {str(e)}")
+        return False
 
-# @app.route('/api/template/<template_name>', methods=['GET'])
-# def get_template_details(template_name):
-#     """Get details of a specific template"""
-#     # current_user = get_current_user()
-#     # if not current_user:
-#     #     return jsonify({"error": "Authentication required"}), 401
+def execute_file_deployment_step(step, inventory, deployment_id):
+    """Execute file deployment step using ansible"""
+    logs = []
+    success = True
+    
+    try:
+        logs.append(f"=== Executing File Deployment Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+        
+        # Get target VMs and their IPs
+        target_hosts = []
+        for vm_name in step.get('targetVMs', []):
+            vm_ip = get_vm_ip(vm_name, inventory)
+            if vm_ip:
+                target_hosts.append(vm_ip)
+                logs.append(f"Target VM {vm_name}: {vm_ip}")
+            else:
+                logs.append(f"Warning: VM {vm_name} not found in inventory")
+        
+        if not target_hosts:
+            logs.append("Error: No valid target VMs found")
+            return False, logs
+        
+        # Process each file
+        for file_name in step.get('files', []):
+            logs.append(f"Deploying file: {file_name}")
+            
+            source_path = f"/app/fixfiles/{file_name}"
+            target_path = step.get('targetPath', '/tmp')
+            target_user = step.get('targetUser', 'root')
+            
+            if not os.path.exists(source_path):
+                logs.append(f"Error: Source file {source_path} not found")
+                success = False
+                continue
+            
+            # Create ansible command for file copy
+            for host in target_hosts:
+                ansible_cmd = [
+                    'ansible', host,
+                    '-i', f'{host},',
+                    '-m', 'copy',
+                    '-a', f'src={source_path} dest={target_path}/{file_name} owner={target_user} mode=0644',
+                    '-u', target_user,
+                    '--ssh-common-args=-o StrictHostKeyChecking=no'
+                ]
+                
+                logs.append(f"Copying {file_name} to {host}:{target_path}")
+                if not run_ansible_command(ansible_cmd, logs):
+                    success = False
+        
+        logs.append(f"=== File Deployment Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+    except Exception as e:
+        logs.append(f"Error in file deployment step: {str(e)}")
+        success = False
+    
+    return success, logs
 
-#     try:
-#         template = load_template(template_name)
-#         return jsonify(template)
-#     except Exception as e:
-#         logger.error(f"Failed to get template details: {str(e)}")
-#         return jsonify({"error": str(e)}), 500
+def execute_sql_deployment_step(step, db_inventory, deployment_id):
+    """Execute SQL deployment step"""
+    logs = []
+    success = True
+    
+    try:
+        logs.append(f"=== Executing SQL Deployment Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+        
+        # Get database connection details
+        db_conn_name = step.get('dbConnection')
+        db_details = get_db_connection_details(db_conn_name, db_inventory)
+        
+        if not db_details:
+            logs.append(f"Error: Database connection {db_conn_name} not found")
+            return False, logs
+        
+        # Decode password
+        db_password = base64.b64decode(step.get('dbPassword', '')).decode('utf-8')
+        db_user = step.get('dbUser')
+        
+        logs.append(f"Database: {db_details['hostname']}:{db_details['port']}/{db_details['db_name']}")
+        logs.append(f"User: {db_user}")
+        
+        # Process SQL files
+        for file_name in step.get('files', []):
+            sql_file_path = f"/app/fixfiles/{file_name}"
+            
+            if not os.path.exists(sql_file_path):
+                logs.append(f"Error: SQL file {sql_file_path} not found")
+                success = False
+                continue
+            
+            logs.append(f"Executing SQL file: {file_name}")
+            
+            # Create psql command
+            psql_cmd = [
+                'psql',
+                '-h', db_details['hostname'],
+                '-p', db_details['port'],
+                '-d', db_details['db_name'],
+                '-U', db_user,
+                '-f', sql_file_path,
+                '-v', 'ON_ERROR_STOP=1'
+            ]
+            
+            # Set password environment variable
+            env = os.environ.copy()
+            env['PGPASSWORD'] = db_password
+            
+            try:
+                result = subprocess.run(psql_cmd, capture_output=True, text=True, env=env, timeout=300)
+                
+                if result.stdout:
+                    logs.extend(result.stdout.split('\n'))
+                if result.stderr:
+                    logs.extend(result.stderr.split('\n'))
+                
+                if result.returncode == 0:
+                    logs.append(f"SQL file {file_name} executed successfully")
+                else:
+                    logs.append(f"SQL file {file_name} failed with return code {result.returncode}")
+                    success = False
+                    
+            except subprocess.TimeoutExpired:
+                logs.append(f"SQL execution timed out for file {file_name}")
+                success = False
+            except Exception as e:
+                logs.append(f"Error executing SQL file {file_name}: {str(e)}")
+                success = False
+        
+        logs.append(f"=== SQL Deployment Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+    except Exception as e:
+        logs.append(f"Error in SQL deployment step: {str(e)}")
+        success = False
+    
+    return success, logs
 
+def execute_service_restart_step(step, inventory, deployment_id):
+    """Execute service restart step using systemctl"""
+    logs = []
+    success = True
+    
+    try:
+        logs.append(f"=== Executing Service Restart Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+        
+        service_name = step.get('service')
+        operation = step.get('operation', 'status')
+        
+        logs.append(f"Service: {service_name}")
+        logs.append(f"Operation: {operation}")
+        
+        # Get target VMs
+        target_hosts = []
+        for vm_name in step.get('targetVMs', []):
+            vm_ip = get_vm_ip(vm_name, inventory)
+            if vm_ip:
+                target_hosts.append(vm_ip)
+                logs.append(f"Target VM {vm_name}: {vm_ip}")
+        
+        if not target_hosts:
+            logs.append("Error: No valid target VMs found")
+            return False, logs
+        
+        # Execute systemctl command on each host
+        for host in target_hosts:
+            logs.append(f"Executing systemctl {operation} {service_name} on {host}")
+            
+            ansible_cmd = [
+                'ansible', host,
+                '-i', f'{host},',
+                '-m', 'shell',
+                '-a', f'systemctl {operation} {service_name}',
+                '-u', 'root',
+                '--ssh-common-args=-o StrictHostKeyChecking=no'
+            ]
+            
+            if not run_ansible_command(ansible_cmd, logs):
+                success = False
+        
+        logs.append(f"=== Service Restart Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+    except Exception as e:
+        logs.append(f"Error in service restart step: {str(e)}")
+        success = False
+    
+    return success, logs
+
+def execute_ansible_playbook_step(step, inventory, deployment_id):
+    """Execute ansible playbook step"""
+    logs = []
+    success = True
+    
+    try:
+        logs.append(f"=== Executing Ansible Playbook Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+        
+        playbook_name = step.get('playbook')
+        playbook_details = get_playbook_details(playbook_name, inventory)
+        
+        if not playbook_details:
+            logs.append(f"Error: Playbook {playbook_name} not found in inventory")
+            return False, logs
+        
+        logs.append(f"Playbook: {playbook_details['name']}")
+        logs.append(f"Path: {playbook_details['path']}")
+        
+        # Build ansible-playbook command
+        ansible_cmd = [
+            'ansible-playbook',
+            playbook_details['path'],
+            '-i', playbook_details['inventory'],
+            '-f', str(playbook_details.get('forks', 10))
+        ]
+        
+        # Add extra vars
+        for extra_var_file in playbook_details.get('extra_vars', []):
+            ansible_cmd.extend(['-e', f'@{extra_var_file}'])
+        
+        # Add vault password file if present
+        if playbook_details.get('vault_password_file'):
+            ansible_cmd.extend(['--vault-password-file', playbook_details['vault_password_file']])
+        
+        logs.append(f"Executing playbook command: {' '.join(ansible_cmd)}")
+        
+        if not run_command_with_logging(ansible_cmd, logs):
+            success = False
+        
+        logs.append(f"=== Ansible Playbook Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+    except Exception as e:
+        logs.append(f"Error in ansible playbook step: {str(e)}")
+        success = False
+    
+    return success, logs
+
+def execute_helm_upgrade_step(step, inventory, deployment_id):
+    """Execute helm upgrade step"""
+    logs = []
+    success = True
+    
+    try:
+        logs.append(f"=== Executing Helm Upgrade Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+        
+        helm_type = step.get('helmDeploymentType')
+        helm_command = get_helm_command(helm_type, inventory)
+        
+        if not helm_command:
+            logs.append(f"Error: Helm command for {helm_type} not found in inventory")
+            return False, logs
+        
+        logs.append(f"Helm deployment type: {helm_type}")
+        logs.append(f"Command: {helm_command}")
+        
+        # Execute helm command using shell
+        shell_cmd = ['bash', '-c', helm_command]
+        
+        if not run_command_with_logging(shell_cmd, logs):
+            success = False
+        
+        logs.append(f"=== Helm Upgrade Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+    except Exception as e:
+        logs.append(f"Error in helm upgrade step: {str(e)}")
+        success = False
+    
+    return success, logs
+
+def execute_template_step(step, inventory, db_inventory, deployment_id):
+    """Execute a single template step based on its type"""
+    step_type = step.get('type')
+    
+    if step_type == 'file_deployment':
+        return execute_file_deployment_step(step, inventory, deployment_id)
+    elif step_type == 'sql_deployment':
+        return execute_sql_deployment_step(step, db_inventory, deployment_id)
+    elif step_type == 'service_restart':
+        return execute_service_restart_step(step, inventory, deployment_id)
+    elif step_type == 'ansible_playbook':
+        return execute_ansible_playbook_step(step, inventory, deployment_id)
+    elif step_type == 'helm_upgrade':
+        return execute_helm_upgrade_step(step, inventory, deployment_id)
+    else:
+        return False, [f"Unknown step type: {step_type}"]
+
+# =============================================================================
+# FLASK ROUTES - Add these routes to your app.py
+# =============================================================================
+
+@app.route('/api/deploy/templates', methods=['GET'])
+def get_templates():
+    """Get list of available deployment templates"""
+    try:
+        template_dir = '/app/deployment_templates'
+        if not os.path.exists(template_dir):
+            deploy_template_logger.warning(f"Template directory {template_dir} does not exist")
+            return jsonify({'templates': []})
+        
+        templates = []
+        for filename in os.listdir(template_dir):
+            if filename.endswith('_template.json'):
+                templates.append(filename)
+        
+        deploy_template_logger.debug(f"Found templates: {templates}")
+        return jsonify({'templates': templates})
+        
+    except Exception as e:
+        deploy_template_logger.error(f"Error listing templates: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/deploy/templates/<template_name>', methods=['GET'])
+def get_template(template_name):
+    """Get specific deployment template"""
+    try:
+        template_path = f'/app/deployment_templates/{template_name}'
+        
+        if not os.path.exists(template_path):
+            return jsonify({'error': 'Template not found'}), 404
+        
+        with open(template_path, 'r') as f:
+            template_data = json.load(f)
+        
+        deploy_template_logger.debug(f"Loaded template {template_name}: {template_data}")
+        return jsonify({'template': template_data})
+        
+    except Exception as e:
+        deploy_template_logger.error(f"Error loading template {template_name}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/deploy/templates/execute', methods=['POST'])
+def execute_template():
+    """Execute a deployment template"""
+    try:
+        data = request.get_json()
+        template_name = data.get('template_name')
+        
+        if not template_name:
+            return jsonify({'error': 'Template name is required'}), 400
+        
+        # Load template
+        template_path = f'/app/deployment_templates/{template_name}'
+        if not os.path.exists(template_path):
+            return jsonify({'error': 'Template not found'}), 404
+        
+        with open(template_path, 'r') as f:
+            template_data = json.load(f)
+        
+        # Load inventory
+        inventory, db_inventory = load_inventory()
+        if not inventory or not db_inventory:
+            return jsonify({'error': 'Failed to load inventory'}), 500
+        
+        # Generate deployment ID
+        deployment_id = str(uuid.uuid4())
+        
+        
+        deployments[deployment_id] = {
+            'type': 'template_deployment',
+            'status': 'running',
+            'logs': [],
+            'template_name': template_name,
+            'ft_number': template_data.get('metadata', {}).get('ft_number', 'unknown'),
+            'start_time': datetime.now(timezone.utc).isoformat(),
+            'steps_total': len(template_data.get('steps', [])),
+            'steps_completed': 0
+        }
+        save_deployment_history()
+        deploy_template_logger.info(f"Starting template deployment {deployment_id} for {template_name}")
+        
+        # Execute template in background thread
+        def execute_template_background():
+            try:
+                steps = template_data.get('steps', [])
+                dependencies = template_data.get('dependencies', [])
+                
+                # Sort steps by order
+                steps.sort(key=lambda x: x.get('order', 0))
+                
+                overall_success = True
+                
+                for step in steps:
+                    step_order = step.get('order')
+                    step_type = step.get('type')
+                    
+                    app.deployments[deployment_id]['logs'].append(f"\n=== Starting Step {step_order}: {step_type} ===")
+                    app.deployments[deployment_id]['logs'].append(f"Description: {step.get('description', 'N/A')}")
+                    
+                    # Execute the step
+                    success, step_logs = execute_template_step(step, inventory, db_inventory, deployment_id)
+                    
+                    # Add step logs to deployment logs
+                    app.deployments[deployment_id]['logs'].extend(step_logs)
+                    
+                    # Update progress
+                    app.deployments[deployment_id]['steps_completed'] += 1
+                    
+                    if not success:
+                        overall_success = False
+                        app.deployments[deployment_id]['logs'].append(f"Step {step_order} failed - stopping template execution")
+                        break
+                    
+                    app.deployments[deployment_id]['logs'].append(f"Step {step_order} completed successfully")
+                
+                # Update final status
+                final_status = 'success' if overall_success else 'failed'
+                app.deployments[deployment_id]['status'] = final_status
+                app.deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
+                
+                app.deployments[deployment_id]['logs'].append(f"\n=== Template Deployment {final_status.upper()} ===")
+                
+                deploy_template_logger.info(f"Template deployment {deployment_id} completed with status: {final_status}")
+                
+            except Exception as e:
+                deploy_template_logger.error(f"Error in template execution background thread: {str(e)}")
+                app.deployments[deployment_id]['status'] = 'failed'
+                app.deployments[deployment_id]['logs'].append(f"Template execution failed: {str(e)}")
+                app.deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
+        
+        # Start background execution
+        import threading
+        thread = threading.Thread(target=execute_template_background)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'deployment_id': deployment_id,
+            'status': 'started',
+            'template_name': template_name
+        })
+        save_deployment_history()
+    except Exception as e:
+        deploy_template_logger.error(f"Error executing template: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# =============================================================================
+# END OF DEPLOY TEMPLATE CODE TO ADD TO app.py
+# =============================================================================
 
 # # End of template generator and onclick deploy using template
     
