@@ -12,7 +12,7 @@ import { toLocaleStringWithTimezone, getCurrentTimeInTimezone } from '@/utils/ti
 
 interface Deployment {
   id: string;
-  type: 'file' | 'sql' | 'systemd' | 'command' | 'rollback' | string; 
+  type: 'file' | 'sql' | 'systemd' | 'command' | 'rollback' | 'template' | string; 
   status: 'running' | 'success' | 'failed' | string;
   timestamp: string;
   ft?: string;
@@ -249,6 +249,8 @@ const DeploymentHistory: React.FC = () => {
         return `${userPrefix}Command: ${deployment.command ? `${deployment.command.substring(0, 30)}${deployment.command.length > 30 ? '...' : ''}` : 'N/A'}, Status=${deployment.status}, ${dateTime}`;
       case 'rollback':
         return `${userPrefix}Rollback: ${deployment.ft || 'N/A'}/${deployment.file || 'N/A'}, Status=${deployment.status}, ${dateTime}`;
+      case 'template':
+        return `${userPrefix}Template: ${deployment.ft || 'N/A'}, Status=${deployment.status}, ${dateTime}`;
       default:
         return `${userPrefix}${deployment.type} (${deployment.status}), ${dateTime}`;
     }
@@ -309,6 +311,8 @@ const DeploymentHistory: React.FC = () => {
       if (deployment.vms) {
         details += `VMs: ${deployment.vms.join(', ')}\n`;
       }
+    } else if (deployment.type === 'template') {
+      details += `Template FT: ${deployment.ft || 'N/A'}\n`;
     }
     
     details += `Status: ${deployment.status}\n`;
@@ -335,6 +339,8 @@ const DeploymentHistory: React.FC = () => {
       `File: FT=${deployment.ft || 'N/A'}, File=${deployment.file || 'N/A'}` :
       deployment.type === 'systemd' ?
       `Systemctl: ${deployment.operation || 'N/A'} ${deployment.service || 'N/A'}` :
+      deployment.type === 'template' ?
+      `Template: ${deployment.ft || 'N/A'}` :
       deployment.type;
     
     const statusInfo = `Status=${deployment.status}`;
