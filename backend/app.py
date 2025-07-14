@@ -1992,6 +1992,7 @@ def get_deployment_history():
                     normalized_timestamp = time.time()
                 
                 # Store normalized timestamp for sorting
+
                 d["_sort_timestamp"] = normalized_timestamp
                 
             except Exception as e:
@@ -2000,6 +2001,9 @@ def get_deployment_history():
         
         # Sort deployments by normalized timestamp, newest first
         logger.debug("Starting deployment sorting...")
+        for dep_id, dep in deployments.items():
+            dep['id'] = dep_id
+            
         sorted_deployments = sorted(
             deployment_values,
             key=lambda x: x.get("_sort_timestamp", 0),
@@ -2036,7 +2040,13 @@ def get_deployment_history():
         logger.info(f"Successfully processed {len(sorted_deployments)} deployments")
         logger.debug("=== END: Getting deployment history ===")
         
-        return jsonify(sorted_deployments)
+        id_to_deployment = {
+            d.get('id', f"unknown-{i}"): d
+            for i, d in enumerate(sorted_deployments)
+        }
+
+        return jsonify(id_to_deployment)
+        # return jsonify(sorted_deployments)
         
     except Exception as e:
         import traceback
