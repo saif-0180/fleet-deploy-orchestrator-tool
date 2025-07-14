@@ -1193,8 +1193,16 @@ def execute_template():
         deploy_template_logger.info(f"Starting template deployment {deployment_id} for {template_name}")
         
         # Execute template in background thread
-        def execute_template_background():
+        def execute_template_background(deployment_id, template_data, ft_number):
             try:
+                logger.info(f"Starting template deployment {deployment_id} for {ft_number}")
+        
+                # Get the shared deployments dictionary
+                deployments = current_app.config.get('deployments', {})
+                
+                if deployment_id not in deployments:
+                    logger.error(f"Deployment {deployment_id} not found in deployments")
+                    return
                 steps = template_data.get('steps', [])
                 dependencies = template_data.get('dependencies', [])
                 
@@ -1264,6 +1272,49 @@ def execute_template():
             'template_name': template_name
         })
         save_deployment_history()
+                if deployments[deployment_id]['status'] == 'success':
+            try:
+                # Create deployment history entry for template
+                deployment_entry = {
+                    'id': deployment_id,
+                    'type': 'template',
+                    'status': 'success',
+                    'timestamp': datetime.now().isoformat(),
+                    'ft': ft_number,
+                    'logs': deployments[deployment_id]['logs'],
+                    'logged_in_user': logged_in_user
+                }
+                
+                # Save to deployment history
+                save_deployment_history_func = current_app.config.get('save_deployment_history')
+                if save_deployment_history_func:
+                    save_deployment_history_func(deployment_entry)
+                    logger.info(f"Saved template deployment {deployment_id} to history")
+                
+            except Exception as e:
+                logger.error(f"Failed to save template deployment to history: {e}")
+        
+        # Also save if failed
+        elif deployments[deployment_id]['status'] == 'failed':
+            try:
+                deployment_entry = {
+                    'id': deployment_id,
+                    'type': 'template',
+                    'status': 'failed',
+                    'timestamp': datetime.now().isoformat(),
+                    'ft': ft_number,
+                    'logs': deployments[deployment_id]['logs'],
+                    'logged_in_user': logged_in_user
+                }
+                
+                save_deployment_history_func = current_app.config.get('save_deployment_history')
+                if save_deployment_history_func:
+                    save_deployment_history_func(deployment_entry)
+                    logger.info(f"Saved failed template deployment {deployment_id} to history")
+                
+            except Exception as e:
+                logger.error(f"Failed to save failed template deployment to history: {e}")
+                
     except Exception as e:
         deploy_template_logger.error(f"Error executing template: {str(e)}")
         return jsonify({'error': str(e)}), 500
