@@ -586,7 +586,7 @@ def execute_file_deployment_step(step, inventory, deployment_id):
 - name: Deploy multiple files via template step
   hosts: deployment_targets
   gather_facts: false
-  become: {"true" if sudo else "false"}
+  become: true
   become_method: sudo
   become_user: {target_user}
   tasks:
