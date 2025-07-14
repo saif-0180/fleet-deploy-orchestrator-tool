@@ -127,7 +127,6 @@ const DeploymentHistory: React.FC = () => {
     staleTime: 300000,
     refetchInterval: 1800000,
     refetchOnWindowFocus: false,
-    retry: 2,
   });
 
   // Function to fetch logs for a specific deployment
@@ -146,7 +145,7 @@ const DeploymentHistory: React.FC = () => {
       if (selectedDeployment?.type === 'template') {
         // For template deployments, try to get logs from the template API
         try {
-          const response = await fetch(`/api/deploy/template/${deploymentId}/logs`);
+          const response = await fetch(`/api/deploy/${deploymentId}/logs`);
           if (response.ok) {
             const data = await response.json();
             console.log(`Received template logs for ${deploymentId}:`, data);
@@ -181,7 +180,7 @@ const DeploymentHistory: React.FC = () => {
         setLogStatus(data.status === 'running' ? 'running' : 'completed');
       } else {
         // If no logs in response, check if the selected deployment has logs
-        const selectedDeployment = deployments.find(d => d.id === deploymentId);
+        // const selectedDeployment = deployments.find(d => d.id === deploymentId);
         if (selectedDeployment?.logs && selectedDeployment.logs.length > 0) {
           setDeploymentLogs(selectedDeployment.logs);
           setLogStatus(selectedDeployment.status === 'running' ? 'running' : 'completed');
@@ -299,7 +298,7 @@ const DeploymentHistory: React.FC = () => {
   // Format deployment summary for display with username at the beginning and proper UTC time
   const formatDeploymentSummary = (deployment: Deployment): string => {
     console.log('Raw timestamp:', deployment.timestamp);
-    console.log('Formatting deployment summary for:', deployment);
+    // console.log('Formatting deployment summary for:', deployment);
     
     const dateTime = deployment.timestamp ? 
       toLocaleStringWithTimezone(deployment.timestamp) :
