@@ -472,64 +472,188 @@ def run_command_with_logging(command, logs):
         logs.append(f"Error executing command: {str(e)}")
         return False
 
+# def execute_file_deployment_step(step, inventory, deployment_id):
+#     """Execute file deployment step using ansible"""
+#     logs = []
+#     success = True
+    
+#     try:
+#         logs.append(f"=== Executing File Deployment Step {step['order']} ===")
+#         logs.append(f"Description: {step['description']}")
+        
+#         # Get target VMs and their IPs
+#         target_hosts = []
+#         for vm_name in step.get('targetVMs', []):
+#             vm_ip = get_vm_ip(vm_name, inventory)
+#             if vm_ip:
+#                 target_hosts.append(vm_ip)
+#                 logs.append(f"Target VM {vm_name}: {vm_ip}")
+#             else:
+#                 logs.append(f"Warning: VM {vm_name} not found in inventory")
+        
+#         if not target_hosts:
+#             logs.append("Error: No valid target VMs found")
+#             return False, logs
+        
+#         # Process each file
+#         for file_name in step.get('files', []):
+#             logs.append(f"Deploying file: {file_name}")
+            
+#             source_path = f"/app/fixfiles/{file_name}"
+#             target_path = step.get('targetPath', '/tmp')
+#             target_user = step.get('targetUser', 'root')
+            
+#             if not os.path.exists(source_path):
+#                 logs.append(f"Error: Source file {source_path} not found")
+#                 success = False
+#                 continue
+            
+#             # Create ansible command for file copy
+#             for host in target_hosts:
+#                 ansible_cmd = [
+#                     'ansible', host,
+#                     '-i', f'{host},',
+#                     '-m', 'copy',
+#                     '-a', f'src={source_path} dest={target_path}/{file_name} owner={target_user} mode=0644',
+#                     '-u', target_user,
+#                     '--ssh-common-args=-o StrictHostKeyChecking=no'
+#                 ]
+                
+#                 logs.append(f"Copying {file_name} to {host}:{target_path}")
+#                 if not run_ansible_command(ansible_cmd, logs):
+#                     success = False
+        
+#         logs.append(f"=== File Deployment Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        
+#     except Exception as e:
+#         logs.append(f"Error in file deployment step: {str(e)}")
+#         success = False
+    
+#     return success, logs
+
+
 def execute_file_deployment_step(step, inventory, deployment_id):
-    """Execute file deployment step using ansible"""
+    """Execute file deployment step using ansible (shared logic with process_file_deployment)"""
     logs = []
     success = True
-    
+
     try:
         logs.append(f"=== Executing File Deployment Step {step['order']} ===")
         logs.append(f"Description: {step['description']}")
-        
-        # Get target VMs and their IPs
-        target_hosts = []
-        for vm_name in step.get('targetVMs', []):
-            vm_ip = get_vm_ip(vm_name, inventory)
-            if vm_ip:
-                target_hosts.append(vm_ip)
-                logs.append(f"Target VM {vm_name}: {vm_ip}")
-            else:
-                logs.append(f"Warning: VM {vm_name} not found in inventory")
-        
-        if not target_hosts:
-            logs.append("Error: No valid target VMs found")
+
+        file_name = step.get('file')
+        ft_number = step.get('ft_number', 'UNKNOWN')
+        target_path = step.get('targetPath', '/tmp')
+        target_user = step.get('targetUser', 'root')
+        sudo = step.get('sudo', False)
+        create_backup = step.get('createBackup', True)
+        vms = step.get('targetVMs', [])
+
+        source_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, file_name)
+        if not os.path.exists(source_file):
+            logs.append(f"ERROR: Source file not found: {source_file}")
             return False, logs
-        
-        # Process each file
-        for file_name in step.get('files', []):
-            logs.append(f"Deploying file: {file_name}")
-            
-            source_path = f"/app/fixfiles/{file_name}"
-            target_path = step.get('targetPath', '/tmp')
-            target_user = step.get('targetUser', 'root')
-            
-            if not os.path.exists(source_path):
-                logs.append(f"Error: Source file {source_path} not found")
-                success = False
-                continue
-            
-            # Create ansible command for file copy
-            for host in target_hosts:
-                ansible_cmd = [
-                    'ansible', host,
-                    '-i', f'{host},',
-                    '-m', 'copy',
-                    '-a', f'src={source_path} dest={target_path}/{file_name} owner={target_user} mode=0644',
-                    '-u', target_user,
-                    '--ssh-common-args=-o StrictHostKeyChecking=no'
-                ]
-                
-                logs.append(f"Copying {file_name} to {host}:{target_path}")
-                if not run_ansible_command(ansible_cmd, logs):
-                    success = False
-        
-        logs.append(f"=== File Deployment Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
-        
+
+        logs.append(f"Source file: {source_file}")
+        logs.append(f"Target path: {target_path}")
+        logs.append(f"Target user: {target_user}")
+        logs.append(f"Sudo: {sudo}, Backup enabled: {create_backup}")
+
+        playbook_file = f"/tmp/file_deploy_{deployment_id}.yml"
+        final_target_path = os.path.join(target_path, file_name)
+
+        with open(playbook_file, 'w') as f:
+            f.write(f"""---
+- name: Deploy file via template step
+  hosts: deployment_targets
+  gather_facts: false
+  become: {"true" if sudo else "false"}
+  become_method: sudo
+  become_user: {target_user}
+  tasks:
+    - name: Ensure target directory exists
+      ansible.builtin.file:
+        path: "{target_path}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if target file exists
+      ansible.builtin.stat:
+        path: "{final_target_path}"
+      register: file_stat
+
+    - name: Backup existing file
+      ansible.builtin.copy:
+        src: "{final_target_path}"
+        dest: "{final_target_path}.bak.{{{{ ansible_date_time.epoch }}}}"
+        remote_src: yes
+      when: file_stat.stat.exists and {str(create_backup).lower()}
+
+    - name: Copy file
+      ansible.builtin.copy:
+        src: "{source_file}"
+        dest: "{final_target_path}"
+        mode: '0644'
+        owner: "{target_user}"
+""")
+
+        inventory_file = f"/tmp/inventory_{deployment_id}"
+        with open(inventory_file, 'w') as f:
+            f.write("[deployment_targets]\n")
+            for vm_name in vms:
+                vm = get_vm_ip(vm_name, inventory)
+                if not vm:
+                    logs.append(f"Warning: VM {vm_name} not found in inventory")
+                    continue
+                f.write(
+                    f"{vm_name} ansible_host={vm} ansible_user=infadm "
+                    f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
+                    f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+                    f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n"
+                )
+                logs.append(f"Target VM {vm_name}: {vm}")
+
+        os.makedirs('/tmp/ansible-ssh', exist_ok=True)
+        try:
+            os.chmod('/tmp/ansible-ssh', 0o777)
+        except PermissionError:
+            logs.append("Could not set permissions on /tmp/ansible-ssh")
+
+        env_vars = os.environ.copy()
+        env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
+
+        cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-vvv"]
+        logs.append(f"Executing: {' '.join(cmd)}")
+
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars)
+
+        if result.stdout:
+            logs.append("=== ANSIBLE OUTPUT ===")
+            logs.extend(line.strip() for line in result.stdout.splitlines() if line.strip())
+        if result.stderr:
+            logs.append("=== ANSIBLE STDERR ===")
+            logs.extend(line.strip() for line in result.stderr.splitlines() if line.strip())
+
+        if result.returncode == 0:
+            logs.append("SUCCESS: File deployment completed successfully")
+        else:
+            logs.append(f"ERROR: File deployment failed with return code {result.returncode}")
+            success = False
+
+        try:
+            os.remove(playbook_file)
+            os.remove(inventory_file)
+        except Exception as e:
+            logs.append(f"Warning: Error cleaning up files: {str(e)}")
+
     except Exception as e:
-        logs.append(f"Error in file deployment step: {str(e)}")
+        logs.append(f"Exception during file deployment step: {str(e)}")
         success = False
-    
+
     return success, logs
+
 
 def execute_sql_deployment_step(step, db_inventory, deployment_id):
     """Execute SQL deployment step"""
@@ -625,33 +749,6 @@ def execute_service_restart_step(step, inventory, deployment_id):
         logs.append(f"Service: {service_name}")
         logs.append(f"Operation: {operation}")
         
-        # # Get target VMs
-        # target_hosts = []
-        # for vm_name in step.get('targetVMs', []):
-        #     vm_ip = get_vm_ip(vm_name, inventory)
-        #     if vm_ip:
-        #         target_hosts.append(vm_ip)
-        #         logs.append(f"Target VM {vm_name}: {vm_ip}")
-        
-        # if not target_hosts:
-        #     logs.append("Error: No valid target VMs found")
-        #     return False, logs
-        
-        # # Execute systemctl command on each host
-        # for host in target_hosts:
-        #     logs.append(f"Executing systemctl {operation} {service_name} on {host}")
-            
-        #     ansible_cmd = [
-        #         'ansible', host,
-        #         '-i', f'{host},',
-        #         '-m', 'shell',
-        #         '-a', f'systemctl {operation} {service_name}',
-        #         '-u', 'root',
-        #         '--ssh-common-args=-o StrictHostKeyChecking=no'
-        #     ]
-            
-        #     if not run_ansible_command(ansible_cmd, logs):
-        #         success = False
 
         # Generate an ansible playbook for systemd operation
         playbook_file = f"/tmp/systemd_{deployment_id}.yml"
@@ -825,14 +922,6 @@ def execute_service_restart_step(step, inventory, deployment_id):
             if not target_hosts:
                 logs.append("Error: No valid target VMs found")
                 return False, logs
-        
-        # with open(inventory_file, 'w') as f:
-        #     f.write("[systemd_targets]\n")
-        #     for vm_name in vms:
-        #         # Find VM IP from inventory
-        #         vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
-        #         if vm:
-        #             f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
         
         # Run ansible playbook
         env_vars = os.environ.copy()
@@ -1149,10 +1238,8 @@ def execute_template():
         return jsonify({'error': str(e)}), 500
 
 # =============================================================================
-# END OF DEPLOY TEMPLATE CODE TO ADD TO app.py
+# END OF DEPLOY TEMPLATE CODE 
 # =============================================================================
-
-# # End of template generator and onclick deploy using template
     
 # API to deploy a file
 @app.route('/api/deploy/file', methods=['POST'])
