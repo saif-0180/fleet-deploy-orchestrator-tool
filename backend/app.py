@@ -1180,6 +1180,8 @@ def execute_template():
         deployments[deployment_id] = {
             'type': 'template_deployment',
             'status': 'running',
+            'type': 'template',
+            'template': template,
             'logs': [],
             'template_name': template_name,
             'ft_number': template_data.get('metadata', {}).get('ft_number', 'unknown'),
