@@ -23,6 +23,7 @@ from routes.template_routes import template_bp
 # Register the blueprint
 #app.register_blueprint(db_blueprint, url_prefix='/api')
 
+#retore_save_checkpoint
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
@@ -2003,7 +2004,7 @@ def get_deployment_history():
         logger.debug("Starting deployment sorting...")
         for dep_id, dep in deployments.items():
             dep['id'] = dep_id
-            
+
         sorted_deployments = sorted(
             deployment_values,
             key=lambda x: x.get("_sort_timestamp", 0),
