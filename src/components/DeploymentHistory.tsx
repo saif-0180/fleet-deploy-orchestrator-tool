@@ -75,45 +75,42 @@ const DeploymentHistory: React.FC = () => {
         
         const data = await response.json();
         console.log("Received deployment history data:", data);
-        setLastRefreshedTime(new Date().toLocaleTimeString());
         setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
-        return data as Deployment[];
         
-        // // Transform the data to ensure proper timestamp handling
-        // const transformedData = Object.entries(data).map(([id, deployment]: [string, any]) => {
-        //   console.log(`Processing deployment ${id}:`, deployment);
+        // Transform the data to ensure proper timestamp handling
+        const transformedData = Object.entries(data).map(([id, deployment]: [string, any]) => {
+          console.log(`Processing deployment ${id}:`, deployment);
           
-        // //   // For template deployments, use start_time or end_time as the actual timestamp
-        //   let actualTimestamp = deployment.timestamp;
-        //   if (deployment.type === 'template') {
-        //     // Use end_time if available (completed), otherwise start_time
-        //     if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
-        //       actualTimestamp = deployment.end_time;
-        //     } else if (deployment.start_time && deployment.start_time !== "1970-01-01T00:00:00Z") {
-        //       actualTimestamp = deployment.start_time;
-        //     }
-        //     console.log(`Template deployment ${id} timestamp: ${actualTimestamp}`);
-        //   }
+          // For template deployments, use start_time or end_time as the actual timestamp
+          let actualTimestamp = deployment.timestamp;
+          if (deployment.type === 'template') {
+            // Use end_time if available (completed), otherwise start_time
+            if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
+              actualTimestamp = deployment.end_time;
+            } else if (deployment.start_time && deployment.start_time !== "1970-01-01T00:00:00Z") {
+              actualTimestamp = deployment.start_time;
+            }
+            console.log(`Template deployment ${id} timestamp: ${actualTimestamp}`);
+          }
           
-        //   return {
-        //     ...deployment,
-        //     id,
-        //     timestamp: actualTimestamp,
-        //     // Ensure template fields are properly mapped
-        //     ft: deployment.ft || deployment.ft_number,
-        //   };
-        // });
+          return {
+            ...deployment,
+            id,
+            timestamp: actualTimestamp,
+            // Ensure template fields are properly mapped
+            ft: deployment.ft || deployment.ft_number,
+          };
+        });
         
         // Sort by timestamp (newest first)
-        // const sortedData = transformedData.sort((a, b) => {
-        //   const dateA = new Date(a.timestamp || 0);
-        //   const dateB = new Date(b.timestamp || 0);
-        //   return dateB.getTime() - dateA.getTime();
-        // });
+        const sortedData = transformedData.sort((a, b) => {
+          const dateA = new Date(a.timestamp || 0);
+          const dateB = new Date(b.timestamp || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
         
-        // console.log("Transformed and sorted deployment data:", sortedData);
-        // setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
-        // return sortedData as Deployment[];
+        console.log("Transformed and sorted deployment data:", sortedData);
+        return sortedData as Deployment[];
       } catch (error) {
         console.error(`Error in history fetch: ${error}`);
         if (error instanceof SyntaxError) {
@@ -180,7 +177,6 @@ const DeploymentHistory: React.FC = () => {
         setLogStatus(data.status === 'running' ? 'running' : 'completed');
       } else {
         // If no logs in response, check if the selected deployment has logs
-        // const selectedDeployment = deployments.find(d => d.id === deploymentId);
         if (selectedDeployment?.logs && selectedDeployment.logs.length > 0) {
           setDeploymentLogs(selectedDeployment.logs);
           setLogStatus(selectedDeployment.status === 'running' ? 'running' : 'completed');
@@ -200,11 +196,12 @@ const DeploymentHistory: React.FC = () => {
   useEffect(() => {
     if (!selectedDeploymentId) {
       setLogStatus('idle');
+      setDeploymentLogs([]);
       return;
     }
     
     fetchDeploymentLogs(selectedDeploymentId);
-  }, [selectedDeploymentId]);
+  }, [selectedDeploymentId, deployments]);
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -228,7 +225,7 @@ const DeploymentHistory: React.FC = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Failed to clear logs: ${errorText}`);
-        throw new Error('Failed to clear logs');
+        throw new Error(`Failed to clear logs: ${response.status} ${response.statusText}`);
       }
       
       return response.json();
@@ -243,6 +240,7 @@ const DeploymentHistory: React.FC = () => {
       setDeploymentLogs([]);
     },
     onError: (error) => {
+      console.error('Clear logs error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to clear logs",
@@ -298,7 +296,6 @@ const DeploymentHistory: React.FC = () => {
   // Format deployment summary for display with username at the beginning and proper UTC time
   const formatDeploymentSummary = (deployment: Deployment): string => {
     console.log('Raw timestamp:', deployment.timestamp);
-    // console.log('Formatting deployment summary for:', deployment);
     
     const dateTime = deployment.timestamp ? 
       toLocaleStringWithTimezone(deployment.timestamp) :
@@ -339,6 +336,7 @@ const DeploymentHistory: React.FC = () => {
       return;
     }
     
+    console.log(`Clearing logs older than ${clearDays} days`);
     clearLogsMutation.mutate(clearDays);
   };
 
@@ -346,6 +344,12 @@ const DeploymentHistory: React.FC = () => {
     if (window.confirm("Are you sure you want to rollback this deployment? This will restore the previous version of the file.")) {
       rollbackMutation.mutate(deploymentId);
     }
+  };
+
+  // Handle deployment selection
+  const handleDeploymentSelect = (deploymentId: string) => {
+    console.log(`Selecting deployment: ${deploymentId}`);
+    setSelectedDeploymentId(deploymentId);
   };
 
   // Get deployment details with logged in user info prominently displayed and UTC time
@@ -497,7 +501,7 @@ const DeploymentHistory: React.FC = () => {
                               ? 'bg-[#F79B72] text-[#2A4759]' 
                               : 'bg-[#2A4759] text-[#EEEEEE] hover:bg-[#2A4759]/80'
                           }`}
-                          onClick={() => setSelectedDeploymentId(deployment.id)}
+                          onClick={() => handleDeploymentSelect(deployment.id)}
                         >
                           <div className="flex justify-between">
                             <div>
