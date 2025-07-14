@@ -555,9 +555,74 @@ def execute_file_deployment_step(step, inventory, deployment_id):
         if not ft_number:
             logs.append("ERROR: 'ftNumber' is missing")
             return False, logs
+        for file_name in file_list:
+                src_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, file_name)
+                dest_file = os.path.join(target_path, file_name)
 
-        inventory_file = f"/tmp/inventory_{deployment_id}"
+                if not os.path.exists(src_file):
+                    logs.append(f"ERROR: File not found: {src_file}")
+                    success = False
+                    continue    
+
+        # Generate an ansible playbook for file deployment            
         playbook_file = f"/tmp/file_deploy_{deployment_id}.yml"
+        # Generate the playbook
+        with open(playbook_file, 'w') as f:
+            f.write(f"""---
+- name: Deploy multiple files via template step
+  hosts: deployment_targets
+  gather_facts: false
+  become: true
+  become_method: sudo
+  become_user: {target_user}
+  tasks:
+    - name: Ensure target directory exists
+      ansible.builtin.file:
+        path: "{target_path}"
+        state: directory
+        mode: '0755'
+      become: "true"
+      become_user: {target_user}
+
+    # Check if file exists first to support backup
+    - name: Check if file already exists
+      ansible.builtin.stat:
+        path: "{target_path}"
+      register: file_stat
+      
+    # Create backup of existing file if requested
+    - name: Create backup of existing file if it exists
+      ansible.builtin.copy:
+        src: "{target_path}"
+        dest: "{target_path}.bak.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+      when: file_stat.stat.exists and {str(create_backup).lower()}
+      register: backup_result 
+
+    # Log backup creation
+    - name: Log backup result
+      ansible.builtin.debug:
+        msg: "Created backup at {{ backup_result.dest }} "
+      when: backup_result.changed is defined and backup_result.changed
+
+    # Copy the file to the target location
+    - name: Copy file to target VMs
+      ansible.builtin.copy:
+        src: "{src_file}"
+        dest: "{target_path}"
+        mode: '0644'
+        owner: "{target_user}"
+      register: copy_result
+      
+    - name: Log copy result
+      ansible.builtin.debug:
+        msg: "File copied successfully to {vms} (deployment by {logged_in_user})"
+      when: copy_result.changed
+""")
+        logger.debug(f"Created Ansible playbook: {playbook_file}")
+        
+        # Generate inventory file for ansible
+        inventory_file = f"/tmp/inventory_{deployment_id}"
 
         with open(inventory_file, 'w') as f:
             f.write("[deployment_targets]\n")
@@ -579,54 +644,6 @@ def execute_file_deployment_step(step, inventory, deployment_id):
             os.chmod('/tmp/ansible-ssh', 0o777)
         except PermissionError:
             logs.append("Could not set permissions on /tmp/ansible-ssh")
-
-        # Generate the playbook
-        with open(playbook_file, 'w') as f:
-            f.write(f"""---
-- name: Deploy multiple files via template step
-  hosts: deployment_targets
-  gather_facts: false
-  become: true
-  become_method: sudo
-  become_user: {target_user}
-  tasks:
-    - name: Ensure target directory exists
-      ansible.builtin.file:
-        path: "{target_path}"
-        state: directory
-        mode: '0755'\n""")
-
-            for file_name in file_list:
-                src_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, file_name)
-                dest_file = os.path.join(target_path, file_name)
-
-                if not os.path.exists(src_file):
-                    logs.append(f"ERROR: File not found: {src_file}")
-                    success = False
-                    continue
-
-                f.write(f"""
-    - name: Stat {file_name}
-      ansible.builtin.stat:
-        path: "{dest_file}"
-      register: stat_{file_name.replace('.', '_')}""")
-
-                if create_backup:
-                    f.write(f"""
-    - name: Backup {file_name} if exists
-      ansible.builtin.copy:
-        src: "{dest_file}"
-        dest: "{dest_file}.bak.{{{{ ansible_date_time.epoch }}}}"
-        remote_src: yes
-      when: stat_{file_name.replace('.', '_')}.stat.exists""")
-
-                f.write(f"""
-    - name: Deploy {file_name}
-      ansible.builtin.copy:
-        src: "{src_file}"
-        dest: "{dest_file}"
-        mode: '0644'
-        owner: "{target_user}"\n""")
 
         # Prepare environment and run
         env_vars = os.environ.copy()
@@ -658,11 +675,12 @@ def execute_file_deployment_step(step, inventory, deployment_id):
             os.remove(inventory_file)
         except Exception as e:
             logs.append(f"Warning: Error cleaning up temp files: {str(e)}")
+        save_deployment_history()
 
     except Exception as e:
         logs.append(f"Exception during file deployment step: {str(e)}")
         success = False
-
+        save_deployment_history()
     return success, logs
 
 
