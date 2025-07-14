@@ -533,38 +533,57 @@ def run_command_with_logging(command, logs):
 
 
 def execute_file_deployment_step(step, inventory, deployment_id):
-    """Execute file deployment step using ansible (shared logic with process_file_deployment)"""
+    """Execute file deployment step using ansible"""
     logs = []
     success = True
 
     try:
         logs.append(f"=== Executing File Deployment Step {step['order']} ===")
-        logs.append(f"Description: {step['description']}")
+        logs.append(f"Description: {step.get('description', '')}")
 
-        file_name = step.get('file')
-        ft_number = step.get('ft_number', 'UNKNOWN')
+        file_list = step.get('files', [])
+        ft_number = step.get('ftNumber')  # CamelCase from template
         target_path = step.get('targetPath', '/tmp')
         target_user = step.get('targetUser', 'root')
         sudo = step.get('sudo', False)
         create_backup = step.get('createBackup', True)
         vms = step.get('targetVMs', [])
 
-        source_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, file_name)
-        if not os.path.exists(source_file):
-            logs.append(f"ERROR: Source file not found: {source_file}")
+        if not file_list:
+            logs.append("ERROR: No files specified in 'files' field")
+            return False, logs
+        if not ft_number:
+            logs.append("ERROR: 'ftNumber' is missing")
             return False, logs
 
-        logs.append(f"Source file: {source_file}")
-        logs.append(f"Target path: {target_path}")
-        logs.append(f"Target user: {target_user}")
-        logs.append(f"Sudo: {sudo}, Backup enabled: {create_backup}")
-
+        inventory_file = f"/tmp/inventory_{deployment_id}"
         playbook_file = f"/tmp/file_deploy_{deployment_id}.yml"
-        final_target_path = os.path.join(target_path, file_name)
 
+        with open(inventory_file, 'w') as f:
+            f.write("[deployment_targets]\n")
+            for vm_name in vms:
+                vm = get_vm_ip(vm_name, inventory)
+                if not vm:
+                    logs.append(f"Warning: VM {vm_name} not found in inventory")
+                    continue
+                f.write(f"{vm_name} ansible_host={vm} ansible_user=infadm "
+                        f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
+                        f"ansible_ssh_common_args='-o StrictHostKeyChecking=no "
+                        f"-o UserKnownHostsFile=/dev/null -o ControlMaster=auto "
+                        f"-o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+                logs.append(f"Target VM {vm_name}: {vm}")
+
+        if not os.path.exists('/tmp/ansible-ssh'):
+            os.makedirs('/tmp/ansible-ssh', exist_ok=True)
+        try:
+            os.chmod('/tmp/ansible-ssh', 0o777)
+        except PermissionError:
+            logs.append("Could not set permissions on /tmp/ansible-ssh")
+
+        # Generate the playbook
         with open(playbook_file, 'w') as f:
             f.write(f"""---
-- name: Deploy file via template step
+- name: Deploy multiple files via template step
   hosts: deployment_targets
   gather_facts: false
   become: {"true" if sudo else "false"}
@@ -575,50 +594,41 @@ def execute_file_deployment_step(step, inventory, deployment_id):
       ansible.builtin.file:
         path: "{target_path}"
         state: directory
-        mode: '0755'
+        mode: '0755'\n""")
 
-    - name: Check if target file exists
-      ansible.builtin.stat:
-        path: "{final_target_path}"
-      register: file_stat
+            for file_name in file_list:
+                src_file = os.path.join(FIX_FILES_DIR, 'AllFts', ft_number, file_name)
+                dest_file = os.path.join(target_path, file_name)
 
-    - name: Backup existing file
-      ansible.builtin.copy:
-        src: "{final_target_path}"
-        dest: "{final_target_path}.bak.{{{{ ansible_date_time.epoch }}}}"
-        remote_src: yes
-      when: file_stat.stat.exists and {str(create_backup).lower()}
-
-    - name: Copy file
-      ansible.builtin.copy:
-        src: "{source_file}"
-        dest: "{final_target_path}"
-        mode: '0644'
-        owner: "{target_user}"
-""")
-
-        inventory_file = f"/tmp/inventory_{deployment_id}"
-        with open(inventory_file, 'w') as f:
-            f.write("[deployment_targets]\n")
-            for vm_name in vms:
-                vm = get_vm_ip(vm_name, inventory)
-                if not vm:
-                    logs.append(f"Warning: VM {vm_name} not found in inventory")
+                if not os.path.exists(src_file):
+                    logs.append(f"ERROR: File not found: {src_file}")
+                    success = False
                     continue
-                f.write(
-                    f"{vm_name} ansible_host={vm} ansible_user=infadm "
-                    f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
-                    f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-                    f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n"
-                )
-                logs.append(f"Target VM {vm_name}: {vm}")
 
-        os.makedirs('/tmp/ansible-ssh', exist_ok=True)
-        try:
-            os.chmod('/tmp/ansible-ssh', 0o777)
-        except PermissionError:
-            logs.append("Could not set permissions on /tmp/ansible-ssh")
+                f.write(f"""
+    - name: Stat {file_name}
+      ansible.builtin.stat:
+        path: "{dest_file}"
+      register: stat_{file_name.replace('.', '_')}""")
 
+                if create_backup:
+                    f.write(f"""
+    - name: Backup {file_name} if exists
+      ansible.builtin.copy:
+        src: "{dest_file}"
+        dest: "{dest_file}.bak.{{{{ ansible_date_time.epoch }}}}"
+        remote_src: yes
+      when: stat_{file_name.replace('.', '_')}.stat.exists""")
+
+                f.write(f"""
+    - name: Deploy {file_name}
+      ansible.builtin.copy:
+        src: "{src_file}"
+        dest: "{dest_file}"
+        mode: '0644'
+        owner: "{target_user}"\n""")
+
+        # Prepare environment and run
         env_vars = os.environ.copy()
         env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
         env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
@@ -637,16 +647,17 @@ def execute_file_deployment_step(step, inventory, deployment_id):
             logs.extend(line.strip() for line in result.stderr.splitlines() if line.strip())
 
         if result.returncode == 0:
-            logs.append("SUCCESS: File deployment completed successfully")
+            logs.append("SUCCESS: All files deployed successfully")
         else:
-            logs.append(f"ERROR: File deployment failed with return code {result.returncode}")
+            logs.append(f"ERROR: Deployment failed with return code {result.returncode}")
             success = False
 
+        # Cleanup
         try:
             os.remove(playbook_file)
             os.remove(inventory_file)
         except Exception as e:
-            logs.append(f"Warning: Error cleaning up files: {str(e)}")
+            logs.append(f"Warning: Error cleaning up temp files: {str(e)}")
 
     except Exception as e:
         logs.append(f"Exception during file deployment step: {str(e)}")
