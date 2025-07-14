@@ -1272,7 +1272,7 @@ def execute_template():
             'template_name': template_name
         })
         save_deployment_history()
-                if deployments[deployment_id]['status'] == 'success':
+        if deployments[deployment_id]['status'] == 'success':
             try:
                 # Create deployment history entry for template
                 deployment_entry = {
@@ -1314,7 +1314,7 @@ def execute_template():
                 
             except Exception as e:
                 logger.error(f"Failed to save failed template deployment to history: {e}")
-                
+
     except Exception as e:
         deploy_template_logger.error(f"Error executing template: {str(e)}")
         return jsonify({'error': str(e)}), 500
