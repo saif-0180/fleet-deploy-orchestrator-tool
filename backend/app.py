@@ -755,15 +755,6 @@ def execute_service_restart_step(step, inventory, deployment_id):
           Enabled: {{{{ 'YES' if service_status.status.UnitFileState in ['enabled', 'enabled-runtime'] else 'NO' }}}}
           ===========================================
       when: service_exists and operation_type == 'status'
-      
-    # - name: Perform systemd START operation
-    #   ansible.builtin.systemd:
-    #     name: "{{{{ service_name }}}}"
-    #     state: started
-    #     enabled: yes
-    #   become: yes  
-    #   register: start_result
-    #   when: service_exists and operation_type == 'start'
 
     - name: Perform systemd START operation
       ansible.builtin.shell: |
@@ -771,13 +762,6 @@ def execute_service_restart_step(step, inventory, deployment_id):
       register: start_result
       when: service_exists and operation_type == 'start'
       
-    # - name: Perform systemd STOP operation
-    #   ansible.builtin.systemd:
-    #     name: "{{{{ service_name }}}}"
-    #     state: stopped
-    #   become: yes  
-    #   register: stop_result
-    #   when: service_exists and operation_type == 'stop'
 
     - name: Perform systemd STOP operation
       ansible.builtin.shell: |
@@ -785,14 +769,6 @@ def execute_service_restart_step(step, inventory, deployment_id):
       register: stop_result
       when: service_exists and operation_type == 'stop'
       
-    # - name: Perform systemd RESTART operation
-    #   ansible.builtin.systemd:
-    #     name: "{{{{ service_name }}}}"
-    #     state: restarted
-    #     enabled: yes
-    #   become: yes
-    #   register: restart_result
-    #   when: service_exists and operation_type == 'restart'
 
     - name: Perform systemd RESTART operation
       ansible.builtin.shell: |
@@ -844,7 +820,7 @@ def execute_service_restart_step(step, inventory, deployment_id):
                 if vm:
                     target_hosts.append(vm)
                     logs.append(f"Target VM {vm_name}: {vm}")
-                    f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+                    f.write(f"{vm_name} ansible_host={vm} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
                      
             if not target_hosts:
                 logs.append("Error: No valid target VMs found")
