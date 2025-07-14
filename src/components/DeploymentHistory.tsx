@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,13 @@ interface Deployment {
   logs?: string[];
   original_deployment?: string;
   logged_in_user?: string;
+  // Template specific fields
+  template_name?: string;
+  ft_number?: string;
+  start_time?: string;
+  end_time?: string;
+  steps_total?: number;
+  steps_completed?: number;
 }
 
 const DeploymentHistory: React.FC = () => {
@@ -47,10 +55,9 @@ const DeploymentHistory: React.FC = () => {
     queryKey: ['deployment-history'],
     queryFn: async () => {
       console.log("Fetching deployment history");
-      setApiErrorMessage(""); // Clear any previous errors
+      setApiErrorMessage("");
       try {
         const response = await fetch('/api/deployments/history');
-        // Add explicit error handling for non-JSON responses
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") === -1) {
           const errorText = await response.text();
@@ -68,9 +75,42 @@ const DeploymentHistory: React.FC = () => {
         
         const data = await response.json();
         console.log("Received deployment history data:", data);
-        // setLastRefreshedTime(new Date().toLocaleTimeString());
+        
+        // Transform the data to ensure proper timestamp handling
+        const transformedData = Object.entries(data).map(([id, deployment]: [string, any]) => {
+          console.log(`Processing deployment ${id}:`, deployment);
+          
+          // For template deployments, use start_time or end_time as the actual timestamp
+          let actualTimestamp = deployment.timestamp;
+          if (deployment.type === 'template') {
+            // Use end_time if available (completed), otherwise start_time
+            if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
+              actualTimestamp = deployment.end_time;
+            } else if (deployment.start_time && deployment.start_time !== "1970-01-01T00:00:00Z") {
+              actualTimestamp = deployment.start_time;
+            }
+            console.log(`Template deployment ${id} timestamp: ${actualTimestamp}`);
+          }
+          
+          return {
+            ...deployment,
+            id,
+            timestamp: actualTimestamp,
+            // Ensure template fields are properly mapped
+            ft: deployment.ft || deployment.ft_number,
+          };
+        });
+        
+        // Sort by timestamp (newest first)
+        const sortedData = transformedData.sort((a, b) => {
+          const dateA = new Date(a.timestamp || 0);
+          const dateB = new Date(b.timestamp || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        console.log("Transformed and sorted deployment data:", sortedData);
         setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
-        return data as Deployment[];
+        return sortedData as Deployment[];
       } catch (error) {
         console.error(`Error in history fetch: ${error}`);
         if (error instanceof SyntaxError) {
@@ -78,12 +118,12 @@ const DeploymentHistory: React.FC = () => {
         } else {
           setApiErrorMessage(`Error fetching deployment history: ${error instanceof Error ? error.message : String(error)}`);
         }
-        return []; // Return empty array instead of throwing to avoid UI errors
+        return [];
       }
     },
-    staleTime: 300000, // 5 minutes - consider data fresh for 5 minutes
-    refetchInterval: 1800000, // Refetch every 30 minutes
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 300000,
+    refetchInterval: 1800000,
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 
@@ -97,6 +137,35 @@ const DeploymentHistory: React.FC = () => {
     try {
       setLogStatus('loading');
       console.log(`Fetching logs for deployment ${deploymentId}`);
+      
+      // Check if this is a template deployment first
+      const selectedDeployment = deployments.find(d => d.id === deploymentId);
+      if (selectedDeployment?.type === 'template') {
+        // For template deployments, try to get logs from the template API
+        try {
+          const response = await fetch(`/api/deploy/template/${deploymentId}/logs`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Received template logs for ${deploymentId}:`, data);
+            if (data.logs && data.logs.length > 0) {
+              setDeploymentLogs(data.logs);
+              setLogStatus(data.status === 'running' ? 'running' : 'completed');
+              return;
+            }
+          }
+        } catch (templateError) {
+          console.log(`Template logs endpoint not available, falling back to stored logs`);
+        }
+        
+        // Fall back to logs stored in deployment data
+        if (selectedDeployment.logs && selectedDeployment.logs.length > 0) {
+          setDeploymentLogs(selectedDeployment.logs);
+          setLogStatus(selectedDeployment.status === 'running' ? 'running' : 'completed');
+          return;
+        }
+      }
+      
+      // For non-template deployments, use the regular logs endpoint
       const response = await fetch(`/api/deploy/${deploymentId}/logs`);
       if (!response.ok) {
         throw new Error(`Failed to fetch logs: ${await response.text()}`);
@@ -109,7 +178,6 @@ const DeploymentHistory: React.FC = () => {
         setLogStatus(data.status === 'running' ? 'running' : 'completed');
       } else {
         // If no logs in response, check if the selected deployment has logs
-        const selectedDeployment = deployments.find(d => d.id === deploymentId);
         if (selectedDeployment?.logs && selectedDeployment.logs.length > 0) {
           setDeploymentLogs(selectedDeployment.logs);
           setLogStatus(selectedDeployment.status === 'running' ? 'running' : 'completed');
@@ -226,8 +294,7 @@ const DeploymentHistory: React.FC = () => {
 
   // Format deployment summary for display with username at the beginning and proper UTC time
   const formatDeploymentSummary = (deployment: Deployment): string => {
-    // Convert timestamp to actual UTC format with better debugging
-    console.log('Raw timestamp:', deployment.timestamp);
+    console.log('Formatting deployment summary for:', deployment);
     
     const dateTime = deployment.timestamp ? 
       toLocaleStringWithTimezone(deployment.timestamp) :
@@ -250,7 +317,7 @@ const DeploymentHistory: React.FC = () => {
       case 'rollback':
         return `${userPrefix}Rollback: ${deployment.ft || 'N/A'}/${deployment.file || 'N/A'}, Status=${deployment.status}, ${dateTime}`;
       case 'template':
-        return `${userPrefix}Template: ${deployment.ft || 'N/A'}, Status=${deployment.status}, ${dateTime}`;
+        return `${userPrefix}Template: ${deployment.ft_number || deployment.ft || 'N/A'}, Status=${deployment.status}, ${dateTime}`;
       default:
         return `${userPrefix}${deployment.type} (${deployment.status}), ${dateTime}`;
     }
@@ -312,7 +379,17 @@ const DeploymentHistory: React.FC = () => {
         details += `VMs: ${deployment.vms.join(', ')}\n`;
       }
     } else if (deployment.type === 'template') {
-      details += `Template FT: ${deployment.ft || 'N/A'}\n`;
+      details += `Template FT: ${deployment.ft_number || deployment.ft || 'N/A'}\n`;
+      details += `Template Name: ${deployment.template_name || 'N/A'}\n`;
+      if (deployment.steps_total !== undefined) {
+        details += `Steps: ${deployment.steps_completed || 0}/${deployment.steps_total}\n`;
+      }
+      if (deployment.start_time) {
+        details += `Started: ${toLocaleStringWithTimezone(deployment.start_time)}\n`;
+      }
+      if (deployment.end_time && deployment.end_time !== "1970-01-01T00:00:00Z") {
+        details += `Ended: ${toLocaleStringWithTimezone(deployment.end_time)}\n`;
+      }
     }
     
     details += `Status: ${deployment.status}\n`;
@@ -340,7 +417,7 @@ const DeploymentHistory: React.FC = () => {
       deployment.type === 'systemd' ?
       `Systemctl: ${deployment.operation || 'N/A'} ${deployment.service || 'N/A'}` :
       deployment.type === 'template' ?
-      `Template: ${deployment.ft || 'N/A'}` :
+      `Template: ${deployment.ft_number || deployment.ft || 'N/A'}` :
       deployment.type;
     
     const statusInfo = `Status=${deployment.status}`;
