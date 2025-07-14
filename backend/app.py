@@ -1259,10 +1259,11 @@ def execute_template():
                     save_deployment_history()
                 except Exception as save_error:
                     deploy_template_logger.error(f"Failed to save deployment history: {save_error}")
-        
+                    
+        ft_number = template_data.get('metadata', {}).get('ft_number', 'unknown')
         # Start background execution
         import threading
-        thread = threading.Thread(target=execute_template_background)
+        thread = threading.Thread(target=execute_template_background, args=(deployment_id, template_data, ft_number,))
         thread.daemon = True
         thread.start()
         
