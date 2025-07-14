@@ -105,15 +105,15 @@ const DeploymentHistory: React.FC = () => {
         // });
         
         // Sort by timestamp (newest first)
-        const sortedData = transformedData.sort((a, b) => {
-          const dateA = new Date(a.timestamp || 0);
-          const dateB = new Date(b.timestamp || 0);
-          return dateB.getTime() - dateA.getTime();
-        });
+        // const sortedData = transformedData.sort((a, b) => {
+        //   const dateA = new Date(a.timestamp || 0);
+        //   const dateB = new Date(b.timestamp || 0);
+        //   return dateB.getTime() - dateA.getTime();
+        // });
         
-        console.log("Transformed and sorted deployment data:", sortedData);
-        setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
-        return sortedData as Deployment[];
+        // console.log("Transformed and sorted deployment data:", sortedData);
+        // setLastRefreshedTime(getCurrentTimeInTimezone('h:mm:ss a'));
+        // return sortedData as Deployment[];
       } catch (error) {
         console.error(`Error in history fetch: ${error}`);
         if (error instanceof SyntaxError) {
