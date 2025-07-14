@@ -1181,7 +1181,7 @@ def execute_template():
             'type': 'template_deployment',
             'status': 'running',
             'type': 'template',
-            'template': template,
+            'template': template_name,
             'logs': [],
             'template_name': template_name,
             'ft_number': template_data.get('metadata', {}).get('ft_number', 'unknown'),
