@@ -1193,12 +1193,11 @@ def execute_template():
         deploy_template_logger.info(f"Starting template deployment {deployment_id} for {template_name}")
         
         # Execute template in background thread
-        def execute_template_background(deployment_id, template_data, ft_number):
+        def execute_template_background(deployment_id, template_data, ft_number, deployments):
             try:
                 logger.info(f"Starting template deployment {deployment_id} for {ft_number}")
         
-                # Get the shared deployments dictionary
-                deployments = current_app.config.get('deployments', {})
+                
                 
                 if deployment_id not in deployments:
                     logger.error(f"Deployment {deployment_id} not found in deployments")
@@ -1259,11 +1258,11 @@ def execute_template():
                     save_deployment_history()
                 except Exception as save_error:
                     deploy_template_logger.error(f"Failed to save deployment history: {save_error}")
-                    
+
         ft_number = template_data.get('metadata', {}).get('ft_number', 'unknown')
         # Start background execution
         import threading
-        thread = threading.Thread(target=execute_template_background, args=(deployment_id, template_data, ft_number,))
+        thread = threading.Thread(target=execute_template_background, args=(deployment_id, template_data, ft_number, deployments))
         thread.daemon = True
         thread.start()
         
