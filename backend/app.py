@@ -906,13 +906,13 @@ def execute_service_restart_step(step, inventory, deployment_id):
         # Save deployment history after completion
         save_deployment_history()
         
-    #     logs.append(f"=== Service Restart Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
+        logs.append(f"=== Service Restart Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
         
-    # except Exception as e:
-    #     logs.append(f"Error in service restart step: {str(e)}")
-    #     success = False
+    except Exception as e:
+        logs.append(f"Error in service restart step: {str(e)}")
+        success = False
     
-    # return success, logs
+    return success, logs
 
 def execute_ansible_playbook_step(step, inventory, deployment_id):
     """Execute ansible playbook step"""
