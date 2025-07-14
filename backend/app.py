@@ -91,6 +91,17 @@ deployments = {}
 
 # Store deployments in app config so it can be accessed via current_app
 app.config['deployments'] = deployments
+# Also store as app attribute for direct access
+app.deployments = deployments
+
+# Functions to save and access deployment data
+def save_deployment_history():
+    """Save deployment history to file"""
+    app.config.get('save_deployment_history_func', lambda: None)()
+
+def log_message(deployment_id, message):
+    """Log a message to deployment logs"""
+    app.config.get('log_message_func', lambda d, m: None)(deployment_id, message)
 
 # Try to load previous deployments if they exist
 try:
@@ -847,39 +858,50 @@ def execute_template():
                     step_order = step.get('order')
                     step_type = step.get('type')
                     
-                    app.deployments[deployment_id]['logs'].append(f"\n=== Starting Step {step_order}: {step_type} ===")
-                    app.deployments[deployment_id]['logs'].append(f"Description: {step.get('description', 'N/A')}")
+                    deployments[deployment_id]['logs'].append(f"\n=== Starting Step {step_order}: {step_type} ===")
+                    deployments[deployment_id]['logs'].append(f"Description: {step.get('description', 'N/A')}")
                     
                     # Execute the step
                     success, step_logs = execute_template_step(step, inventory, db_inventory, deployment_id)
                     
                     # Add step logs to deployment logs
-                    app.deployments[deployment_id]['logs'].extend(step_logs)
+                    deployments[deployment_id]['logs'].extend(step_logs)
                     
                     # Update progress
-                    app.deployments[deployment_id]['steps_completed'] += 1
+                    deployments[deployment_id]['steps_completed'] += 1
                     
                     if not success:
                         overall_success = False
-                        app.deployments[deployment_id]['logs'].append(f"Step {step_order} failed - stopping template execution")
+                        deployments[deployment_id]['logs'].append(f"Step {step_order} failed - stopping template execution")
                         break
                     
-                    app.deployments[deployment_id]['logs'].append(f"Step {step_order} completed successfully")
+                    deployments[deployment_id]['logs'].append(f"Step {step_order} completed successfully")
                 
                 # Update final status
                 final_status = 'success' if overall_success else 'failed'
-                app.deployments[deployment_id]['status'] = final_status
-                app.deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
+                deployments[deployment_id]['status'] = final_status
+                deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
                 
-                app.deployments[deployment_id]['logs'].append(f"\n=== Template Deployment {final_status.upper()} ===")
+                deployments[deployment_id]['logs'].append(f"\n=== Template Deployment {final_status.upper()} ===")
                 
                 deploy_template_logger.info(f"Template deployment {deployment_id} completed with status: {final_status}")
                 
+                # Save deployment history after completion
+                try:
+                    save_deployment_history()
+                except Exception as save_error:
+                    deploy_template_logger.error(f"Failed to save deployment history: {save_error}")
+                
             except Exception as e:
                 deploy_template_logger.error(f"Error in template execution background thread: {str(e)}")
-                app.deployments[deployment_id]['status'] = 'failed'
-                app.deployments[deployment_id]['logs'].append(f"Template execution failed: {str(e)}")
-                app.deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
+                deployments[deployment_id]['status'] = 'failed'
+                deployments[deployment_id]['logs'].append(f"Template execution failed: {str(e)}")
+                deployments[deployment_id]['end_time'] = datetime.now(timezone.utc).isoformat()
+                # Save deployment history even on failure
+                try:
+                    save_deployment_history()
+                except Exception as save_error:
+                    deploy_template_logger.error(f"Failed to save deployment history: {save_error}")
         
         # Start background execution
         import threading

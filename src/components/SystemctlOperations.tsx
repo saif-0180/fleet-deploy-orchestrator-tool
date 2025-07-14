@@ -142,7 +142,7 @@ const SystemctlOperations: React.FC = () => {
               <CardTitle className="text-[#F79B72] text-lg">Service Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <VMSelector onVMChange={setSelectedVMs} />
+              <VMSelector selectedVMs={selectedVMs} onSelectionChange={setSelectedVMs} />
               
               <div className="flex items-center space-x-2">
                 <Select value={selectedService} onValueChange={setSelectedService}>
@@ -185,10 +185,10 @@ const SystemctlOperations: React.FC = () => {
               
               <Button
                 onClick={handleExecute}
-                disabled={systemctlMutation.isLoading || logStatus === 'running'}
+                disabled={systemctlMutation.isPending || logStatus === 'running'}
                 className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
               >
-                {systemctlMutation.isLoading ? (
+                {systemctlMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Executing...
