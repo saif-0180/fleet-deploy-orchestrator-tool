@@ -836,16 +836,19 @@ def execute_service_restart_step(step, inventory, deployment_id):
         inventory_file = f"/tmp/inventory_{deployment_id}"
 
                 # Get target VMs
-        target_hosts = []
-        for vm_name in step.get('targetVMs', []):
-            vm_ip = get_vm_ip(vm_name, inventory)
-            if vm_ip:
-                target_hosts.append(vm_ip)
-                logs.append(f"Target VM {vm_name}: {vm_ip}")
-        
-        if not target_hosts:
-            logs.append("Error: No valid target VMs found")
-            return False, logs
+        with open(inventory_file, 'w') as f:
+            f.write("[systemd_targets]\n")
+            target_hosts = []
+            for vm_name in step.get('targetVMs', []):
+                vm = get_vm_ip(vm_name, inventory)
+                if vm:
+                    target_hosts.append(vm)
+                    logs.append(f"Target VM {vm_name}: {vm}")
+                    f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+                     
+            if not target_hosts:
+                logs.append("Error: No valid target VMs found")
+                return False, logs
         
         # with open(inventory_file, 'w') as f:
         #     f.write("[systemd_targets]\n")
@@ -885,13 +888,13 @@ def execute_service_restart_step(step, inventory, deployment_id):
         
         # Check result and update status
         if result.returncode == 0:
-            log_message(deployment_id, f"SUCCESS: Systemd {operation} operation completed successfully (initiated by {logged_in_user})")
+            log_message(deployment_id, f"SUCCESS: Systemd {operation} operation completed successfully ")
             deployments[deployment_id]["status"] = "completed"
-            logger.info(f"Systemd operation {deployment_id} completed successfully (initiated by {logged_in_user})")
+            logger.info(f"Systemd operation {deployment_id} completed successfully ")
         else:
-            log_message(deployment_id, f"ERROR: Systemd {operation} operation failed with return code {result.returncode} (initiated by {logged_in_user})")
+            log_message(deployment_id, f"ERROR: Systemd {operation} operation failed with return code {result.returncode} ")
             deployments[deployment_id]["status"] = "failed"
-            logger.error(f"Systemd operation {deployment_id} failed with return code {result.returncode} (initiated by {logged_in_user})")
+            logger.error(f"Systemd operation {deployment_id} failed with return code {result.returncode} ")
         
         # Clean up temporary files
         try:
