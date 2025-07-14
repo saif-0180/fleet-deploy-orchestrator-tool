@@ -616,7 +616,7 @@ def execute_file_deployment_step(step, inventory, deployment_id):
       
     - name: Log copy result
       ansible.builtin.debug:
-        msg: "File copied successfully to {vms} (deployment by {logged_in_user})"
+        msg: "File copied successfully to {vms}"
       when: copy_result.changed
 """)
         logger.debug(f"Created Ansible playbook: {playbook_file}")
