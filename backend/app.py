@@ -1086,7 +1086,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
             log_message(deployment_id, f"ERROR: {error_msg}")
             deployments[deployment_id]["status"] = "failed"
             save_deployment_history()
-            return
+            return False, logs
 
         playbook_file = f"/tmp/helm_deploy_{deployment_id}.yml"
         inventory_file = f"/tmp/inventory_{deployment_id}"
