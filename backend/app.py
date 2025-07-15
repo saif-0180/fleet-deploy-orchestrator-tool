@@ -1119,7 +1119,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
             f.write("[deployment_targets]\n")
             for vm_name in vms:
                 f.write(f"{vm_name} ansible_host={batch1_ip} ansible_user=infadm "
-                            f"ansible_ssh_private_key_file=/home/users/admin/.ssh/id_rsa "
+                            f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
                             f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
                             f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")   
 
