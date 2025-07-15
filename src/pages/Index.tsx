@@ -36,7 +36,8 @@ const Index = () => {
           backgroundSize: 'contain',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          backgroundSize: '100% 100%'
         }}
       >
         <div className="min-h-screen bg-black/20">

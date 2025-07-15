@@ -60,10 +60,11 @@ const LoginPage: React.FC = () => {
     <div 
       className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
       style={{ 
+        backgroundImage: 'url(/background/amdocs-iloginpage-bg.png)',
         backgroundSize: 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed'
+        backgroundSize: '100% 100%'
       }}
     >
       <div className="min-h-screen w-full flex items-center justify-center ">
