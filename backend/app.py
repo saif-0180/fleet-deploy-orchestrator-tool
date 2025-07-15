@@ -1058,6 +1058,7 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
     return success, logs
 
 def execute_helm_upgrade_step(step, inventory, deployment_id):
+    deployment = deployments[deployment_id]
     """Execute helm upgrade step"""
     logs = []
     success = True
@@ -1068,6 +1069,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
         
         helm_type = step.get('helmDeploymentType')
         helm_command = get_helm_command(helm_type, inventory)
+    
         
         if not helm_command:
             logs.append(f"Error: Helm command for {helm_type} not found in inventory")
@@ -1075,20 +1077,109 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
         
         logs.append(f"Helm deployment type: {helm_type}")
         logs.append(f"Command: {helm_command}")
+
+        ssh_user = "admin"
+        batch1_ip = next((vm["ip"] for vm in inventory["vms"] if vm["name"] == "batch1"), None)
+        if not batch1_ip:
+            error_msg = "Could not find IP for batch1 in inventory"
+            log_message(deployment_id, f"ERROR: {error_msg}")
+            deployments[deployment_id]["status"] = "failed"
+            save_deployment_history()
+            return
+
+        playbook_file = f"/tmp/helm_deploy_{deployment_id}.yml"
+        inventory_file = f"/tmp/inventory_{deployment_id}"
         
-        # Execute helm command using shell
-        shell_cmd = ['bash', '-c', helm_command]
-        
-        if not run_command_with_logging(shell_cmd, logs):
-            success = False
-        
-        logs.append(f"=== Helm Upgrade Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
-        
+        with open(playbook_file, 'w') as f:
+            f.write(f"""---
+- name: Helm chart deployment from Template 
+  hosts: deployment_targets
+  gather_facts: false
+  become: true
+  become_user: admin
+  tasks:
+    - name: Test connection
+      ansible.builtin.ping:
+
+    - name: Run Helm upgrade
+      ansible.builtin.command:
+        cmd: {helm_command}
+      register: helm_result
+      failed_when: helm_result.rc != 0
+
+    - name: Log Helm output
+      ansible.builtin.debug:
+        msg: "{{{{ helm_result.stdout_lines }}}}"
+""")
+
+        logger.debug(f"Created Ansible playbook: {playbook_file}")
+
+        with open(inventory_file, 'w') as f:
+            f.write("[deployment_targets]\n")
+            for vm_name in vms:
+                f.write(f"{vm_name} ansible_host={batch1_ip} ansible_user=infadm "
+                        f"ansible_ssh_private_key_file=/home/users/admin/.ssh/id_rsa "
+                        f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+                        f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+
+        # with open(inventory_file, 'w') as f:
+        #     f.write("[deployment_targets]\n")
+        #     for vm_name in vms:
+        #         vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
+        #         if vm:
+        #             f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm "
+        #                     f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
+        #                     f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+        #                     f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'\n")
+
+        log_message(deployment_id, f"Created inventory file with targets: {', '.join(vms)}")
+
+        os.makedirs("/tmp/ansible-ssh", exist_ok=True)
+        try:
+            os.chmod("/tmp/ansible-ssh", 0o777)
+        except PermissionError:
+            logger.info("Could not set permissions on /tmp/ansible-ssh")
+
+        env_vars = os.environ.copy()
+        env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+        env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
+        env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
+
+        cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
+        log_message(deployment_id, f"Executing: {' '.join(cmd)}")
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env_vars)
+
+        for line in process.stdout:
+            line_stripped = line.strip()
+            log_message(deployment_id, line_stripped)
+            logger.debug(f"[{deployment_id}] {line_stripped}")
+
+        process.wait()
+
+        if process.returncode == 0:
+            log_message(deployment_id, f"SUCCESS: Helm deployment completed successfully ")
+            deployments[deployment_id]["status"] = "success"
+            logger.info(f"Helm deployment {deployment_id} succeeded")
+        else:
+            log_message(deployment_id, f"ERROR: Helm deployment failed ")
+            deployments[deployment_id]["status"] = "failed"
+            logger.error(f"Helm deployment {deployment_id} failed with return code {process.returncode}")
+
+        try:
+            os.remove(playbook_file)
+            os.remove(inventory_file)
+        except Exception as e:
+            logger.warning(f"Cleanup failed: {str(e)}")
+
+        save_deployment_history()
+
     except Exception as e:
-        logs.append(f"Error in helm upgrade step: {str(e)}")
-        success = False
-    
-    return success, logs
+        log_message(deployment_id, f"ERROR: Exception during Helm deployment: {str(e)}")
+        deployments[deployment_id]["status"] = "failed"
+        logger.exception(f"Exception in Helm deployment {deployment_id}: {str(e)}")
+        save_deployment_history()
 
 def execute_template_step(step, inventory, db_inventory, deployment_id):
     """Execute a single template step based on its type"""
