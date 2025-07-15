@@ -1067,7 +1067,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
         logs.append(f"=== Executing Helm Upgrade Step {step['order']} ===")
         logs.append(f"Description: {step['description']}")
         
-        vms = "batch1"
+        vms = ["batch1"]
         helm_type = step.get('helmDeploymentType')
         helm_command = get_helm_command(helm_type, inventory)
     
