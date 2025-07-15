@@ -31,10 +31,11 @@ const Index = () => {
       <div 
         className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: 'url(/background/amdocs-bg.png)'
+          backgroundImage: 'url(/background/amdocs-bg.png)',
+          backgroundSize: '100% 100%',
         }}
       >
-        <div className="min-h-screen bg-black/30 backdrop-blur-sm">
+        <div className="min-h-screen ">
           <Header />
           
           <main className="container mx-auto px-4 py-6">
