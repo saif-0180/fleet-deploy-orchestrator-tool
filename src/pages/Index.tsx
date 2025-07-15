@@ -33,9 +33,10 @@ const Index = () => {
         className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
         style={{ 
           backgroundImage: 'url(/background/amdocs-bg.png)',
-          backgroundSize: 'cover',
+          backgroundSize: 'contain',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
         }}
       >
         <div className="min-h-screen bg-black/20">
