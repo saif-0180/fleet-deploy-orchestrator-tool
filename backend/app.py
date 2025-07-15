@@ -1106,7 +1106,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
       ansible.builtin.shell: "{helm_command}"
       args:
         executable: /bin/bash
-        chdir:  "{{ ansible_env.HOME }}" 
+        chdir:  "{{ '~' }}" 
       register: helm_result
       failed_when: helm_result.rc != 0
 
