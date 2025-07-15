@@ -1103,7 +1103,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
       ansible.builtin.ping:
 
     - name: Run Helm upgrade
-      ansible.builtin.shell: "{helm_command}"
+      ansible.builtin.shell: "/usr/local/bin/{helm_command}"
       register: helm_result
       failed_when: helm_result.rc != 0
 
