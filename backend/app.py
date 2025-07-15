@@ -1103,7 +1103,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
       ansible.builtin.ping:
 
     - name: Run Helm upgrade
-      ansible.builtin.command: "{helm_command}"
+      ansible.builtin.shell: "{helm_command}"
       args:
         executable: /bin/bash
         chdir:  "{{ ansible_env.HOME }}" 
