@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/toaster";
 import FileOperations from "@/components/FileOperations";
@@ -29,18 +30,20 @@ const Index = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <div 
-        className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat"
+        className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
         style={{ 
-          backgroundImage: 'url(/background/amdocs-bg.png)',
-          backgroundSize: '100% 100%',
+          backgroundImage: 'url(/lovable-uploads/39178b56-1e02-4fba-9e7c-2e33e2570914.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
         }}
       >
-        <div className="min-h-screen ">
+        <div className="min-h-screen bg-black/20">
           <Header />
           
           <main className="container mx-auto px-4 py-6">
             <Tabs defaultValue="file" className="w-full">
-              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} bg-[#2A4759]/80 backdrop-blur-sm mb-6`}>
+              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} bg-[#2A4759]/90 backdrop-blur-sm mb-6`}>
                 <TabsTrigger value="file" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
                   File Operations
                 </TabsTrigger>
@@ -66,32 +69,32 @@ const Index = () => {
                 )}
               </TabsList>
               
-              <TabsContent value="file" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="file" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <FileOperations />
               </TabsContent>
               
-              <TabsContent value="sql" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="sql" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <SqlOperations />
               </TabsContent>
               
-              <TabsContent value="systemctl" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="systemctl" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <SystemctlOperations />
               </TabsContent>
               
-              <TabsContent value="deploy-template" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="deploy-template" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <DeployTemplate />
               </TabsContent>
               
-              <TabsContent value="template-generator" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="template-generator" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <TemplateGenerator />
               </TabsContent>
                         
-              <TabsContent value="history" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="history" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <DeploymentHistory />
               </TabsContent>
               
               {isAdmin && (
-                <TabsContent value="users" className="p-6 bg-[#1a2b42]/80 backdrop-blur-sm rounded-md shadow-lg">
+                <TabsContent value="users" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
                   <UserManagement />
                 </TabsContent>
               )}

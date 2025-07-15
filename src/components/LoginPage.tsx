@@ -58,12 +58,15 @@ const LoginPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat"
+      className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
       style={{ 
-        backgroundImage: 'url(/background/amdocs-iloginpage-bg.png)'
+        backgroundImage: 'url(/background/amdocs-iloginpage-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="min-h-screen w-full flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div className="min-h-screen w-full flex items-center justify-center bg-black/20">
         <Card className="w-full max-w-md bg-[#EEEEEE]/95 backdrop-blur-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-[#F79B72]">
