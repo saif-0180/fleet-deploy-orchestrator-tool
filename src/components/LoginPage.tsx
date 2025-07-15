@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
         backgroundSize: 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundSize: '100% 100%'
+        backgroundSize: '90% 90%'
       }}
     >
       <div className="min-h-screen w-full flex items-center justify-center ">
