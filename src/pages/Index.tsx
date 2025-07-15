@@ -31,7 +31,7 @@ const Index = () => {
       <div 
         className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: 'url(/lovable-uploads/39178b56-1e02-4fba-9e7c-2e33e2570914.png)'
+          backgroundImage: 'url(/background/amdocs-bg.png)'
         }}
       >
         <div className="min-h-screen bg-black/30 backdrop-blur-sm">
