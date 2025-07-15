@@ -1174,12 +1174,14 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
             logger.warning(f"Cleanup failed: {str(e)}")
 
         save_deployment_history()
+        return success, logs
 
     except Exception as e:
         log_message(deployment_id, f"ERROR: Exception during Helm deployment: {str(e)}")
         deployments[deployment_id]["status"] = "failed"
         logger.exception(f"Exception in Helm deployment {deployment_id}: {str(e)}")
         save_deployment_history()
+        return success, logs
 
 def execute_template_step(step, inventory, db_inventory, deployment_id):
     """Execute a single template step based on its type"""
