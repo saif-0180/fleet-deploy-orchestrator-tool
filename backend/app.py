@@ -1104,8 +1104,6 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
 
     - name: Run Helm upgrade
       ansible.builtin.shell: "{helm_command}"
-      args:
-        executable: /usr/local/bin
       register: helm_result
       failed_when: helm_result.rc != 0
 
