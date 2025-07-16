@@ -97,7 +97,7 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
     <div className="space-y-2 h-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-[#F79B72]">{title}</h3>
+          <h3 className="font-medium text-[#d4c2a4]">{title}</h3>
           {effectiveStatus !== 'idle' && (
             <Badge className={`${getBadgeColorClass()} text-white`}>
               {effectiveStatus === 'running' || effectiveStatus === 'loading' ? (
@@ -114,7 +114,7 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
       </div>
       <ScrollArea 
         ref={scrollAreaRef}
-        className="bg-[#0A1929] rounded-md p-4 font-mono text-sm shadow-md border border-[#2A4759]" 
+        className="bg-[#242321] rounded-md p-4 font-mono text-sm shadow-md border border-[#2A4759]" 
         style={{ 
           height: fixedHeight ? height : "auto", 
           maxHeight: height,
