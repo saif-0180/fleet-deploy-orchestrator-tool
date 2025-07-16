@@ -582,7 +582,7 @@ const FileOperations: React.FC = () => {
         {/* File Operations Section with Side-by-Side Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* File Deployment Card */}
-          <Card className="bg-[#a89d97] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
+          <Card className="bg-[#2e2c2a] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
             <CardHeader>
               <CardTitle className="text-[#d4c2a4]">File Deployment</CardTitle>
             </CardHeader>
@@ -742,7 +742,7 @@ const FileOperations: React.FC = () => {
                         value={refreshInterval.toString()} 
                         onValueChange={(value) => setRefreshInterval(parseInt(value))}
                       >
-                        <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
+                        <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#2e2c2a] text-[#EEEEEE]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -858,7 +858,7 @@ const FileOperations: React.FC = () => {
         {/* Shell Command Section with Side-by-Side Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Shell Command Card */}
-          <Card className="bg-[#a89d97] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
+          <Card className="bg-[#2e2c2a] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
             <CardHeader>
               <CardTitle className="text-[#d4c2a4]">Shell Command</CardTitle>
             </CardHeader>
@@ -977,7 +977,7 @@ export default FileOperations;
 //         {/* Left Column - Controls */}
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//           <div className="space-y-4 bg-[#2e2c2a] p-4 rounded-md">
 //             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
@@ -1134,7 +1134,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#2e2c2a] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1174,7 +1174,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
+//                       className="bg-[#2e2c2a] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1187,7 +1187,7 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
+//                     <SelectContent className="max-h-40 bg-[#2e2c2a] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
 //                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
@@ -1377,7 +1377,7 @@ export default FileOperations;
 //         {/* Left Column - Controls */}
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//           <div className="space-y-4 bg-[#2e2c2a] p-4 rounded-md">
 //             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
@@ -1534,7 +1534,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#2e2c2a] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1574,7 +1574,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
+//                       className="bg-[#2e2c2a] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1587,7 +1587,7 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
+//                     <SelectContent className="max-h-40 bg-[#2e2c2a] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
 //                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
@@ -1773,7 +1773,7 @@ export default FileOperations;
 //       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//           <div className="space-y-4 bg-[#2e2c2a] p-4 rounded-md">
 //             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
@@ -1930,7 +1930,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#2e2c2a] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1970,7 +1970,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
+//                       className="bg-[#2e2c2a] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1983,7 +1983,7 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
+//                     <SelectContent className="max-h-40 bg-[#2e2c2a] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
 //                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
