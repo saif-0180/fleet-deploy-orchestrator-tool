@@ -8,13 +8,17 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className="bg-cover bg-center text-white h-24 flex items-center justify-between px-6 shadow-md"
+      className="relative w-full h-28 bg-cover bg-center shadow-md flex items-center"
       style={{ backgroundImage: "url('/background/amdocs-header.png')" }}
     >
-      <h1 className="text-xl md:text-2xl font-bold mx-auto">Private-Fix-Deployment-Tool</h1>
+      {/* Title - centered absolutely */}
+      <h1 className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold">
+        Private-Fix-Deployment-Tool
+      </h1>
 
+      {/* User Info - aligned right */}
       {user && (
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-4 bg-black/50 px-3 py-2 rounded">
+        <div className="ml-auto mr-6 flex items-center gap-4 bg-black/60 px-3 py-2 rounded text-white">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="font-medium">{user.username}</span>
@@ -28,7 +32,7 @@ const Header: React.FC = () => {
             size="sm"
             className="text-white hover:bg-white hover:text-black"
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <LogOut className="h-4 w-4 mr-1" />
             Logout
           </Button>
         </div>
@@ -38,6 +42,7 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
 
 
 
