@@ -70,32 +70,32 @@ const Index = () => {
                 )}
               </TabsList>
               
-              <TabsContent value="file" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="file" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <FileOperations />
               </TabsContent>
               
-              <TabsContent value="sql" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="sql" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <SqlOperations />
               </TabsContent>
               
-              <TabsContent value="systemctl" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="systemctl" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <SystemctlOperations />
               </TabsContent>
               
-              <TabsContent value="deploy-template" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="deploy-template" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <DeployTemplate />
               </TabsContent>
               
-              <TabsContent value="template-generator" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="template-generator" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <TemplateGenerator />
               </TabsContent>
                         
-              <TabsContent value="history" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+              <TabsContent value="history" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <DeploymentHistory />
               </TabsContent>
               
               {isAdmin && (
-                <TabsContent value="users" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
+                <TabsContent value="users" className="p-6 bg-card/60 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                   <UserManagement />
                 </TabsContent>
               )}
