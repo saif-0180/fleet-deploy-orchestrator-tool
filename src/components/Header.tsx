@@ -8,13 +8,13 @@ const Header: React.FC = () => {
 
   return (
     <header 
-      className="relative px-6 py-3 shadow-md overflow-hidden"
+      className="relative px-6 py-4 shadow-md overflow-hidden"
       style={{
         backgroundImage: `url('/background/amdocs-header.png')`,
-        backgroundSize: 'cover',
+        backgroundSize: 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        minHeight: '80px'
+        minHeight: '100px'
       }}
     >
       
@@ -25,9 +25,9 @@ const Header: React.FC = () => {
         
         {/* Center - Title */}
         <div className="flex-1 flex justify-center">
-          <h1 className="text-2xl font-bold text-white">
+          <h2 className="text-2xl font-bold text-white">
             Private-Fix-Deployment-Tool
-          </h1>
+          </h2>
         </div>
         
         {/* Right side - User info */}
