@@ -58,47 +58,46 @@ const LoginPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
+      className="min-h-screen text-foreground bg-cover bg-center bg-no-repeat bg-fixed"
       style={{ 
         backgroundImage: 'url(/background/amdocs-loginpage-bg.png)',
-        backgroundSize: 'contain',
+        backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: '100% 100%'
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="min-h-screen w-full flex items-center justify-center ">
-        <Card className="w-full max-w-md bg-[#EEEEEE]/95">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-[#F79B72]">
+      <div className="min-h-screen w-full flex items-center justify-center bg-background/30 backdrop-blur-sm">
+        <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border shadow-2xl">
+          <CardHeader className="text-center space-y-4">
+            <CardTitle className="text-3xl font-bold gradient-text">
               Private-Fix-Deployment-Tool
             </CardTitle>
-            <p className="text-[#2A4759] mt-2">Please login to continue</p>
+            <p className="text-muted-foreground">Please login to continue</p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[#2A4759]">Username</Label>
+                <Label htmlFor="username" className="text-foreground font-medium">Username</Label>
                 <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="bg-white border-[#2A4759] text-[#2A4759]"
+                  className="bg-input border-border text-foreground focus:ring-primary focus:border-primary transition-all duration-200"
                   placeholder="Enter your username"
                   disabled={isLoading}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#2A4759]">Password</Label>
+                <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white border-[#2A4759] text-[#2A4759] pr-10"
+                    className="bg-input border-border text-foreground focus:ring-primary focus:border-primary pr-10 transition-all duration-200"
                     placeholder="Enter your password"
                     disabled={isLoading}
                   />
@@ -111,9 +110,9 @@ const LoginPage: React.FC = () => {
                     disabled={isLoading}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-[#2A4759]" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-[#2A4759]" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
@@ -121,7 +120,7 @@ const LoginPage: React.FC = () => {
               
               <Button
                 type="submit"
-                className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 font-medium py-3"
                 disabled={isLoading}
               >
                 {isLoading ? (
