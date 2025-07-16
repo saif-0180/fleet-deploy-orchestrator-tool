@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="min-h-screen w-full flex items-center justify-center bg-background/30 backdrop-blur-sm">
+      <div className="min-h-screen w-full flex items-center justify-center bg-black/20">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border shadow-2xl">
           <CardHeader className="text-center space-y-4">
             <CardTitle className="text-3xl font-bold gradient-text">

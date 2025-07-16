@@ -14,7 +14,7 @@
     --popover: 220 13% 11%;
     --popover-foreground: 300 20% 95%;
 
-    --primary: 300 100% 70%;
+    --primary: 280 60% 60%;
     --primary-foreground: 220 13% 9%;
 
     --secondary: 260 15% 15%;
@@ -23,7 +23,7 @@
     --muted: 260 10% 14%;
     --muted-foreground: 300 10% 65%;
 
-    --accent: 310 80% 60%;
+    --accent: 270 50% 55%;
     --accent-foreground: 220 13% 9%;
 
     --destructive: 0 84% 60%;
@@ -31,18 +31,18 @@
 
     --border: 260 15% 20%;
     --input: 260 15% 18%;
-    --ring: 300 100% 70%;
+    --ring: 280 60% 60%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 220 13% 10%;
     --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 300 100% 70%;
+    --sidebar-primary: 280 60% 60%;
     --sidebar-primary-foreground: 220 13% 9%;
     --sidebar-accent: 260 15% 15%;
     --sidebar-accent-foreground: 300 20% 90%;
     --sidebar-border: 260 15% 20%;
-    --sidebar-ring: 300 100% 70%;
+    --sidebar-ring: 280 60% 60%;
   }
 
   .dark {
@@ -55,7 +55,7 @@
     --popover: 220 13% 11%;
     --popover-foreground: 300 20% 95%;
 
-    --primary: 300 100% 70%;
+    --primary: 280 60% 60%;
     --primary-foreground: 220 13% 9%;
 
     --secondary: 260 15% 15%;
@@ -64,7 +64,7 @@
     --muted: 260 10% 14%;
     --muted-foreground: 300 10% 65%;
 
-    --accent: 310 80% 60%;
+    --accent: 270 50% 55%;
     --accent-foreground: 220 13% 9%;
 
     --destructive: 0 62% 30%;
@@ -72,15 +72,15 @@
 
     --border: 260 15% 20%;
     --input: 260 15% 18%;
-    --ring: 300 100% 70%;
+    --ring: 280 60% 60%;
     --sidebar-background: 220 13% 10%;
     --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 300 100% 70%;
+    --sidebar-primary: 280 60% 60%;
     --sidebar-primary-foreground: 220 13% 9%;
     --sidebar-accent: 260 15% 15%;
     --sidebar-accent-foreground: 300 20% 90%;
     --sidebar-border: 260 15% 20%;
-    --sidebar-ring: 300 100% 70%;
+    --sidebar-ring: 280 60% 60%;
   }
 }
 
@@ -119,11 +119,11 @@
 
 /* Professional gradient accents */
 .gradient-accent {
-  background: linear-gradient(135deg, hsl(300 100% 70%) 0%, hsl(310 80% 60%) 50%, hsl(320 90% 65%) 100%);
+  background: linear-gradient(135deg, hsl(280 60% 60%) 0%, hsl(270 50% 55%) 50%, hsl(260 55% 50%) 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, hsl(300 100% 70%) 0%, hsl(310 80% 60%) 50%, hsl(320 90% 65%) 100%);
+  background: linear-gradient(135deg, hsl(280 60% 60%) 0%, hsl(270 50% 55%) 50%, hsl(260 55% 50%) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

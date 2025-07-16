@@ -39,7 +39,7 @@ const Index = () => {
           backgroundAttachment: 'fixed'
         }}
       >
-        <div className="min-h-screen bg-background/40 backdrop-blur-sm">
+        <div className="min-h-screen bg-black/10">
           <Header />
           
           <main className="container mx-auto px-4 py-6">
@@ -70,32 +70,32 @@ const Index = () => {
                 )}
               </TabsList>
               
-              <TabsContent value="file" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="file" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <FileOperations />
               </TabsContent>
               
-              <TabsContent value="sql" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="sql" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <SqlOperations />
               </TabsContent>
               
-              <TabsContent value="systemctl" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="systemctl" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <SystemctlOperations />
               </TabsContent>
               
-              <TabsContent value="deploy-template" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="deploy-template" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <DeployTemplate />
               </TabsContent>
               
-              <TabsContent value="template-generator" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="template-generator" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <TemplateGenerator />
               </TabsContent>
                         
-              <TabsContent value="history" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+              <TabsContent value="history" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                 <DeploymentHistory />
               </TabsContent>
               
               {isAdmin && (
-                <TabsContent value="users" className="p-6 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg border border-border">
+                <TabsContent value="users" className="p-6 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg border border-border/50">
                   <UserManagement />
                 </TabsContent>
               )}
