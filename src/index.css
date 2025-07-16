@@ -11,7 +11,7 @@
     --card: 220 13% 15%;
     --card-foreground: 300 20% 95%;
 
-    --popover: 220 13% 15%;
+    --popover: 240 15% 25%;
     --popover-foreground: 300 20% 95%;
 
     --primary: 260 50% 55%;
@@ -52,7 +52,7 @@
     --card: 220 13% 15%;
     --card-foreground: 300 20% 95%;
 
-    --popover: 220 13% 15%;
+    --popover: 240 15% 25%;
     --popover-foreground: 300 20% 95%;
 
     --primary: 260 50% 55%;
@@ -94,30 +94,30 @@
   }
 }
 
-/* Custom styles for dropdown elements with new theme */
+/* Custom styles for dropdown elements with lighter colors */
 .select-content {
   @apply bg-card text-foreground border-border;
 }
 
 .select-item {
-  @apply text-foreground hover:bg-accent/20;
+  @apply text-foreground hover:bg-primary/20;
 }
 
-/* Style for VM selector items */
+/* VM selector items with lighter colors */
 .vm-item {
   @apply bg-card text-foreground p-2 rounded-md border border-border;
 }
 
-/* Make sure dropdowns are always visible with proper contrast */
+/* Make sure dropdowns are always visible with proper contrast and lighter colors */
 [data-radix-popper-content-wrapper] {
   @apply z-50;
 }
 
 .dropdown-content {
-  @apply bg-card text-foreground border-border;
+  @apply bg-slate-100 text-slate-900 border-border;
 }
 
-/* Professional gradient accents */
+/* Professional gradient accents using purple */
 .gradient-accent {
   background: linear-gradient(135deg, hsl(260 50% 55%) 0%, hsl(270 45% 50%) 50%, hsl(280 40% 45%) 100%);
 }
@@ -129,7 +129,7 @@
   background-clip: text;
 }
 
-/* Button and accent colors - replacing orange with purple */
+/* Button and accent colors - using purple theme */
 .btn-primary {
   @apply bg-primary hover:bg-primary/90 text-primary-foreground;
 }
@@ -151,3 +151,32 @@
 .log-container {
   @apply bg-muted/80 border border-border;
 }
+
+/* Purple theme overrides for components */
+.purple-theme {
+  --primary: 260 50% 55%;
+  --accent: 260 45% 50%;
+  --secondary: 260 15% 20%;
+}
+
+/* Light dropdown styling */
+.light-dropdown {
+  background-color: hsl(240 15% 92%) !important;
+  color: hsl(240 15% 15%) !important;
+}
+
+.light-dropdown-item {
+  color: hsl(240 15% 15%) !important;
+}
+
+.light-dropdown-item:hover {
+  background-color: hsl(260 50% 55%) !important;
+  color: white !important;
+}
+
+/* Light selection styling */
+.light-selection {
+  background-color: hsl(260 50% 55%) !important;
+  color: white !important;
+}
+
