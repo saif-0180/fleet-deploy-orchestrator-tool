@@ -104,7 +104,8 @@ const VMSelector: React.FC<VMSelectorProps> = ({
               type="button"
               onClick={handleSelectAll}
               size="sm"
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80 text-xs"
+              className="flex-1 text-xs"
+              style={{ backgroundColor: '#d4c2a4', color: 'white' }}
             >
               Select All
             </Button>
@@ -113,7 +114,8 @@ const VMSelector: React.FC<VMSelectorProps> = ({
               onClick={handleDeselectAll}
               size="sm"
               variant="outline"
-              className="flex-1 border-primary text-primary hover:bg-primary/10 text-xs"
+              className="flex-1 text-xs"
+              style={{ borderColor: '#d4c2a4', color: '#d4c2a4' }}
             >
               Deselect All
             </Button>
@@ -128,7 +130,18 @@ const VMSelector: React.FC<VMSelectorProps> = ({
                 {vmsData.map((vm: any) => (
                   <div 
                     key={vm.name} 
-                    className="flex items-center space-x-3 p-2 rounded hover:bg-primary hover:text-white cursor-pointer transition-colors"
+                    className="flex items-center space-x-3 p-2 rounded hover:text-white cursor-pointer transition-colors"
+                    style={{ 
+                      ':hover': { backgroundColor: '#d4c2a4' }
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#d4c2a4';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                      e.currentTarget.style.color = '';
+                    }}
                     onClick={() => handleVMChange(vm.name, !selectedVMList.includes(vm.name))}
                   >
                     <Checkbox 
@@ -139,13 +152,13 @@ const VMSelector: React.FC<VMSelectorProps> = ({
                     />
                     <Label 
                       htmlFor={`vm-${vm.name}`} 
-                      className="text-slate-900 cursor-pointer flex-1 pointer-events-none hover:text-white"
+                      className="text-slate-900 cursor-pointer flex-1 pointer-events-none"
                     >
                       {vm.name}
                       {vm.type && <span className="text-xs text-slate-600 ml-2">({vm.type})</span>}
                     </Label>
                     {selectedVMList.includes(vm.name) && (
-                      <Check className="h-4 w-4 text-primary" />
+                      <Check className="h-4 w-4" style={{ color: '#d4c2a4' }} />
                     )}
                   </div>
                 ))}
@@ -165,12 +178,13 @@ const VMSelector: React.FC<VMSelectorProps> = ({
             {selectedVMList.map((vmName) => (
               <span 
                 key={vmName}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground text-xs rounded-md"
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md"
+                style={{ backgroundColor: '#d4c2a4', color: 'white' }}
               >
                 {vmName}
                 <button
                   onClick={() => handleVMChange(vmName, false)}
-                  className="hover:bg-primary-foreground/20 rounded-full p-0.5"
+                  className="hover:bg-black/20 rounded-full p-0.5"
                 >
                   ×
                 </button>
