@@ -8,25 +8,24 @@ const Header: React.FC = () => {
 
   return (
     <header 
-      className="relative px-6 py-4 shadow-md overflow-hidden"
+      className="relative px-6 py-3 shadow-md overflow-hidden"
       style={{
         backgroundImage: `url('/background/amdocs-header.png')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundRepeat: 'no-repeat',
+        minHeight: '80px'
       }}
     >
-      {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
       
       {/* Content */}
-      <div className="relative z-10 flex justify-between items-center">
+      <div className="relative z-10 flex justify-between items-center h-full">
         {/* Left side - empty for spacing */}
         <div className="flex-1"></div>
         
         {/* Center - Title */}
         <div className="flex-1 flex justify-center">
-          <h1 className="text-2xl font-bold text-white drop-shadow-lg">
+          <h1 className="text-2xl font-bold text-white">
             Private-Fix-Deployment-Tool
           </h1>
         </div>
@@ -38,7 +37,7 @@ const Header: React.FC = () => {
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-white" />
                 <span className="font-medium text-white">{user.username}</span>
-                <span className="px-2 py-1 bg-white bg-opacity-20 text-white text-xs rounded backdrop-blur-sm">
+                <span className="px-2 py-1 bg-purple-800 text-white text-xs rounded">
                   {user.role}
                 </span>
               </div>
@@ -46,7 +45,7 @@ const Header: React.FC = () => {
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20 hover:text-white backdrop-blur-sm"
+                className="text-white bg-purple-800 hover:bg-purple-700 hover:text-white"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
