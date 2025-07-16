@@ -576,20 +576,20 @@ const FileOperations: React.FC = () => {
   return (
 
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">File Operations</h2>
+      <h2 className="text-2xl font-bold text-[#d4c2a4] mb-4">File Operations</h2>
 
       <div className="space-y-8">
         {/* File Operations Section with Side-by-Side Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* File Deployment Card */}
-          <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
+          <Card className="bg-[#a89d97] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
             <CardHeader>
-              <CardTitle className="text-[#F79B72]">File Deployment</CardTitle>
+              <CardTitle className="text-[#d4c2a4]">File Deployment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* ... keep existing code (all file deployment form fields) */}
               <div>
-                <Label htmlFor="ft-select" className="text-[#F79B72]">Select FT</Label>
+                <Label htmlFor="ft-select" className="text-[#d4c2a4]">Select FT</Label>
                 <Select value={selectedFt} onValueChange={setSelectedFt}>
                   <SelectTrigger id="ft-select" className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                     <SelectValue placeholder="Select an FT" />
@@ -603,7 +603,7 @@ const FileOperations: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="file-select" className="text-[#F79B72]">Select File</Label>
+                <Label htmlFor="file-select" className="text-[#d4c2a4]">Select File</Label>
                 <Select 
                   value={selectedFile} 
                   onValueChange={setSelectedFile}
@@ -621,7 +621,7 @@ const FileOperations: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
+                <Label htmlFor="user-select" className="text-[#d4c2a4]">Select User</Label>
                 <Select value={selectedUser} onValueChange={setSelectedUser}>
                   <SelectTrigger id="user-select" className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                     <SelectValue placeholder="Select a user" />
@@ -635,7 +635,7 @@ const FileOperations: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="target-path" className="text-[#F79B72]">Target Path</Label>
+                <Label htmlFor="target-path" className="text-[#d4c2a4]">Target Path</Label>
                 <Input 
                   id="target-path" 
                   value={targetPath} 
@@ -651,7 +651,7 @@ const FileOperations: React.FC = () => {
                   checked={useSudo} 
                   onCheckedChange={(checked) => setUseSudo(checked === true)}
                 />
-                <Label htmlFor="sudo" className="text-[#F79B72]">Use sudo</Label>
+                <Label htmlFor="sudo" className="text-[#d4c2a4]">Use sudo</Label>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -660,11 +660,11 @@ const FileOperations: React.FC = () => {
                   checked={createBackup} 
                   onCheckedChange={(checked) => setCreateBackup(checked === true)}
                 />
-                <Label htmlFor="backup" className="text-[#F79B72]">Create backup if file exists</Label>
+                <Label htmlFor="backup" className="text-[#d4c2a4]">Create backup if file exists</Label>
               </div>
 
               <div>
-                <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+                <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
                 <VMSelector 
                   onSelectionChange={handleVMSelectionChange}
                   selectedVMs={selectedVMs}
@@ -675,7 +675,7 @@ const FileOperations: React.FC = () => {
                 <Button 
                   type="button"
                   onClick={handleDeploy} 
-                  className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                  className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
                   disabled={deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
                 >
                   {deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading' ? 
@@ -689,7 +689,7 @@ const FileOperations: React.FC = () => {
                       checked={validateUseSudo} 
                       onCheckedChange={(checked) => setValidateUseSudo(checked === true)}
                     />
-                    <Label htmlFor="validate-sudo" className="text-[#F79B72]">Sudo</Label>
+                    <Label htmlFor="validate-sudo" className="text-[#d4c2a4]">Sudo</Label>
                   </div>
                   <Button 
                     onClick={() => validateMutation.mutate()}
@@ -702,9 +702,9 @@ const FileOperations: React.FC = () => {
               </div>
               
               {/* Enhanced Rollback Section */}
-              <div className="mt-4 pt-4 border-t border-[#F79B72]/30">
+              <div className="mt-4 pt-4 border-t border-[#d4c2a4]/30">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-md font-medium text-[#F79B72]">Rollback Previous Deployment</h4>
+                  <h4 className="text-md font-medium text-[#d4c2a4]">Rollback Previous Deployment</h4>
                   <div className="flex items-center space-x-2 text-sm text-[#EEEEEE]">
                     <span>({recentFileDeployments.length} available)</span>
                   </div>
@@ -728,7 +728,7 @@ const FileOperations: React.FC = () => {
                       onClick={handleManualRefresh}
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72] hover:text-[#2A4759]"
+                      className="h-7 px-2 border-[#d4c2a4] text-[#d4c2a4] hover:bg-[#d4c2a4] hover:text-[#2A4759]"
                       disabled={manualRefreshLoading || isLoadingDeployments}
                     >
                       <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
@@ -742,7 +742,7 @@ const FileOperations: React.FC = () => {
                         value={refreshInterval.toString()} 
                         onValueChange={(value) => setRefreshInterval(parseInt(value))}
                       >
-                        <SelectTrigger className="h-6 w-20 text-xs border-[#F79B72]/50 bg-[#1a2b42] text-[#EEEEEE]">
+                        <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -773,7 +773,7 @@ const FileOperations: React.FC = () => {
 
                 {/* Enhanced dropdown */}
                 <div>
-                  <Label htmlFor="rollback-select" className="text-[#F79B72]">Select Deployment</Label>
+                  <Label htmlFor="rollback-select" className="text-[#d4c2a4]">Select Deployment</Label>
                   <div className="relative">
                     <Select 
                       value={selectedRollbackId || ''} 
@@ -803,7 +803,7 @@ const FileOperations: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {isLoadingDeployments && (
-                      <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#F79B72]" />
+                      <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#d4c2a4]" />
                     )}
                   </div>
                 </div>
@@ -858,13 +858,13 @@ const FileOperations: React.FC = () => {
         {/* Shell Command Section with Side-by-Side Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Shell Command Card */}
-          <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
+          <Card className="bg-[#a89d97] text-[#EEEEEE] border-2 border-[#EEEEEE]/30">
             <CardHeader>
-              <CardTitle className="text-[#F79B72]">Shell Command</CardTitle>
+              <CardTitle className="text-[#d4c2a4]">Shell Command</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="shell-user-select" className="text-[#F79B72]">Select User</Label>
+                <Label htmlFor="shell-user-select" className="text-[#d4c2a4]">Select User</Label>
                 <Select 
                   value={shellSelectedUser} 
                   onValueChange={(value) => {
@@ -896,13 +896,13 @@ const FileOperations: React.FC = () => {
                     }
                   }}
                 />
-                <Label htmlFor="use-home-path" className="text-[#F79B72]">
+                <Label htmlFor="use-home-path" className="text-[#d4c2a4]">
                   Use user's home directory ({userHomes[shellSelectedUser] || `/home/${shellSelectedUser}`})
                 </Label>
               </div>
               
               <div>
-                <Label htmlFor="shell-working-dir" className="text-[#F79B72]">Custom Working Directory</Label>
+                <Label htmlFor="shell-working-dir" className="text-[#d4c2a4]">Custom Working Directory</Label>
                 <Input 
                   id="shell-working-dir" 
                   value={shellWorkingDir} 
@@ -914,7 +914,7 @@ const FileOperations: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="shell-command" className="text-[#F79B72]">Command</Label>
+                <Label htmlFor="shell-command" className="text-[#d4c2a4]">Command</Label>
                 <Input 
                   id="shell-command" 
                   value={shellCommand} 
@@ -930,11 +930,11 @@ const FileOperations: React.FC = () => {
                   checked={shellUseSudo} 
                   onCheckedChange={(checked) => setShellUseSudo(checked === true)}
                 />
-                <Label htmlFor="shell-sudo" className="text-[#F79B72]">Use sudo</Label>
+                <Label htmlFor="shell-sudo" className="text-[#d4c2a4]">Use sudo</Label>
               </div>
               
               <div>
-                <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+                <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
                 <VMSelector 
                   onSelectionChange={handleShellVMSelectionChange}
                   selectedVMs={shellSelectedVMs}
@@ -944,7 +944,7 @@ const FileOperations: React.FC = () => {
               <Button 
                 type="button"
                 onClick={handleRunShellCommand} 
-                className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                className="w-full bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
                 disabled={shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading'}
               >
                 {shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading' ? 
@@ -971,17 +971,17 @@ const FileOperations: React.FC = () => {
 
 export default FileOperations;
 //     <div className="space-y-6">
-//       <h2 className="text-2xl font-bold text-[#F79B72] mb-4">File Operations</h2>
+//       <h2 className="text-2xl font-bold text-[#d4c2a4] mb-4">File Operations</h2>
 
 //       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 //         {/* Left Column - Controls */}
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#1a2b42] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">File Deployment</h3>
+//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
-//               <Label htmlFor="ft-select" className="text-[#F79B72]">Select FT</Label>
+//               <Label htmlFor="ft-select" className="text-[#d4c2a4]">Select FT</Label>
 //               <Select value={selectedFt} onValueChange={setSelectedFt}>
 //                 <SelectTrigger id="ft-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select an FT" className="text-[#2A4759]" />
@@ -995,7 +995,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="file-select" className="text-[#F79B72]">Select File</Label>
+//               <Label htmlFor="file-select" className="text-[#d4c2a4]">Select File</Label>
 //               <Select 
 //                 value={selectedFile} 
 //                 onValueChange={setSelectedFile}
@@ -1013,7 +1013,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select value={selectedUser} onValueChange={setSelectedUser}>
 //                 <SelectTrigger id="user-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select a user" className="text-[#2A4759]" />
@@ -1027,7 +1027,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="target-path" className="text-[#F79B72]">Target Path</Label>
+//               <Label htmlFor="target-path" className="text-[#d4c2a4]">Target Path</Label>
 //               <Input 
 //                 id="target-path" 
 //                 value={targetPath} 
@@ -1043,7 +1043,7 @@ export default FileOperations;
 //                 checked={useSudo} 
 //                 onCheckedChange={(checked) => setUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div className="flex items-center space-x-2">
@@ -1052,11 +1052,11 @@ export default FileOperations;
 //                 checked={createBackup} 
 //                 onCheckedChange={(checked) => setCreateBackup(checked === true)}
 //               />
-//               <Label htmlFor="backup" className="text-[#F79B72]">Create backup if file exists</Label>
+//               <Label htmlFor="backup" className="text-[#d4c2a4]">Create backup if file exists</Label>
 //             </div>
 
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleVMSelectionChange}
 //                 selectedVMs={selectedVMs}
@@ -1067,7 +1067,7 @@ export default FileOperations;
 //               <Button 
 //                 type="button"
 //                 onClick={handleDeploy} 
-//                 className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//                 className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //                 disabled={deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
 //               >
 //                 {deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading' ? 
@@ -1081,7 +1081,7 @@ export default FileOperations;
 //                     checked={validateUseSudo} 
 //                     onCheckedChange={(checked) => setValidateUseSudo(checked === true)}
 //                   />
-//                   <Label htmlFor="validate-sudo" className="text-[#F79B72]">Sudo</Label>
+//                   <Label htmlFor="validate-sudo" className="text-[#d4c2a4]">Sudo</Label>
 //                 </div>
 //                 <Button 
 //                   onClick={() => validateMutation.mutate()}
@@ -1094,9 +1094,9 @@ export default FileOperations;
 //             </div>
             
 //             {/* Enhanced Rollback Section */}
-//             <div className="mt-4 pt-4 border-t border-[#F79B72]/30">
+//             <div className="mt-4 pt-4 border-t border-[#d4c2a4]/30">
 //               <div className="flex items-center justify-between mb-3">
-//                 <h4 className="text-md font-medium text-[#F79B72]">Rollback Previous Deployment</h4>
+//                 <h4 className="text-md font-medium text-[#d4c2a4]">Rollback Previous Deployment</h4>
 //                 <div className="flex items-center space-x-2 text-sm text-[#EEEEEE]">
 //                   <span>({recentFileDeployments.length} available)</span>
 //                 </div>
@@ -1120,7 +1120,7 @@ export default FileOperations;
 //                     onClick={handleManualRefresh}
 //                     size="sm"
 //                     variant="outline"
-//                     className="h-7 px-2 border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72] hover:text-[#2A4759]"
+//                     className="h-7 px-2 border-[#d4c2a4] text-[#d4c2a4] hover:bg-[#d4c2a4] hover:text-[#2A4759]"
 //                     disabled={manualRefreshLoading || isLoadingDeployments}
 //                   >
 //                     <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
@@ -1134,7 +1134,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#F79B72]/50 bg-[#1a2b42] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1165,7 +1165,7 @@ export default FileOperations;
 
 //               {/* Enhanced dropdown */}
 //               <div>
-//                 <Label htmlFor="rollback-select" className="text-[#F79B72]">Select Deployment</Label>
+//                 <Label htmlFor="rollback-select" className="text-[#d4c2a4]">Select Deployment</Label>
 //                 <div className="relative">
 //                   <Select 
 //                     value={selectedRollbackId || ''} 
@@ -1174,7 +1174,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#1a2b42] border-[#F79B72] text-[#EEEEEE] pr-8"
+//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1187,16 +1187,16 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#1a2b42] border-[#F79B72]">
+//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
-//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#F79B72] hover:text-[#2A4759]">
+//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
 //                         </SelectItem>
 //                       ))}
 //                     </SelectContent>
 //                   </Select>
 //                   {isLoadingDeployments && (
-//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#F79B72]" />
+//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#d4c2a4]" />
 //                   )}
 //                 </div>
 //               </div>
@@ -1237,10 +1237,10 @@ export default FileOperations;
           
 //           {/* Shell Command Section */}
 //           <div className="space-y-4 bg-[#EEEEEE] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">Shell Command</h3>
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">Shell Command</h3>
             
 //             <div>
-//               <Label htmlFor="shell-user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="shell-user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select 
 //                 value={shellSelectedUser} 
 //                 onValueChange={(value) => {
@@ -1272,13 +1272,13 @@ export default FileOperations;
 //                   }
 //                 }}
 //               />
-//               <Label htmlFor="use-home-path" className="text-[#F79B72]">
+//               <Label htmlFor="use-home-path" className="text-[#d4c2a4]">
 //                 Use user's home directory ({userHomes[shellSelectedUser] || `/home/${shellSelectedUser}`})
 //               </Label>
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-working-dir" className="text-[#F79B72]">Custom Working Directory</Label>
+//               <Label htmlFor="shell-working-dir" className="text-[#d4c2a4]">Custom Working Directory</Label>
 //               <Input 
 //                 id="shell-working-dir" 
 //                 value={shellWorkingDir} 
@@ -1290,7 +1290,7 @@ export default FileOperations;
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-command" className="text-[#F79B72]">Command</Label>
+//               <Label htmlFor="shell-command" className="text-[#d4c2a4]">Command</Label>
 //               <Input 
 //                 id="shell-command" 
 //                 value={shellCommand} 
@@ -1306,11 +1306,11 @@ export default FileOperations;
 //                 checked={shellUseSudo} 
 //                 onCheckedChange={(checked) => setShellUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="shell-sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="shell-sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleShellVMSelectionChange}
 //                 selectedVMs={shellSelectedVMs}
@@ -1320,7 +1320,7 @@ export default FileOperations;
 //             <Button 
 //               type="button"
 //               onClick={handleRunShellCommand} 
-//               className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//               className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //               disabled={shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading'}
 //             >
 //               {shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading' ? 
@@ -1371,17 +1371,17 @@ export default FileOperations;
 
 //   return (
 //     <div className="space-y-6">
-//       <h2 className="text-2xl font-bold text-[#F79B72] mb-4">File Operations</h2>
+//       <h2 className="text-2xl font-bold text-[#d4c2a4] mb-4">File Operations</h2>
 
 //       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 //         {/* Left Column - Controls */}
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#1a2b42] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">File Deployment</h3>
+//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
-//               <Label htmlFor="ft-select" className="text-[#F79B72]">Select FT</Label>
+//               <Label htmlFor="ft-select" className="text-[#d4c2a4]">Select FT</Label>
 //               <Select value={selectedFt} onValueChange={setSelectedFt}>
 //                 <SelectTrigger id="ft-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select an FT" className="text-[#2A4759]" />
@@ -1395,7 +1395,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="file-select" className="text-[#F79B72]">Select File</Label>
+//               <Label htmlFor="file-select" className="text-[#d4c2a4]">Select File</Label>
 //               <Select 
 //                 value={selectedFile} 
 //                 onValueChange={setSelectedFile}
@@ -1413,7 +1413,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select value={selectedUser} onValueChange={setSelectedUser}>
 //                 <SelectTrigger id="user-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select a user" className="text-[#2A4759]" />
@@ -1427,7 +1427,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="target-path" className="text-[#F79B72]">Target Path</Label>
+//               <Label htmlFor="target-path" className="text-[#d4c2a4]">Target Path</Label>
 //               <Input 
 //                 id="target-path" 
 //                 value={targetPath} 
@@ -1443,7 +1443,7 @@ export default FileOperations;
 //                 checked={useSudo} 
 //                 onCheckedChange={(checked) => setUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div className="flex items-center space-x-2">
@@ -1452,11 +1452,11 @@ export default FileOperations;
 //                 checked={createBackup} 
 //                 onCheckedChange={(checked) => setCreateBackup(checked === true)}
 //               />
-//               <Label htmlFor="backup" className="text-[#F79B72]">Create backup if file exists</Label>
+//               <Label htmlFor="backup" className="text-[#d4c2a4]">Create backup if file exists</Label>
 //             </div>
 
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleVMSelectionChange}
 //                 selectedVMs={selectedVMs}
@@ -1467,7 +1467,7 @@ export default FileOperations;
 //               <Button 
 //                 type="button"
 //                 onClick={handleDeploy} 
-//                 className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//                 className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //                 disabled={deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
 //               >
 //                 {deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading' ? 
@@ -1481,7 +1481,7 @@ export default FileOperations;
 //                     checked={validateUseSudo} 
 //                     onCheckedChange={(checked) => setValidateUseSudo(checked === true)}
 //                   />
-//                   <Label htmlFor="validate-sudo" className="text-[#F79B72]">Sudo</Label>
+//                   <Label htmlFor="validate-sudo" className="text-[#d4c2a4]">Sudo</Label>
 //                 </div>
 //                 <Button 
 //                   onClick={() => validateMutation.mutate()}
@@ -1494,9 +1494,9 @@ export default FileOperations;
 //             </div>
             
 //             {/* Enhanced Rollback Section */}
-//             <div className="mt-4 pt-4 border-t border-[#F79B72]/30">
+//             <div className="mt-4 pt-4 border-t border-[#d4c2a4]/30">
 //               <div className="flex items-center justify-between mb-3">
-//                 <h4 className="text-md font-medium text-[#F79B72]">Rollback Previous Deployment</h4>
+//                 <h4 className="text-md font-medium text-[#d4c2a4]">Rollback Previous Deployment</h4>
 //                 <div className="flex items-center space-x-2 text-sm text-[#EEEEEE]">
 //                   <span>({recentFileDeployments.length} available)</span>
 //                 </div>
@@ -1520,7 +1520,7 @@ export default FileOperations;
 //                     onClick={handleManualRefresh}
 //                     size="sm"
 //                     variant="outline"
-//                     className="h-7 px-2 border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72] hover:text-[#2A4759]"
+//                     className="h-7 px-2 border-[#d4c2a4] text-[#d4c2a4] hover:bg-[#d4c2a4] hover:text-[#2A4759]"
 //                     disabled={manualRefreshLoading || isLoadingDeployments}
 //                   >
 //                     <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
@@ -1534,7 +1534,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#F79B72]/50 bg-[#1a2b42] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1565,7 +1565,7 @@ export default FileOperations;
 
 //               {/* Enhanced dropdown */}
 //               <div>
-//                 <Label htmlFor="rollback-select" className="text-[#F79B72]">Select Deployment</Label>
+//                 <Label htmlFor="rollback-select" className="text-[#d4c2a4]">Select Deployment</Label>
 //                 <div className="relative">
 //                   <Select 
 //                     value={selectedRollbackId || ''} 
@@ -1574,7 +1574,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#1a2b42] border-[#F79B72] text-[#EEEEEE] pr-8"
+//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1587,16 +1587,16 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#1a2b42] border-[#F79B72]">
+//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
-//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#F79B72] hover:text-[#2A4759]">
+//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
 //                         </SelectItem>
 //                       ))}
 //                     </SelectContent>
 //                   </Select>
 //                   {isLoadingDeployments && (
-//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#F79B72]" />
+//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#d4c2a4]" />
 //                   )}
 //                 </div>
 //               </div>
@@ -1637,10 +1637,10 @@ export default FileOperations;
           
 //           {/* Shell Command Section */}
 //           <div className="space-y-4 bg-[#EEEEEE] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">Shell Command</h3>
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">Shell Command</h3>
             
 //             <div>
-//               <Label htmlFor="shell-user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="shell-user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select 
 //                 value={shellSelectedUser} 
 //                 onValueChange={(value) => {
@@ -1672,13 +1672,13 @@ export default FileOperations;
 //                   }
 //                 }}
 //               />
-//               <Label htmlFor="use-home-path" className="text-[#F79B72]">
+//               <Label htmlFor="use-home-path" className="text-[#d4c2a4]">
 //                 Use user's home directory ({userHomes[shellSelectedUser] || `/home/${shellSelectedUser}`})
 //               </Label>
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-working-dir" className="text-[#F79B72]">Custom Working Directory</Label>
+//               <Label htmlFor="shell-working-dir" className="text-[#d4c2a4]">Custom Working Directory</Label>
 //               <Input 
 //                 id="shell-working-dir" 
 //                 value={shellWorkingDir} 
@@ -1690,7 +1690,7 @@ export default FileOperations;
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-command" className="text-[#F79B72]">Command</Label>
+//               <Label htmlFor="shell-command" className="text-[#d4c2a4]">Command</Label>
 //               <Input 
 //                 id="shell-command" 
 //                 value={shellCommand} 
@@ -1706,11 +1706,11 @@ export default FileOperations;
 //                 checked={shellUseSudo} 
 //                 onCheckedChange={(checked) => setShellUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="shell-sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="shell-sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleShellVMSelectionChange}
 //                 selectedVMs={shellSelectedVMs}
@@ -1720,7 +1720,7 @@ export default FileOperations;
 //             <Button 
 //               type="button"
 //               onClick={handleRunShellCommand} 
-//               className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//               className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //               disabled={shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading'}
 //             >
 //               {shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading' ? 
@@ -1768,16 +1768,16 @@ export default FileOperations;
 
 //   return (
 //     <div className="space-y-6">
-//       <h2 className="text-2xl font-bold text-[#F79B72] mb-4">File Operations</h2>
+//       <h2 className="text-2xl font-bold text-[#d4c2a4] mb-4">File Operations</h2>
 
 //       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //         <div className="space-y-6">
 //           {/* File Deployment Section */}
-//           <div className="space-y-4 bg-[#1a2b42] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">File Deployment</h3>
+//           <div className="space-y-4 bg-[#a89d97] p-4 rounded-md">
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">File Deployment</h3>
 
 //             <div>
-//               <Label htmlFor="ft-select" className="text-[#F79B72]">Select FT</Label>
+//               <Label htmlFor="ft-select" className="text-[#d4c2a4]">Select FT</Label>
 //               <Select value={selectedFt} onValueChange={setSelectedFt}>
 //                 <SelectTrigger id="ft-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select an FT" className="text-[#2A4759]" />
@@ -1791,7 +1791,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="file-select" className="text-[#F79B72]">Select File</Label>
+//               <Label htmlFor="file-select" className="text-[#d4c2a4]">Select File</Label>
 //               <Select 
 //                 value={selectedFile} 
 //                 onValueChange={setSelectedFile}
@@ -1809,7 +1809,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select value={selectedUser} onValueChange={setSelectedUser}>
 //                 <SelectTrigger id="user-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
 //                   <SelectValue placeholder="Select a user" className="text-[#2A4759]" />
@@ -1823,7 +1823,7 @@ export default FileOperations;
 //             </div>
 
 //             <div>
-//               <Label htmlFor="target-path" className="text-[#F79B72]">Target Path</Label>
+//               <Label htmlFor="target-path" className="text-[#d4c2a4]">Target Path</Label>
 //               <Input 
 //                 id="target-path" 
 //                 value={targetPath} 
@@ -1839,7 +1839,7 @@ export default FileOperations;
 //                 checked={useSudo} 
 //                 onCheckedChange={(checked) => setUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div className="flex items-center space-x-2">
@@ -1848,11 +1848,11 @@ export default FileOperations;
 //                 checked={createBackup} 
 //                 onCheckedChange={(checked) => setCreateBackup(checked === true)}
 //               />
-//               <Label htmlFor="backup" className="text-[#F79B72]">Create backup if file exists</Label>
+//               <Label htmlFor="backup" className="text-[#d4c2a4]">Create backup if file exists</Label>
 //             </div>
 
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleVMSelectionChange}
 //                 selectedVMs={selectedVMs}
@@ -1863,7 +1863,7 @@ export default FileOperations;
 //               <Button 
 //                 type="button"
 //                 onClick={handleDeploy} 
-//                 className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//                 className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //                 disabled={deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
 //               >
 //                 {deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading' ? 
@@ -1877,7 +1877,7 @@ export default FileOperations;
 //                     checked={validateUseSudo} 
 //                     onCheckedChange={(checked) => setValidateUseSudo(checked === true)}
 //                   />
-//                   <Label htmlFor="validate-sudo" className="text-[#F79B72]">Sudo</Label>
+//                   <Label htmlFor="validate-sudo" className="text-[#d4c2a4]">Sudo</Label>
 //                 </div>
 //                 <Button 
 //                   onClick={() => validateMutation.mutate()}
@@ -1890,9 +1890,9 @@ export default FileOperations;
 //             </div>
             
 //             {/* Enhanced Rollback Section */}
-//             <div className="mt-4 pt-4 border-t border-[#F79B72]/30">
+//             <div className="mt-4 pt-4 border-t border-[#d4c2a4]/30">
 //               <div className="flex items-center justify-between mb-3">
-//                 <h4 className="text-md font-medium text-[#F79B72]">Rollback Previous Deployment</h4>
+//                 <h4 className="text-md font-medium text-[#d4c2a4]">Rollback Previous Deployment</h4>
 //                 <div className="flex items-center space-x-2 text-sm text-[#EEEEEE]">
 //                   <span>({recentFileDeployments.length} available)</span>
 //                 </div>
@@ -1916,7 +1916,7 @@ export default FileOperations;
 //                     onClick={handleManualRefresh}
 //                     size="sm"
 //                     variant="outline"
-//                     className="h-7 px-2 border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72] hover:text-[#2A4759]"
+//                     className="h-7 px-2 border-[#d4c2a4] text-[#d4c2a4] hover:bg-[#d4c2a4] hover:text-[#2A4759]"
 //                     disabled={manualRefreshLoading || isLoadingDeployments}
 //                   >
 //                     <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
@@ -1930,7 +1930,7 @@ export default FileOperations;
 //                       value={refreshInterval.toString()} 
 //                       onValueChange={(value) => setRefreshInterval(parseInt(value))}
 //                     >
-//                       <SelectTrigger className="h-6 w-20 text-xs border-[#F79B72]/50 bg-[#1a2b42] text-[#EEEEEE]">
+//                       <SelectTrigger className="h-6 w-20 text-xs border-[#d4c2a4]/50 bg-[#a89d97] text-[#EEEEEE]">
 //                         <SelectValue />
 //                       </SelectTrigger>
 //                       <SelectContent>
@@ -1961,7 +1961,7 @@ export default FileOperations;
 
 //               {/* Enhanced dropdown */}
 //               <div>
-//                 <Label htmlFor="rollback-select" className="text-[#F79B72]">Select Deployment</Label>
+//                 <Label htmlFor="rollback-select" className="text-[#d4c2a4]">Select Deployment</Label>
 //                 <div className="relative">
 //                   <Select 
 //                     value={selectedRollbackId || ''} 
@@ -1970,7 +1970,7 @@ export default FileOperations;
 //                   >
 //                     <SelectTrigger 
 //                       id="rollback-select" 
-//                       className="bg-[#1a2b42] border-[#F79B72] text-[#EEEEEE] pr-8"
+//                       className="bg-[#a89d97] border-[#d4c2a4] text-[#EEEEEE] pr-8"
 //                     >
 //                       <SelectValue 
 //                         placeholder={
@@ -1983,16 +1983,16 @@ export default FileOperations;
 //                         className="text-[#EEEEEE]" 
 //                       />
 //                     </SelectTrigger>
-//                     <SelectContent className="max-h-40 bg-[#1a2b42] border-[#F79B72]">
+//                     <SelectContent className="max-h-40 bg-[#a89d97] border-[#d4c2a4]">
 //                       {recentFileDeployments.map((deployment) => (
-//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#F79B72] hover:text-[#2A4759]">
+//                         <SelectItem key={deployment.id} value={deployment.id} className="text-sm text-[#EEEEEE] hover:bg-[#d4c2a4] hover:text-[#2A4759]">
 //                           {formatDeploymentSummary(deployment)}
 //                         </SelectItem>
 //                       ))}
 //                     </SelectContent>
 //                   </Select>
 //                   {isLoadingDeployments && (
-//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#F79B72]" />
+//                     <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#d4c2a4]" />
 //                   )}
 //                 </div>
 //               </div>
@@ -2033,10 +2033,10 @@ export default FileOperations;
           
 //           {/* Shell Command Section */}
 //           <div className="space-y-4 bg-[#EEEEEE] p-4 rounded-md">
-//             <h3 className="text-lg font-medium text-[#F79B72]">Shell Command</h3>
+//             <h3 className="text-lg font-medium text-[#d4c2a4]">Shell Command</h3>
             
 //             <div>
-//               <Label htmlFor="shell-user-select" className="text-[#F79B72]">Select User</Label>
+//               <Label htmlFor="shell-user-select" className="text-[#d4c2a4]">Select User</Label>
 //               <Select 
 //                 value={shellSelectedUser} 
 //                 onValueChange={(value) => {
@@ -2068,13 +2068,13 @@ export default FileOperations;
 //                   }
 //                 }}
 //               />
-//               <Label htmlFor="use-home-path" className="text-[#F79B72]">
+//               <Label htmlFor="use-home-path" className="text-[#d4c2a4]">
 //                 Use user's home directory ({userHomes[shellSelectedUser] || `/home/${shellSelectedUser}`})
 //               </Label>
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-working-dir" className="text-[#F79B72]">Custom Working Directory</Label>
+//               <Label htmlFor="shell-working-dir" className="text-[#d4c2a4]">Custom Working Directory</Label>
 //               <Input 
 //                 id="shell-working-dir" 
 //                 value={shellWorkingDir} 
@@ -2086,7 +2086,7 @@ export default FileOperations;
 //             </div>
             
 //             <div>
-//               <Label htmlFor="shell-command" className="text-[#F79B72]">Command</Label>
+//               <Label htmlFor="shell-command" className="text-[#d4c2a4]">Command</Label>
 //               <Input 
 //                 id="shell-command" 
 //                 value={shellCommand} 
@@ -2102,11 +2102,11 @@ export default FileOperations;
 //                 checked={shellUseSudo} 
 //                 onCheckedChange={(checked) => setShellUseSudo(checked === true)}
 //               />
-//               <Label htmlFor="shell-sudo" className="text-[#F79B72]">Use sudo</Label>
+//               <Label htmlFor="shell-sudo" className="text-[#d4c2a4]">Use sudo</Label>
 //             </div>
             
 //             <div>
-//               <Label className="block text-[#F79B72] mb-2">Select VMs</Label>
+//               <Label className="block text-[#d4c2a4] mb-2">Select VMs</Label>
 //               <VMSelector 
 //                 onSelectionChange={handleShellVMSelectionChange}
 //                 selectedVMs={shellSelectedVMs}
@@ -2116,7 +2116,7 @@ export default FileOperations;
 //             <Button 
 //               type="button"
 //               onClick={handleRunShellCommand} 
-//               className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+//               className="bg-[#d4c2a4] text-[#2A4759] hover:bg-[#d4c2a4]/80"
 //               disabled={shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading'}
 //             >
 //               {shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading' ? 
