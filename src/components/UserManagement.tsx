@@ -190,7 +190,7 @@ const UserManagement: React.FC = () => {
                   id="username"
                   value={newUser.username}
                   onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="bg-white border-[#1a2b42] text-[#EEEEEE]"
+                  className="bg-[#2A4759] border-[#1a2b42] text-[#EEEEEE]"
                   placeholder="Enter username"
                 />
               </div>
@@ -203,7 +203,7 @@ const UserManagement: React.FC = () => {
                     type={showPassword ? "text" : "password"}
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="bg-white border-[#1a2b42] text-[#EEEEEE] pr-10"
+                    className="bg-[#2A4759] border-[#1a2b42] text-[#EEEEEE] pr-10"
                     placeholder="Enter password"
                   />
                   <Button
@@ -214,9 +214,9 @@ const UserManagement: React.FC = () => {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-[#2A4759]" />
+                      <EyeOff className="h-4 w-4 text-[#EEEEEE]" />
                     ) : (
-                      <Eye className="h-4 w-4 text-[#2A4759]" />
+                      <Eye className="h-4 w-4 text-[#EEEEEE]" />
                     )}
                   </Button>
                 </div>
@@ -225,7 +225,7 @@ const UserManagement: React.FC = () => {
               <div>
                 <Label htmlFor="role" className="text-[#EEEEEE]">Role</Label>
                 <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
-                  <SelectTrigger className="bg-white border-[#1a2b42] text-[#2A4759]">
+                  <SelectTrigger className="bg-[#2A4759] border-[#1a2b42] text-[#EEEEEE]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -252,7 +252,7 @@ const UserManagement: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {users.map((user) => (
-              <div key={user.username} className="flex items-center justify-between p-4 bg-white rounded-md border border-[#2A4759]">
+              <div key={user.username} className="flex items-center justify-between p-4 bg-[#2A4759] rounded-md border border-[#2A4759]">
                 <div>
                   <span className="font-medium text-[#2A4759]">{user.username}</span>
                   <span className="ml-2 px-2 py-1 bg-[#00a7e1] text-[#EEEEEE] text-xs rounded">
@@ -269,7 +269,7 @@ const UserManagement: React.FC = () => {
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="New password"
-                          className="w-40 bg-white border-[#1a2b42] text-[#EEEEEE] pr-10"
+                          className="w-40 bg-[#2A4759] border-[#1a2b42] text-[#EEEEEE] pr-10"
                         />
                         <Button
                           type="button"

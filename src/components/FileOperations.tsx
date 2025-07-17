@@ -728,7 +728,7 @@ const FileOperations: React.FC = () => {
                       onClick={handleManualRefresh}
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 border-[#EEEEEE] text-[#EEEEEE] hover:bg-[#00a7e1] hover:text-[#00a7e1]"
+                      className="h-7 px-2 border-[#00a7e1] text-[#EEEEEE] bg-[#00a7e1] hover:bg-[#00a7e1] hover:text-[#EEEEEE]"
                       disabled={manualRefreshLoading || isLoadingDeployments}
                     >
                       <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
