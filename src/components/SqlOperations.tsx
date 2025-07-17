@@ -187,9 +187,9 @@ const SqlOperations = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card className="bg-white border border-[#00171f]/20 shadow-sm">
+      <Card className="bg-[#1a2b42] text-[#EEEEEE]">
         <CardHeader>
-          <CardTitle className="text-[#00171f]">SQL Execution</CardTitle>
+          <CardTitle>SQL Execution</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -199,7 +199,7 @@ const SqlOperations = () => {
                 onValueChange={setSelectedFT}
                 disabled={isLoadingFTs || fts.length === 0}
               >
-                <SelectTrigger id="ft" className="bg-white border-[#00171f]/30 text-[#00171f]">
+                <SelectTrigger id="ft">
                   <SelectValue placeholder="Select FT" />
                 </SelectTrigger>
                 <SelectContent>
@@ -217,7 +217,7 @@ const SqlOperations = () => {
                 disabled={isLoadingFiles || files.length === 0 || !selectedFT}
                 value={selectedFile}
               >
-                <SelectTrigger id="file" className="bg-white border-[#00171f]/30 text-[#00171f]">
+                <SelectTrigger id="file">
                   <SelectValue placeholder="Select SQL File" />
                 </SelectTrigger>
                 <SelectContent>
@@ -247,7 +247,6 @@ const SqlOperations = () => {
                 onChange={(e) => setDbName(e.target.value)}
                 placeholder="Enter database name"
                 required
-                className="bg-white border-[#00171f]/30 text-[#00171f]"
               />
             </div>
             
@@ -259,14 +258,13 @@ const SqlOperations = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="bg-white border-[#00171f]/30 text-[#00171f]"
               />
             </div>
             
             <Button 
               type="submit" 
               disabled={!selectedFT || !selectedFile || !selectedHostname || !selectedPort || !selectedUser || !dbName || executeSqlMutation.isPending}
-              className="w-full bg-[#00a7e1] text-white hover:bg-[#00a7e1]/90"
+              className="w-full"
             >
               {executeSqlMutation.isPending ? 'Executing...' : 'Execute SQL'}
             </Button>
