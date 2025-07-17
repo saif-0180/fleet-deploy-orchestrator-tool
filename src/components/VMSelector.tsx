@@ -81,7 +81,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
         <DropdownMenuTrigger asChild>
           <Button 
             variant="outline" 
-            className="w-full justify-between bg-[#2A4759] border-[#F79B72] text-[#EEEEEE] hover:bg-[#2A4759]/80"
+            className="w-full justify-between bg-[#2A4759] border-[#00a7e1] text-[#EEEEEE] hover:bg-[#2A4759]/80"
           >
             <span>
               {selectedVMList.length === 0 
@@ -103,7 +103,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
               type="button"
               onClick={handleSelectAll}
               size="sm"
-              className="flex-1 bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80 text-xs"
+              className="flex-1 bg-[#00a7e1] text-[#2A4759] hover:bg-[#00a7e1]/80 text-xs"
             >
               Select All
             </Button>
@@ -144,7 +144,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
                       {vm.type && <span className="text-xs text-gray-500 ml-2">({vm.type})</span>}
                     </Label>
                     {selectedVMList.includes(vm.name) && (
-                      <Check className="h-4 w-4 text-[#F79B72]" />
+                      <Check className="h-4 w-4 text-[#00a7e1]" />
                     )}
                   </div>
                 ))}
@@ -156,7 +156,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
 
       {/* Selected VMs Display */}
       {selectedVMList.length > 0 && (
-        <div className="bg-[#2A4759]/20 rounded-md p-3 border border-[#F79B72]/30">
+        <div className="bg-[#2A4759]/20 rounded-md p-3 border border-[#00a7e1]/30">
           <div className="text-sm font-medium text-[#2A4759] mb-2">
             Selected VMs ({selectedVMList.length}):
           </div>
@@ -164,7 +164,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
             {selectedVMList.map((vmName) => (
               <span 
                 key={vmName}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-[#F79B72] text-[#2A4759] text-xs rounded-md"
+                className="inline-flex items-center gap-1 px-2 py-1 bg-[#00a7e1] text-[#2A4759] text-xs rounded-md"
               >
                 {vmName}
                 <button

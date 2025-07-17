@@ -675,7 +675,7 @@ const FileOperations: React.FC = () => {
                 <Button 
                   type="button"
                   onClick={handleDeploy} 
-                  className="bg-[#EEEEEE] text-[#2A4759] hover:bg-[#EEEEEE]/80"
+                  className="bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80"
                   disabled={deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
                 >
                   {deployMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading' ? 
@@ -693,7 +693,7 @@ const FileOperations: React.FC = () => {
                   </div>
                   <Button 
                     onClick={() => validateMutation.mutate()}
-                    className="bg-[#2A4759] hover:bg-[#2A4759]/80 text-[#EEEEEE] border-[#EEEEEE]/30"
+                    className="bg-[#00a7e1] hover:bg-[#00a7e1]/80 text-[#EEEEEE] border-[#00a7e1]/30"
                     disabled={!deploymentId || validateMutation.isPending}
                   >
                     {validateMutation.isPending ? "Validating..." : "Validate"}
@@ -728,7 +728,7 @@ const FileOperations: React.FC = () => {
                       onClick={handleManualRefresh}
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 border-[#EEEEEE] text-[#EEEEEE] hover:bg-[#EEEEEE] hover:text-[#2A4759]"
+                      className="h-7 px-2 border-[#EEEEEE] text-[#EEEEEE] hover:bg-[#00a7e1] hover:text-[#00a7e1]"
                       disabled={manualRefreshLoading || isLoadingDeployments}
                     >
                       <RefreshCcw className={`h-3 w-3 ${manualRefreshLoading ? 'animate-spin' : ''}`} />
@@ -833,7 +833,7 @@ const FileOperations: React.FC = () => {
                   <Button 
                     type="button"
                     onClick={handleRollback} 
-                    className="bg-[#2A4759] text-[#EEEEEE] hover:bg-[#2A4759]/80 border-[#EEEEEE]/30"
+                    className="bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80 border-[#00a7e1]/30"
                     disabled={!selectedRollbackId || rollbackMutation.isPending || fileOperationStatus === 'running' || fileOperationStatus === 'loading'}
                   >
                     {rollbackMutation.isPending ? "Rolling Back..." : "Rollback Deployment"}
@@ -944,7 +944,7 @@ const FileOperations: React.FC = () => {
               <Button 
                 type="button"
                 onClick={handleRunShellCommand} 
-                className="w-full bg-[#EEEEEE] text-[#2A4759] hover:bg-[#EEEEEE]/80"
+                className="w-full bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80"
                 disabled={shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading'}
               >
                 {shellCommandMutation.isPending || shellOperationStatus === 'running' || shellOperationStatus === 'loading' ? 
