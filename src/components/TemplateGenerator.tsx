@@ -515,7 +515,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
       <div className="space-y-4">
         {/* Step Type */}
         <div>
-          <Label className="text-[#F79B72]">Step Type</Label>
+          <Label className="text-[#EEEEEE]">Step Type</Label>
           <Select value={stepType} onValueChange={setStepType}>
             <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
               <SelectValue placeholder="Select step type" />
@@ -532,7 +532,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
 
         {/* Step Description */}
         <div>
-          <Label className="text-[#F79B72]">Step Description</Label>
+          <Label className="text-[#EEEEEE]">Step Description</Label>
           <Input
             value={stepDescription}
             onChange={(e) => setStepDescription(e.target.value)}
@@ -545,7 +545,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
         {stepType === 'file_deployment' && (
           <>
             <div>
-              <Label className="text-[#F79B72]">Select FT</Label>
+              <Label className="text-[#EEEEEE]">Select FT</Label>
               <Select value={stepFt} onValueChange={setStepFt}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select FT for this step" />
@@ -560,7 +560,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
 
             {stepFt && (
               <div>
-                <Label className="text-[#F79B72]">Select Files from {stepFt}</Label>
+                <Label className="text-[#EEEEEE]">Select Files from {stepFt}</Label>
                 <div className="max-h-32 overflow-y-auto bg-[#2A4759] rounded-md p-2 space-y-2">
                   {stepFtFiles.map((file: string) => (
                     <div key={file} className="flex items-center space-x-2">
@@ -577,7 +577,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             )}
 
             <div>
-              <Label className="text-[#F79B72]">Target User</Label>
+              <Label className="text-[#EEEEEE]">Target User</Label>
               <Select value={stepTargetUser} onValueChange={setStepTargetUser}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Target User" />
@@ -592,7 +592,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Target Path</Label>
+              <Label className="text-[#EEEEEE]">Target Path</Label>
               <Select value={stepTargetPath} onValueChange={setStepTargetPath}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Target Path" />
@@ -607,7 +607,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Select VMs</Label>
+              <Label className="text-[#EEEEEE]">Select VMs</Label>
               <VMSelector
                 onSelectionChange={setStepVMs}
                 selectedVMs={stepVMs}
@@ -620,7 +620,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
         {stepType === 'sql_deployment' && (
           <>
             <div>
-              <Label className="text-[#F79B72]">Select FT</Label>
+              <Label className="text-[#EEEEEE]">Select FT</Label>
               <Select value={stepFt} onValueChange={setStepFt}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select FT for this step" />
@@ -635,7 +635,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
 
             {stepFt && (
               <div>
-                <Label className="text-[#F79B72]">Select SQL Files from {stepFt}</Label>
+                <Label className="text-[#EEEEEE]">Select SQL Files from {stepFt}</Label>
                 <div className="max-h-32 overflow-y-auto bg-[#2A4759] rounded-md p-2 space-y-2">
                   {stepFtFiles.filter((file: string) => file.endsWith('.sql')).map((file: string) => (
                     <div key={file} className="flex items-center space-x-2">
@@ -652,7 +652,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             )}
 
             <div>
-              <Label className="text-[#F79B72]">Database Connection</Label>
+              <Label className="text-[#EEEEEE]">Database Connection</Label>
               <Select value={stepDbConnection} onValueChange={setStepDbConnection}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Database Connection" />
@@ -668,7 +668,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Database User</Label>
+              <Label className="text-[#EEEEEE]">Database User</Label>
               <Select value={stepDbUser} onValueChange={setStepDbUser}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Database User" />
@@ -682,7 +682,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Database Password</Label>
+              <Label className="text-[#EEEEEE]">Database Password</Label>
               <Input
                 type="password"
                 value={stepDbPassword}
@@ -698,7 +698,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
         {stepType === 'service_restart' && (
           <>
             <div>
-              <Label className="text-[#F79B72]">Select Service</Label>
+              <Label className="text-[#EEEEEE]">Select Service</Label>
               <Select value={stepService} onValueChange={setStepService}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Service" />
@@ -712,7 +712,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Operation</Label>
+              <Label className="text-[#EEEEEE]">Operation</Label>
               <Select value={stepOperation} onValueChange={setStepOperation}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                   <SelectValue placeholder="Select Operation" />
@@ -727,7 +727,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             </div>
 
             <div>
-              <Label className="text-[#F79B72]">Select VMs</Label>
+              <Label className="text-[#EEEEEE]">Select VMs</Label>
               <VMSelector
                 onSelectionChange={setStepVMs}
                 selectedVMs={stepVMs}
@@ -739,7 +739,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
         {/* Ansible Playbook Fields */}
         {stepType === 'ansible_playbook' && (
           <div>
-            <Label className="text-[#F79B72]">Select Playbook</Label>
+            <Label className="text-[#EEEEEE]">Select Playbook</Label>
             <Select value={stepPlaybook} onValueChange={setStepPlaybook}>
               <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                 <SelectValue placeholder="Select Ansible Playbook" />
@@ -756,7 +756,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
         {/* Helm Upgrade Fields */}
         {stepType === 'helm_upgrade' && (
           <div>
-            <Label className="text-[#F79B72]">Select Deployment Type</Label>
+            <Label className="text-[#EEEEEE]">Select Deployment Type</Label>
             <Select value={stepHelmDeploymentType} onValueChange={setStepHelmDeploymentType}>
               <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                 <SelectValue placeholder="Select Helm Deployment Type" />
@@ -776,7 +776,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
   return (
     <div className="min-h-screen bg-[#0f1419] p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        <h2 className="text-2xl font-bold text-[#F79B72] mb-4">AI Template Generator</h2>
+        <h2 className="text-2xl font-bold text-[#EEEEEE] mb-4">Template Generator</h2>
         
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Left Column */}
@@ -784,11 +784,11 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             {/* Template Configuration */}
             <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30 flex-shrink-0">
               <CardHeader>
-                <CardTitle className="text-[#F79B72]">Template Configuration</CardTitle>
+                <CardTitle className="text-[#EEEEEE]">Template Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="main-ft-select" className="text-[#F79B72]">Select FT Number for Template</Label>
+                  <Label htmlFor="main-ft-select" className="text-[#EEEEEE]">Select FT Number for Template</Label>
                   <Select value={selectedFt} onValueChange={setSelectedFt}>
                     <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                       <SelectValue placeholder={isLoadingFts ? "Loading..." : "Select FT"} />
@@ -806,27 +806,27 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             {/* Deployment Steps */}
             <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30 flex flex-col" style={{ height: '600px' }}>
               <CardHeader className="flex-shrink-0">
-                <CardTitle className="text-[#F79B72]">Deployment Steps</CardTitle>
+                <CardTitle className="text-[#EEEEEE]">Deployment Steps</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col overflow-hidden space-y-4">
                 {/* Current Steps List */}
                 {steps.length > 0 && (
                   <div className="flex-shrink-0">
-                    <Label className="text-[#F79B72]">Current Steps:</Label>
+                    <Label className="text-[#EEEEEE]">Current Steps:</Label>
                     <div className="mt-2 max-h-40 overflow-y-auto space-y-2 pr-2">
                       {steps.map((step) => (
                         <div key={step.id} className="flex items-center justify-between bg-[#2A4759]/50 p-3 rounded-md">
                           <div className="flex-1">
                             <div className="text-sm font-medium">Step {step.order}: {step.type.replace(/_/g, ' ')}</div>
                             <div className="text-xs text-[#EEEEEE]/70">{step.description}</div>
-                            {step.ftNumber && <div className="text-xs text-[#F79B72]">FT: {step.ftNumber}</div>}
+                            {step.ftNumber && <div className="text-xs text-[#EEEEEE]">FT: {step.ftNumber}</div>}
                           </div>
                           <div className="flex space-x-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => editStep(step)}
-                              className="border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72]/10"
+                              className="border-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/10"
                             >
                               <Edit3 size={14} />
                             </Button>
@@ -847,7 +847,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
 
                 {/* Step Form */}
                 <div className="flex-1 overflow-y-auto border-t border-[#EEEEEE]/20 pt-4 space-y-4">
-                  <Label className="text-[#F79B72]">
+                  <Label className="text-[#EEEEEE]">
                     {isEditingStep ? 'Edit Step' : 'Add New Step'}
                   </Label>
 
@@ -856,7 +856,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
                   <div className="flex space-x-2 pt-4">
                     <Button
                       onClick={isEditingStep ? updateStep : addStep}
-                      className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                      className="bg-[#00a7e1] text-[#2A4759] hover:bg-[#00a7e1]/80"
                     >
                       <Plus size={16} className="mr-2" />
                       {isEditingStep ? 'Update Step' : 'Add Step'}
@@ -882,7 +882,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
                   <Button
                     onClick={generateTemplate}
                     disabled={!selectedFt || steps.length === 0}
-                    className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                    className="w-full bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80"
                   >
                     Generate Template
                   </Button>
@@ -907,13 +907,13 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             {/* Load Saved Templates */}
             <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30 flex-shrink-0">
               <CardHeader>
-                <CardTitle className="text-[#F79B72] flex justify-between items-center">
+                <CardTitle className="text-[#EEEEEE] flex justify-between items-center">
                   Load Saved Templates
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => refetchSavedTemplates()}
-                    className="border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72]/10"
+                    className="border-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/10"
                   >
                     <RefreshCw size={14} />
                   </Button>
@@ -921,7 +921,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-[#F79B72]">Available Templates</Label>
+                  <Label className="text-[#EEEEEE]">Available Templates</Label>
                   <Select value={selectedSavedTemplate} onValueChange={setSelectedSavedTemplate}>
                     <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
                       <SelectValue placeholder="Select a saved template" />
@@ -949,14 +949,14 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
             {generatedTemplate && (
               <Card className="bg-[#1a2b42] text-[#EEEEEE] border-2 border-[#EEEEEE]/30 flex flex-col" style={{ height: '900px' }}>
                 <CardHeader className="flex-shrink-0">
-                  <CardTitle className="text-[#F79B72] flex justify-between items-center">
+                  <CardTitle className="text-[#EEEEEE] flex justify-between items-center">
                     Generated Template
                     <div className="space-x-2">
                       <Button
                         onClick={() => setIsEditing(!isEditing)}
                         size="sm"
                         variant="outline"
-                        className="border-[#F79B72] text-[#F79B72] hover:bg-[#F79B72]/10"
+                        className="border-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/10"
                       >
                         {isEditing ? "Cancel Edit" : "Edit"}
                       </Button>
@@ -964,7 +964,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
                         onClick={saveTemplate}
                         disabled={isSaving}
                         size="sm"
-                        className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                        className="bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80"
                       >
                         {isSaving ? "Saving..." : "Save Template"}
                       </Button>

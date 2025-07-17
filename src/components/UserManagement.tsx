@@ -190,7 +190,7 @@ const UserManagement: React.FC = () => {
                   id="username"
                   value={newUser.username}
                   onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="bg-white border-[#2A4759] text-[#2A4759]"
+                  className="bg-white border-[#1a2b42] text-[#EEEEEE]"
                   placeholder="Enter username"
                 />
               </div>
@@ -203,7 +203,7 @@ const UserManagement: React.FC = () => {
                     type={showPassword ? "text" : "password"}
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="bg-white border-[#2A4759] text-[#2A4759] pr-10"
+                    className="bg-white border-[#1a2b42] text-[#EEEEEE] pr-10"
                     placeholder="Enter password"
                   />
                   <Button
@@ -225,7 +225,7 @@ const UserManagement: React.FC = () => {
               <div>
                 <Label htmlFor="role" className="text-[#EEEEEE]">Role</Label>
                 <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
-                  <SelectTrigger className="bg-white border-[#2A4759] text-[#2A4759]">
+                  <SelectTrigger className="bg-white border-[#1a2b42] text-[#2A4759]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +255,7 @@ const UserManagement: React.FC = () => {
               <div key={user.username} className="flex items-center justify-between p-4 bg-white rounded-md border border-[#2A4759]">
                 <div>
                   <span className="font-medium text-[#2A4759]">{user.username}</span>
-                  <span className="ml-2 px-2 py-1 bg-[#00a7e1] text-[#2A4759] text-xs rounded">
+                  <span className="ml-2 px-2 py-1 bg-[#00a7e1] text-[#EEEEEE] text-xs rounded">
                     {user.role}
                   </span>
                 </div>
@@ -269,7 +269,7 @@ const UserManagement: React.FC = () => {
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="New password"
-                          className="w-40 bg-white border-[#2A4759] text-[#2A4759] pr-10"
+                          className="w-40 bg-white border-[#1a2b42] text-[#EEEEEE] pr-10"
                         />
                         <Button
                           type="button"
@@ -279,9 +279,9 @@ const UserManagement: React.FC = () => {
                           onClick={() => setShowNewPassword(!showNewPassword)}
                         >
                           {showNewPassword ? (
-                            <EyeOff className="h-3 w-3 text-[#2A4759]" />
+                            <EyeOff className="h-3 w-3 text-[#EEEEEE]" />
                           ) : (
-                            <Eye className="h-3 w-3 text-[#2A4759]" />
+                            <Eye className="h-3 w-3 text-[#EEEEEE]" />
                           )}
                         </Button>
                       </div>

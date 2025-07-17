@@ -526,7 +526,7 @@ const DeploymentHistory: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Deployment History</h2>
+      <h2 className="text-2xl font-bold text-[#EEEEEE] mb-4">Deployment History</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Deployment List */}
@@ -535,13 +535,13 @@ const DeploymentHistory: React.FC = () => {
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-[#F79B72] text-lg">Recent Deployments</CardTitle>
+                  <CardTitle className="text-[#EEEEEE] text-lg">Recent Deployments</CardTitle>
                   <p className="text-xs text-gray-500 mt-1">Last refreshed: {lastRefreshedTime}</p>
                 </div>
                 <Button
                   type="button"
                   onClick={handleRefresh}
-                  className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80 h-8 w-8 p-0"
+                  className="bg-[#00a7e1] text-white hover:bg-[#00a7e1]/80 h-8 w-8 p-0"
                   title="Refresh"
                   disabled={isLoadingDeployments}
                 >
@@ -556,7 +556,7 @@ const DeploymentHistory: React.FC = () => {
               <div className="h-[400px] overflow-y-auto">
                 {isLoadingDeployments ? (
                   <div className="flex items-center justify-center h-full">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#F79B72]" />
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00a7e1]" />
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -577,7 +577,7 @@ const DeploymentHistory: React.FC = () => {
                           key={deployment.id} 
                           className={`p-3 rounded-md cursor-pointer transition-colors ${
                             selectedDeploymentId === deployment.id 
-                              ? 'bg-[#F79B72] text-[#2A4759]' 
+                              ? 'bg-[#00a7e1] text-[#2A4759]' 
                               : 'bg-[#2A4759] text-[#EEEEEE] hover:bg-[#2A4759]/80'
                           }`}
                           onClick={() => handleDeploymentSelect(deployment.id)}
@@ -595,7 +595,7 @@ const DeploymentHistory: React.FC = () => {
               </div>
               
               <form onSubmit={handleClearLogs} className="mt-4 flex items-center space-x-2">
-                <Label htmlFor="clear-days" className="text-[#F79B72]">Days to keep:</Label>
+                <Label htmlFor="clear-days" className="text-[#EEEEEE]">Days to keep:</Label>
                 <Input 
                   id="clear-days" 
                   type="number" 
@@ -606,7 +606,7 @@ const DeploymentHistory: React.FC = () => {
                 <Button 
                   type="submit"
                   disabled={clearLogsMutation.isPending}
-                  className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                  className="bg-[#2A4759] text-[#EEEEEE] hover:bg-[#00a7e1]/80"
                 >
                   {clearLogsMutation.isPending ? "Clearing..." : "Clear Logs"}
                 </Button>
