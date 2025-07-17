@@ -45,58 +45,58 @@ const Index = () => {
           
           <main className="container mx-auto px-4 py-6">
             <Tabs defaultValue="file" className="w-full">
-              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} bg-[#2A4759]/90 backdrop-blur-sm mb-6`}>
-                <TabsTrigger value="file" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} bg-[#00171f]/90 backdrop-blur-sm mb-6`}>
+                <TabsTrigger value="file" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   File Operations
                 </TabsTrigger>
-                <TabsTrigger value="sql" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                <TabsTrigger value="sql" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   SQL Operations
                 </TabsTrigger>
-                <TabsTrigger value="systemctl" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                <TabsTrigger value="systemctl" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   Systemctl Operations
                 </TabsTrigger>
-                <TabsTrigger value="deploy-template" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                <TabsTrigger value="deploy-template" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   Deploy Template
                 </TabsTrigger>
-                <TabsTrigger value="template-generator" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                <TabsTrigger value="template-generator" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   Template Generator
                 </TabsTrigger>
-                <TabsTrigger value="history" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                <TabsTrigger value="history" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                   Deployment History
                 </TabsTrigger>
                 {isAdmin && (
-                  <TabsTrigger value="users" className="data-[state=active]:bg-[#F79B72] data-[state=active]:text-[#2A4759] text-[#EEEEEE]">
+                  <TabsTrigger value="users" className="data-[state=active]:bg-[#007ea7] data-[state=active]:text-white text-[#EEEEEE]">
                     User Management
                   </TabsTrigger>
                 )}
               </TabsList>
               
-              <TabsContent value="file" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="file" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <FileOperations />
               </TabsContent>
               
-              <TabsContent value="sql" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="sql" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <SqlOperations />
               </TabsContent>
               
-              <TabsContent value="systemctl" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="systemctl" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <SystemctlOperations />
               </TabsContent>
               
-              <TabsContent value="deploy-template" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="deploy-template" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <DeployTemplate />
               </TabsContent>
               
-              <TabsContent value="template-generator" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="template-generator" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <TemplateGenerator />
               </TabsContent>
                         
-              <TabsContent value="history" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+              <TabsContent value="history" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                 <DeploymentHistory />
               </TabsContent>
               
               {isAdmin && (
-                <TabsContent value="users" className="p-6 bg-[#1a2b42]/90 backdrop-blur-sm rounded-md shadow-lg">
+                <TabsContent value="users" className="p-6 bg-[#00171f]/90 backdrop-blur-sm rounded-md shadow-lg">
                   <UserManagement />
                 </TabsContent>
               )}

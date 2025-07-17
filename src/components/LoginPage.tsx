@@ -70,35 +70,35 @@ const LoginPage: React.FC = () => {
       <div className="min-h-screen w-full flex items-center justify-center ">
         <Card className="w-full max-w-md bg-[#EEEEEE]/95">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-[#F79B72]">
+            <CardTitle className="text-2xl font-bold text-[#007ea7]">
               Private-Fix-Deployment-Tool
             </CardTitle>
-            <p className="text-[#2A4759] mt-2">Please login to continue</p>
+            <p className="text-[#00171f] mt-2">Please login to continue</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[#2A4759]">Username</Label>
+                <Label htmlFor="username" className="text-[#00171f]">Username</Label>
                 <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="bg-white border-[#2A4759] text-[#2A4759]"
+                  className="bg-white border-[#00171f] text-[#00171f]"
                   placeholder="Enter your username"
                   disabled={isLoading}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#2A4759]">Password</Label>
+                <Label htmlFor="password" className="text-[#00171f]">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white border-[#2A4759] text-[#2A4759] pr-10"
+                    className="bg-white border-[#00171f] text-[#00171f] pr-10"
                     placeholder="Enter your password"
                     disabled={isLoading}
                   />
@@ -111,9 +111,9 @@ const LoginPage: React.FC = () => {
                     disabled={isLoading}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-[#2A4759]" />
+                      <EyeOff className="h-4 w-4 text-[#00171f]" />
                     ) : (
-                      <Eye className="h-4 w-4 text-[#2A4759]" />
+                      <Eye className="h-4 w-4 text-[#00171f]" />
                     )}
                   </Button>
                 </div>
@@ -121,7 +121,7 @@ const LoginPage: React.FC = () => {
               
               <Button
                 type="submit"
-                className="w-full bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                className="w-full bg-[#007ea7] text-white hover:bg-[#005f7a]"
                 disabled={isLoading}
               >
                 {isLoading ? (
