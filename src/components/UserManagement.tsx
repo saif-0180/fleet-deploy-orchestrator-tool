@@ -177,7 +177,7 @@ const UserManagement: React.FC = () => {
       <h2 className="text-2xl font-bold text-[#EEEEEE] mb-4">User Management</h2>
       
       {/* Create New User */}
-      <Card className="bg-[#2A4759]">
+      <Card className="bg-[#1a2b42]">
         <CardHeader>
           <CardTitle className="text-[#EEEEEE]">Create New User</CardTitle>
         </CardHeader>
@@ -245,7 +245,7 @@ const UserManagement: React.FC = () => {
       </Card>
 
       {/* Users List */}
-      <Card className="bg-[#2A4759]">
+      <Card className="bg-[#1a2b42]">
         <CardHeader>
           <CardTitle className="text-[#00a7e1]">Existing Users</CardTitle>
         </CardHeader>
@@ -307,7 +307,7 @@ const UserManagement: React.FC = () => {
                     <>
                       <Button
                         onClick={() => setEditingUser(user.username)}
-                        className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80"
+                        className="bg-[#00a7e1] text-white hover:bg-[#00a7e1]/80"
                         size="sm"
                       >
                         <Edit className="h-4 w-4" />
