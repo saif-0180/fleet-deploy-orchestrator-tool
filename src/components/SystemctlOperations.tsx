@@ -133,20 +133,20 @@ const SystemctlOperations: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Systemctl Operations</h2>
+      <h2 className="text-2xl font-bold bg-gradient-to-r from-[#00171f] to-[#00a7e1] bg-clip-text text-transparent mb-4">Systemctl Operations</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Card className="bg-[#EEEEEE]">
+          <Card className="bg-white border border-[#00171f]/20 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-[#F79B72] text-lg">Service Management</CardTitle>
+              <CardTitle className="text-[#00171f] text-lg">Service Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <VMSelector selectedVMs={selectedVMs} onSelectionChange={setSelectedVMs} />
               
               <div className="flex items-center space-x-2">
                 <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="flex-1 bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
+                  <SelectTrigger className="flex-1 bg-white border-[#00171f]/30 text-[#00171f]">
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent>
@@ -160,7 +160,7 @@ const SystemctlOperations: React.FC = () => {
                 <Button
                   type="button"
                   onClick={() => refetchServices()}
-                  className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80 h-10 w-10 p-0"
+                  className="bg-[#00171f] text-white hover:bg-[#00171f]/80 h-10 w-10 p-0"
                   title="Refresh Services"
                   disabled={isLoadingServices}
                 >
@@ -172,7 +172,7 @@ const SystemctlOperations: React.FC = () => {
               </div>
 
               <Select value={selectedOperation} onValueChange={setSelectedOperation}>
-                <SelectTrigger className="w-full bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
+                <SelectTrigger className="w-full bg-white border-[#00171f]/30 text-[#00171f]">
                   <SelectValue placeholder="Select an operation" />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,7 +186,7 @@ const SystemctlOperations: React.FC = () => {
               <Button
                 onClick={handleExecute}
                 disabled={systemctlMutation.isPending || logStatus === 'running'}
-                className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+                className="bg-[#00a7e1] text-white hover:bg-[#00a7e1]/90"
               >
                 {systemctlMutation.isPending ? (
                   <>

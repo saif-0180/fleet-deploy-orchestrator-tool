@@ -1,288 +1,143 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import LogDisplay from '@/components/LogDisplay';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Terminal, Loader2 } from 'lucide-react';
 import VMSelector from '@/components/VMSelector';
-import { useAuth } from '@/contexts/AuthContext';
+import LogDisplay from '@/components/LogDisplay';
 
 const ShellCommandOperations: React.FC = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [command, setCommand] = useState<string>("");
   const [selectedVMs, setSelectedVMs] = useState<string[]>([]);
+  const [command, setCommand] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
-  const [deploymentId, setDeploymentId] = useState<string | null>(null);
-  const [useSudo, setUseSudo] = useState<boolean>(false);
-  const [useCustomPath, setUseCustomPath] = useState<boolean>(false);
-  const [customPath, setCustomPath] = useState<string>("");
-  const [selectedUser, setSelectedUser] = useState<string>("infadm");
-  const [users] = useState<string[]>(["infadm", "abpwrk1", "root"]);
-  const [operationStatus, setOperationStatus] = useState<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>('idle');
+  const [logStatus, setLogStatus] = useState<'idle' | 'loading' | 'running' | 'success' | 'failed'>('idle');
+  const [currentDeploymentId, setCurrentDeploymentId] = useState<string | null>(null);
 
-  // Shell command mutation
-  const shellCommandMutation = useMutation({
+  const executeMutation = useMutation({
     mutationFn: async () => {
-      setOperationStatus('loading');
-      const response = await fetch('/api/shell/command', {
+      const response = await fetch('/api/shell/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          command: command,
-          vms: selectedVMs,
-          sudo: useSudo,
-          user: selectedUser,
-          working_dir: useCustomPath ? customPath : null
-        }),
+        body: JSON.stringify({ vms: selectedVMs, command }),
       });
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to execute shell command');
+        throw new Error('Failed to execute command');
       }
-      
       const data = await response.json();
-      setDeploymentId(data.deploymentId);
-      setOperationStatus('running');
       return data;
     },
     onSuccess: (data) => {
+      setCurrentDeploymentId(data.deployment_id);
+      setLogStatus('running');
+      setLogs([]);
       toast({
-        title: "Command Started",
-        description: "Shell command execution has been initiated.",
+        title: "Command Executed",
+        description: `Command execution started with ID: ${data.deployment_id}`,
       });
-      startPollingLogs(data.deploymentId);
+      pollForLogs(data.deployment_id);
     },
     onError: (error) => {
-      setOperationStatus('failed');
       toast({
-        title: "Command Failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to execute command",
         variant: "destructive",
       });
     },
   });
 
-  // Add a function to poll for logs with improved completion detection
-  const startPollingLogs = (id: string) => {
-    if (!id) return;
-    
-    // Start with a clear log display
-    setLogs([]);
-    setOperationStatus('running');
-    
-    let pollCount = 0;
-    let lastLogLength = 0;
-    
-    // Set up polling interval
+  const pollForLogs = async (deploymentId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/deploy/${id}/logs`);
+        const response = await fetch(`/api/deploy/${deploymentId}/logs`);
         if (!response.ok) {
-          throw new Error('Failed to fetch logs');
+          clearInterval(pollInterval);
+          return;
         }
         
         const data = await response.json();
-        if (data.logs) {
-          setLogs(data.logs);
-          
-          // Check if operation is explicitly complete
-          if (data.status === 'completed' || data.status === 'success') {
-            setOperationStatus('success');
-            clearInterval(pollInterval);
-            return;
-          }
-          
-          if (data.status === 'failed') {
-            setOperationStatus('failed');
-            clearInterval(pollInterval);
-            return;
-          }
-          
-          // Check for implicit completion (logs not changing)
-          if (data.logs.length === lastLogLength) {
-            pollCount++;
-            if (pollCount >= 5) { // After 5 consecutive polls with no changes
-              console.log('Operation appears complete - logs have not changed');
-              setOperationStatus('success');
-              clearInterval(pollInterval);
-              return;
-            }
-          } else {
-            pollCount = 0;
-            lastLogLength = data.logs.length;
-          }
-        }
+        setLogs(data.logs || []);
         
-        // Stop polling after 2 minutes as a safeguard
-        if (pollCount > 120) {
-          console.log('Operation timed out after 2 minutes');
-          setOperationStatus(data.status === 'running' ? 'running' : 'completed');
+        if (data.status === 'success' || data.status === 'failed') {
+          setLogStatus(data.status);
           clearInterval(pollInterval);
         }
       } catch (error) {
-        console.error('Error fetching logs:', error);
-        // Don't clear interval yet, try a few more times
-        pollCount += 5;
-        if (pollCount > 20) {  // After several failures, give up
-          setOperationStatus('failed');
-          clearInterval(pollInterval);
-        }
+        console.error('Error polling logs:', error);
+        clearInterval(pollInterval);
+        setLogStatus('failed');
       }
-    }, 1000); // Poll every second
-    
-    // Clean up on unmount
-    return () => {
-      clearInterval(pollInterval);
-    };
+    }, 2000);
   };
 
-  // Fetch log updates if deploymentId is set
-  useEffect(() => {
-    if (deploymentId) {
-      return startPollingLogs(deploymentId);
-    }
-  }, [deploymentId]);
-
-  const handleExecute = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent default action
-    
-    if (!command.trim()) {
+  const handleExecute = () => {
+    if (selectedVMs.length > 0 && command) {
+      executeMutation.mutate();
+    } else {
       toast({
-        title: "Validation Error",
-        description: "Please enter a command to execute.",
+        title: "Error",
+        description: "Please select VMs and enter a command.",
         variant: "destructive",
       });
-      return;
     }
-    
-    if (selectedVMs.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one VM.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (useCustomPath && !customPath.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a working directory or uncheck the custom path option.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLogs([]);
-    shellCommandMutation.mutate();
-  };
-
-  const handleVMSelectionChange = (vms: string[]) => {
-    setSelectedVMs(vms);
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Shell Command Execution</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4 bg-[#EEEEEE] p-4 rounded-md">
-          <div>
-            <Label htmlFor="command" className="text-[#F79B72]">Command</Label>
-            <Input
-              id="command"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              placeholder="Enter shell command"
-              className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger id="user-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
-                <SelectValue placeholder="Select a user" className="text-[#2A4759]" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#DDDDDD] border-[#2A4759] text-[#2A4759]">
-                {users.map((user: string) => (
-                  <SelectItem key={user} value={user} className="text-[#2A4759]">{user}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label className="text-[#F79B72]">Select VMs</Label>
-            <VMSelector 
-              onSelectionChange={handleVMSelectionChange}
-              selectedVMs={selectedVMs}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="use-sudo" 
-                checked={useSudo} 
-                onCheckedChange={(checked) => setUseSudo(checked as boolean)}
-              />
-              <Label htmlFor="use-sudo" className="text-[#2A4759]">Use sudo</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="use-custom-path" 
-                checked={useCustomPath} 
-                onCheckedChange={(checked) => setUseCustomPath(checked as boolean)}
-              />
-              <Label htmlFor="use-custom-path" className="text-[#2A4759]">Specify working directory</Label>
-            </div>
-
-            {useCustomPath && (
+      <h2 className="text-2xl font-bold bg-gradient-to-r from-[#00171f] to-[#00a7e1] bg-clip-text text-transparent mb-4">Shell Command Operations</h2>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <Card className="bg-white border border-[#00171f]/20 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[#00171f] text-lg">Execute Commands</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <VMSelector selectedVMs={selectedVMs} onSelectionChange={setSelectedVMs} />
+              
               <div>
-                <Label htmlFor="custom-path" className="text-[#F79B72]">Working Directory</Label>
-                <Input
-                  id="custom-path"
-                  value={customPath}
-                  onChange={(e) => setCustomPath(e.target.value)}
-                  placeholder="Enter working directory path"
-                  className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]"
+                <Label htmlFor="command" className="text-[#00171f]">Command</Label>
+                <Textarea
+                  id="command"
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  placeholder="Enter shell command..."
+                  className="min-h-[100px] bg-white border-[#00171f]/30 text-[#00171f]"
                 />
               </div>
-            )}
-          </div>
-
-          <Button 
-            type="button"
-            onClick={handleExecute}
-            className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
-            disabled={shellCommandMutation.isPending || operationStatus === 'running' || operationStatus === 'loading'}
-          >
-            {shellCommandMutation.isPending || operationStatus === 'running' || operationStatus === 'loading' ? "Executing..." : "Execute Command"}
-          </Button>
+              
+              <Button
+                onClick={handleExecute}
+                disabled={executeMutation.isPending || logStatus === 'running' || !command.trim() || selectedVMs.length === 0}
+                className="bg-[#00a7e1] text-white hover:bg-[#00a7e1]/90"
+              >
+                {executeMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Executing...
+                  </>
+                ) : (
+                  <>
+                    <Terminal className="mr-2 h-4 w-4" />
+                    Execute Command
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        <div>
+        <div className="space-y-4">
           <LogDisplay 
             logs={logs} 
             height="400px" 
-            fixedHeight={true} 
-            title={`Shell Command Logs${user?.username ? ` - User: ${user.username}` : ''}`}
-            status={operationStatus}
+            title={`Command Execution Logs${currentDeploymentId ? ` - ${currentDeploymentId}` : ''}`}
+            status={logStatus}
           />
         </div>
       </div>
