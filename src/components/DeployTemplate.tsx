@@ -325,19 +325,19 @@ const DeployTemplate: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Deploy Template</h2>
+      <h2 className="text-2xl font-bold text-[#EEEEEE] mb-4">Deploy Template</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Template Selection and Loading */}
         <div className="space-y-4">
-          <Card className="bg-[#EEEEEE]">
+          <Card className="bg-[#1a2b42]">
             <CardHeader>
-              <CardTitle className="text-[#F79B72] text-lg">Template Selection</CardTitle>
+              <CardTitle className="text-[#EEEEEE] text-lg">Template Selection</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="flex-1 bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
+                  <SelectTrigger className="flex-1 bg-[#1a2b42] border-[#EEEEEE] text-[#EEEEEE]">
                     <SelectValue placeholder="Select a template" />
                   </SelectTrigger>
                   <SelectContent>
@@ -351,7 +351,7 @@ const DeployTemplate: React.FC = () => {
                 <Button
                   type="button"
                   onClick={() => refetchTemplates()}
-                  className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80 h-10 w-10 p-0"
+                  className="bg-[#00a7e1] text-white hover:bg-[#00a7e1]/80 h-10 w-10 p-0"
                   title="Refresh Templates"
                   disabled={isLoadingTemplates}
                 >
@@ -366,7 +366,7 @@ const DeployTemplate: React.FC = () => {
                 <Button
                   onClick={handleLoadTemplate}
                   disabled={!selectedTemplate || loadTemplateMutation.isPending}
-                  className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80 flex-1"
+                  className="bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80 flex-1"
                 >
                   {loadTemplateMutation.isPending ? (
                     <>
@@ -398,7 +398,7 @@ const DeployTemplate: React.FC = () => {
               </div>
               
               {loadedTemplate && (
-                <div className="text-sm text-[#2A4759] bg-green-50 p-3 rounded">
+                <div className="text-sm text-[#EEEEEE] bg-green-50 p-3 rounded">
                   <p><strong>FT Number:</strong> {loadedTemplate.metadata.ft_number}</p>
                   <p><strong>Description:</strong> {loadedTemplate.metadata.description}</p>
                   <p><strong>Total Steps:</strong> {loadedTemplate.metadata.total_steps}</p>
@@ -421,9 +421,9 @@ const DeployTemplate: React.FC = () => {
 
       {/* Template Flowchart */}
       {loadedTemplate && (
-        <Card className="bg-[#EEEEEE]">
+        <Card className="bg-[#1a2b42]">
           <CardHeader>
-            <CardTitle className="text-[#F79B72] text-lg">Deployment Flow</CardTitle>
+            <CardTitle className="text-[#EEEEEE] text-lg">Deployment Flow</CardTitle>
           </CardHeader>
           <CardContent>
             <TemplateFlowchart template={loadedTemplate} />

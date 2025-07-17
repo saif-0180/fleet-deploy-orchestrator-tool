@@ -84,7 +84,7 @@ const TemplateFlowchart: React.FC<TemplateFlowchartProps> = ({ template }) => {
       <div className="text-sm text-[#EEEEEE]/70 mb-4">
         Deployment flow for {template.metadata.ft_number}
         {template.metadata.total_steps && (
-          <span className="ml-2 text-[#F79B72]">({template.metadata.total_steps} steps)</span>
+          <span className="ml-2 text-[#EEEEEE]">({template.metadata.total_steps} steps)</span>
         )}
       </div>
       
@@ -92,7 +92,7 @@ const TemplateFlowchart: React.FC<TemplateFlowchartProps> = ({ template }) => {
         <div key={index} className="relative">
           {/* Connection line to next step */}
           {index < template.steps.length - 1 && (
-            <div className="absolute left-6 top-16 w-0.5 h-8 bg-[#F79B72]/50 z-0" />
+            <div className="absolute left-6 top-16 w-0.5 h-8 bg-[#EEEEEE]/50 z-0" />
           )}
           
           {/* Step card */}
@@ -106,7 +106,7 @@ const TemplateFlowchart: React.FC<TemplateFlowchartProps> = ({ template }) => {
             <Card className="flex-1 bg-[#2A4759]/50 border-[#EEEEEE]/20 p-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[#F79B72] font-medium text-sm">
+                  <h4 className="text-[#EEEEEE] font-medium text-sm">
                     Step {step.order}: {formatStepType(step.type)}
                   </h4>
                   <span className="text-xs text-[#EEEEEE]/50">
@@ -121,7 +121,7 @@ const TemplateFlowchart: React.FC<TemplateFlowchartProps> = ({ template }) => {
                 {/* Step-specific details */}
                 <div className="text-xs text-[#EEEEEE]/60 space-y-1">
                   {step.ftNumber && (
-                    <div className="text-[#F79B72]">FT: {step.ftNumber}</div>
+                    <div className="text-[#EEEEEE]">FT: {step.ftNumber}</div>
                   )}
                   
                   {step.type === 'file_deployment' && (

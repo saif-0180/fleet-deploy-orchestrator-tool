@@ -531,7 +531,7 @@ const DeploymentHistory: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Deployment List */}
         <div className="space-y-4">
-          <Card className="bg-[#EEEEEE]">
+          <Card className="bg-[#1a2b42]">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div>
@@ -601,7 +601,7 @@ const DeploymentHistory: React.FC = () => {
                   type="number" 
                   value={clearDays} 
                   onChange={(e) => setClearDays(parseInt(e.target.value) || 0)}
-                  className="w-20 bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]"
+                  className="w-20 bg-[#1a2b42] border-[#00a7e1] text-[#EEEEEE]"
                 />
                 <Button 
                   type="submit"
