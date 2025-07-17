@@ -398,7 +398,7 @@ const DeployTemplate: React.FC = () => {
               </div>
               
               {loadedTemplate && (
-                <div className="text-sm text-[#EEEEEE] bg-green-50 p-3 rounded">
+                <div className="text-sm text-[#EEEEEE] bg-[#2A4759] p-3 rounded">
                   <p><strong>FT Number:</strong> {loadedTemplate.metadata.ft_number}</p>
                   <p><strong>Description:</strong> {loadedTemplate.metadata.description}</p>
                   <p><strong>Total Steps:</strong> {loadedTemplate.metadata.total_steps}</p>

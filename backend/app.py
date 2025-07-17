@@ -374,6 +374,129 @@ def get_systemd_services():
 
 # # New APIs for template generator and Oneclick deploy using template
 
+
+
+#================================================================
+# Log Summarizer
+class ComplexErrorLogSummarizer:
+    def __init__(self):
+        self.error_patterns = {
+            'stack_trace': {
+                'java': r'at\s+([a-zA-Z0-9.$_]+)\.([a-zA-Z0-9$_]+)\(([^)]+)\)',
+                'javascript': r'at\s+([a-zA-Z0-9.$_]+)\s*\(([^)]+)\)',
+                'python': r'File\s+"([^"]+)",\s*line\s+(\d+),\s*in\s+([a-zA-Z0-9_]+)',
+            },
+            'database': {
+                'postgres': r'ERROR:\s*(.*?)(?:\s*DETAIL:\s*(.*?))?',
+                'mysql': r'ERROR\s*(\d+)\s*\((\w+)\):\s*(.*)',
+            },
+            'network': {
+                'connection': r'Connection\s+(refused|timeout|reset|failed)[\s:]*(.*)',
+                'dns': r'DNS\s+(resolution|lookup)\s+(failed|error)[\s:]*(.*)',
+            }
+        }
+        
+        self.severity_keywords = {
+            'critical': ['critical', 'fatal', 'panic', 'emergency'],
+            'high': ['error', 'fail', 'exception', 'crash', 'abort'],
+            'medium': ['warn', 'warning', 'deprecated', 'invalid'],
+            'low': ['info', 'debug', 'trace', 'notice']
+        }
+    
+    def analyze_logs(self, logs):
+        """Analyze deployment logs and return summary"""
+        analysis = {
+            'summary': '',
+            'short_summary': '',
+            'category': 'deployment',
+            'severity': 'medium',
+            'error_type': 'DeploymentError',
+            'root_cause': {
+                'cause': 'Configuration issue',
+                'description': 'Deployment configuration may be inconsistent',
+                'confidence': 'medium'
+            },
+            'recommendations': [
+                'Check deployment configuration files',
+                'Verify environment variables',
+                'Review service dependencies',
+                'Validate deployment pipeline'
+            ],
+            'urgency': 'medium',
+            'context': {}
+        }
+        
+        # Analyze log content
+        all_logs = ' '.join(logs)
+        analysis['severity'] = self._detect_severity(all_logs)
+        analysis['error_type'] = self._detect_error_type(all_logs)
+        analysis['category'] = self._categorize_error(all_logs)
+        
+        # Generate summary
+        analysis['summary'] = f"{analysis['severity'].upper()} {analysis['error_type']} - Deployment analysis completed"
+        analysis['short_summary'] = f"{analysis['error_type']} Analysis"
+        
+        return analysis
+    
+    def _detect_severity(self, content):
+        content_lower = content.lower()
+        for level, keywords in self.severity_keywords.items():
+            for keyword in keywords:
+                if keyword in content_lower:
+                    return level
+        return 'medium'
+    
+    def _detect_error_type(self, content):
+        content_lower = content.lower()
+        if 'deploy' in content_lower:
+            return 'DeploymentError'
+        elif 'connection' in content_lower:
+            return 'ConnectionError'
+        elif 'config' in content_lower:
+            return 'ConfigurationError'
+        return 'GeneralError'
+    
+    def _categorize_error(self, content):
+        content_lower = content.lower()
+        if 'database' in content_lower or 'sql' in content_lower:
+            return 'database'
+        elif 'network' in content_lower or 'connection' in content_lower:
+            return 'network'
+        elif 'deploy' in content_lower:
+            return 'deployment'
+        return 'application'
+
+# Initialize summarizer
+log_summarizer = ComplexErrorLogSummarizer()
+
+@app.route('/api/logs/summarize', methods=['POST'])
+def summarize_logs():
+    """Summarize deployment logs"""
+    try:
+        data = request.get_json()
+        logs = data.get('logs', [])
+        deployment_id = data.get('deployment_id', '')
+        
+        if not logs:
+            return jsonify({'error': 'No logs provided'}), 400
+        
+        # Analyze logs
+        analysis = log_summarizer.analyze_logs(logs)
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis,
+            'deployment_id': deployment_id,
+            'analyzed_at': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error summarizing logs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ================================================================
+
 # =============================================================================
 # HELPER FUNCTIONS - Add these functions to your app.py
 # =============================================================================
