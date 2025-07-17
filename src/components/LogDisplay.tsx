@@ -114,7 +114,7 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
       </div>
       <ScrollArea 
         ref={scrollAreaRef}
-        className="bg-[#070808] rounded-md p-4 font-mono text-sm shadow-md border border-[#00171f]" 
+        className="bg-[#070808] rounded-md p-4 font-mono text-sm shadow-md border border-[#EEEEEE]" 
         style={{ 
           height: fixedHeight ? height : "auto", 
           maxHeight: height,

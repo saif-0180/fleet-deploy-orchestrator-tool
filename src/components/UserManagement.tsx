@@ -247,7 +247,7 @@ const UserManagement: React.FC = () => {
       {/* Users List */}
       <Card className="bg-[#1a2b42]">
         <CardHeader>
-          <CardTitle className="text-[#00a7e1]">Existing Users</CardTitle>
+          <CardTitle className="text-[#EEEEEE]">Existing Users</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

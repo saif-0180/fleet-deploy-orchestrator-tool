@@ -92,7 +92,7 @@ const TemplateFlowchart: React.FC<TemplateFlowchartProps> = ({ template }) => {
         <div key={index} className="relative">
           {/* Connection line to next step */}
           {index < template.steps.length - 1 && (
-            <div className="absolute left-6 top-16 w-0.5 h-8 bg-[#EEEEEE]/50 z-0" />
+            <div className="absolute left-6 top-16 w-0.5 h-8 bg-[#2A4759]/50 z-0" />
           )}
           
           {/* Step card */}
