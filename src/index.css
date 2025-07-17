@@ -14,35 +14,35 @@
     --popover: 240 15% 25%;
     --popover-foreground: 300 20% 95%;
 
-    --primary: 38 20% 70%;
+    --primary: 210 40% 85%;
     --primary-foreground: 220 13% 9%;
 
-    --secondary: 38 15% 20%;
-    --secondary-foreground: 300 20% 90%;
+    --secondary: 210 30% 92%;
+    --secondary-foreground: 220 13% 15%;
 
-    --muted: 38 10% 18%;
-    --muted-foreground: 300 10% 65%;
+    --muted: 210 25% 95%;
+    --muted-foreground: 220 13% 35%;
 
-    --accent: 38 18% 65%;
-    --accent-foreground: 220 13% 9%;
+    --accent: 210 35% 88%;
+    --accent-foreground: 220 13% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 300 20% 95%;
 
-    --border: 38 15% 25%;
-    --input: 38 15% 22%;
-    --ring: 38 20% 70%;
+    --border: 210 30% 88%;
+    --input: 210 25% 95%;
+    --ring: 210 40% 85%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 220 13% 12%;
     --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 38 20% 70%;
+    --sidebar-primary: 210 40% 85%;
     --sidebar-primary-foreground: 220 13% 9%;
-    --sidebar-accent: 38 15% 20%;
-    --sidebar-accent-foreground: 300 20% 90%;
-    --sidebar-border: 38 15% 25%;
-    --sidebar-ring: 38 20% 70%;
+    --sidebar-accent: 210 30% 92%;
+    --sidebar-accent-foreground: 220 13% 15%;
+    --sidebar-border: 210 30% 88%;
+    --sidebar-ring: 210 40% 85%;
   }
 
   .dark {
@@ -55,32 +55,32 @@
     --popover: 240 15% 25%;
     --popover-foreground: 300 20% 95%;
 
-    --primary: 38 20% 70%;
+    --primary: 210 40% 85%;
     --primary-foreground: 220 13% 9%;
 
-    --secondary: 38 15% 20%;
-    --secondary-foreground: 300 20% 90%;
+    --secondary: 210 30% 92%;
+    --secondary-foreground: 220 13% 15%;
 
-    --muted: 38 10% 18%;
-    --muted-foreground: 300 10% 65%;
+    --muted: 210 25% 95%;
+    --muted-foreground: 220 13% 35%;
 
-    --accent: 38 18% 65%;
-    --accent-foreground: 220 13% 9%;
+    --accent: 210 35% 88%;
+    --accent-foreground: 220 13% 15%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 300 20% 95%;
 
-    --border: 38 15% 25%;
-    --input: 38 15% 22%;
-    --ring: 38 20% 70%;
+    --border: 210 30% 88%;
+    --input: 210 25% 95%;
+    --ring: 210 40% 85%;
     --sidebar-background: 220 13% 12%;
     --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 38 20% 70%;
+    --sidebar-primary: 210 40% 85%;
     --sidebar-primary-foreground: 220 13% 9%;
-    --sidebar-accent: 38 15% 20%;
-    --sidebar-accent-foreground: 300 20% 90%;
-    --sidebar-border: 38 15% 25%;
-    --sidebar-ring: 38 20% 70%;
+    --sidebar-accent: 210 30% 92%;
+    --sidebar-accent-foreground: 220 13% 15%;
+    --sidebar-border: 210 30% 88%;
+    --sidebar-ring: 210 40% 85%;
   }
 }
 
@@ -94,52 +94,52 @@
   }
 }
 
-/* Custom styles for dropdown elements with lighter colors */
+/* Modern light dropdown styling */
 .select-content {
-  @apply bg-card text-foreground border-border;
+  @apply bg-muted text-muted-foreground border-border;
 }
 
 .select-item {
-  @apply text-foreground hover:bg-primary/20;
+  @apply text-muted-foreground hover:bg-accent hover:text-accent-foreground;
 }
 
-/* VM selector items with lighter colors */
+/* VM selector items with modern light colors */
 .vm-item {
-  @apply bg-card text-foreground p-2 rounded-md border border-border;
+  @apply bg-muted text-muted-foreground p-2 rounded-md border border-border;
 }
 
-/* Make sure dropdowns are always visible with proper contrast and lighter colors */
+/* Make sure dropdowns are always visible with proper contrast */
 [data-radix-popper-content-wrapper] {
   @apply z-50;
 }
 
 .dropdown-content {
-  @apply bg-slate-100 text-slate-900 border-border;
+  @apply bg-muted text-muted-foreground border-border;
 }
 
-/* Professional gradient accents using the new color */
+/* Modern gradient accents */
 .gradient-accent {
-  background: linear-gradient(135deg, hsl(38 20% 70%) 0%, hsl(35 18% 65%) 50%, hsl(32 15% 60%) 100%);
+  background: linear-gradient(135deg, hsl(210 40% 85%) 0%, hsl(210 35% 88%) 50%, hsl(210 30% 92%) 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, hsl(38 20% 70%) 0%, hsl(35 18% 65%) 50%, hsl(32 15% 60%) 100%);
+  background: linear-gradient(135deg, hsl(210 40% 85%) 0%, hsl(210 35% 88%) 50%, hsl(210 30% 92%) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Button and accent colors - using new color theme */
+/* Button and accent colors - modern theme */
 .btn-primary {
   @apply bg-primary hover:bg-primary/90 text-primary-foreground;
 }
 
 .accent-color {
-  color: hsl(38 20% 70%);
+  color: hsl(210 40% 85%);
 }
 
 .accent-bg {
-  background-color: hsl(38 20% 70%);
+  background-color: hsl(210 40% 85%);
 }
 
 /* Form and input styling */
@@ -152,30 +152,32 @@
   @apply bg-muted/80 border border-border;
 }
 
-/* New color theme overrides for components */
-.new-theme {
-  --primary: 38 20% 70%;
-  --accent: 38 18% 65%;
-  --secondary: 38 15% 20%;
+/* Modern theme overrides */
+.modern-theme {
+  --primary: 210 40% 85%;
+  --accent: 210 35% 88%;
+  --secondary: 210 30% 92%;
+  --muted: 210 25% 95%;
 }
 
-/* Light dropdown styling */
+/* Modern light dropdown styling */
 .light-dropdown {
-  background-color: hsl(240 15% 92%) !important;
-  color: hsl(240 15% 15%) !important;
+  background-color: hsl(210 25% 95%) !important;
+  color: hsl(220 13% 15%) !important;
+  border: 1px solid hsl(210 30% 88%);
 }
 
 .light-dropdown-item {
-  color: hsl(240 15% 15%) !important;
+  color: hsl(220 13% 15%) !important;
 }
 
 .light-dropdown-item:hover {
-  background-color: hsl(38 20% 70%) !important;
-  color: white !important;
+  background-color: hsl(210 40% 85%) !important;
+  color: hsl(220 13% 9%) !important;
 }
 
-/* Light selection styling */
+/* Modern selection styling */
 .light-selection {
-  background-color: hsl(38 20% 70%) !important;
-  color: white !important;
+  background-color: hsl(210 40% 85%) !important;
+  color: hsl(220 13% 9%) !important;
 }

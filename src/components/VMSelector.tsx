@@ -82,7 +82,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
         <DropdownMenuTrigger asChild>
           <Button 
             variant="outline" 
-            className="w-full justify-between bg-input border-primary text-foreground hover:bg-input/80"
+            className="w-full justify-between bg-input border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <span>
               {selectedVMList.length === 0 
@@ -95,17 +95,16 @@ const VMSelector: React.FC<VMSelectorProps> = ({
         </DropdownMenuTrigger>
         
         <DropdownMenuContent 
-          className="w-80 max-h-80 overflow-hidden bg-slate-100 border border-slate-300 shadow-lg"
+          className="w-80 max-h-80 overflow-hidden bg-muted border border-border shadow-lg"
           align="start"
         >
           {/* Select All / Deselect All buttons */}
-          <div className="flex gap-2 p-2 border-b border-slate-300">
+          <div className="flex gap-2 p-2 border-b border-border">
             <Button
               type="button"
               onClick={handleSelectAll}
               size="sm"
-              className="flex-1 text-xs"
-              style={{ backgroundColor: '#d4c2a4', color: 'white' }}
+              className="flex-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Select All
             </Button>
@@ -114,8 +113,7 @@ const VMSelector: React.FC<VMSelectorProps> = ({
               onClick={handleDeselectAll}
               size="sm"
               variant="outline"
-              className="flex-1 text-xs"
-              style={{ borderColor: '#d4c2a4', color: '#d4c2a4' }}
+              className="flex-1 text-xs border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               Deselect All
             </Button>
@@ -124,24 +122,13 @@ const VMSelector: React.FC<VMSelectorProps> = ({
           {/* Scrollable VM list */}
           <div className="max-h-60 overflow-y-auto p-2">
             {vmsData.length === 0 ? (
-              <p className="text-sm text-slate-600 p-2">No VMs available in inventory.</p>
+              <p className="text-sm text-muted-foreground p-2">No VMs available in inventory.</p>
             ) : (
               <div className="space-y-2">
                 {vmsData.map((vm: any) => (
                   <div 
                     key={vm.name} 
-                    className="flex items-center space-x-3 p-2 rounded hover:text-white cursor-pointer transition-colors"
-                    style={{ 
-                      ':hover': { backgroundColor: '#d4c2a4' }
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#d4c2a4';
-                      e.currentTarget.style.color = 'white';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '';
-                      e.currentTarget.style.color = '';
-                    }}
+                    className="flex items-center space-x-3 p-2 rounded hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
                     onClick={() => handleVMChange(vm.name, !selectedVMList.includes(vm.name))}
                   >
                     <Checkbox 
@@ -152,13 +139,13 @@ const VMSelector: React.FC<VMSelectorProps> = ({
                     />
                     <Label 
                       htmlFor={`vm-${vm.name}`} 
-                      className="text-slate-900 cursor-pointer flex-1 pointer-events-none"
+                      className="text-muted-foreground cursor-pointer flex-1 pointer-events-none"
                     >
                       {vm.name}
-                      {vm.type && <span className="text-xs text-slate-600 ml-2">({vm.type})</span>}
+                      {vm.type && <span className="text-xs text-muted-foreground/70 ml-2">({vm.type})</span>}
                     </Label>
                     {selectedVMList.includes(vm.name) && (
-                      <Check className="h-4 w-4" style={{ color: '#d4c2a4' }} />
+                      <Check className="h-4 w-4 text-primary" />
                     )}
                   </div>
                 ))}
@@ -170,21 +157,20 @@ const VMSelector: React.FC<VMSelectorProps> = ({
 
       {/* Selected VMs Display */}
       {selectedVMList.length > 0 && (
-        <div className="bg-card/20 rounded-md p-3 border border-primary/30">
-          <div className="text-sm font-medium text-foreground mb-2">
+        <div className="bg-muted/50 rounded-md p-3 border border-border">
+          <div className="text-sm font-medium text-muted-foreground mb-2">
             Selected VMs ({selectedVMList.length}):
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedVMList.map((vmName) => (
               <span 
                 key={vmName}
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md"
-                style={{ backgroundColor: '#d4c2a4', color: 'white' }}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground"
               >
                 {vmName}
                 <button
                   onClick={() => handleVMChange(vmName, false)}
-                  className="hover:bg-black/20 rounded-full p-0.5"
+                  className="hover:bg-primary-foreground/20 rounded-full p-0.5"
                 >
                   ×
                 </button>

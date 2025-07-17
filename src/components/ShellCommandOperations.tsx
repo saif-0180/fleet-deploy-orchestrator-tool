@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -196,37 +197,37 @@ const ShellCommandOperations: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Shell Command Execution</h2>
+      <h2 className="text-2xl font-bold text-primary mb-4">Shell Command Execution</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4 bg-[#EEEEEE] p-4 rounded-md">
+        <div className="space-y-4 bg-muted/50 p-4 rounded-md border border-border">
           <div>
-            <Label htmlFor="command" className="text-[#F79B72]">Command</Label>
+            <Label htmlFor="command" className="text-primary">Command</Label>
             <Input
               id="command"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               placeholder="Enter shell command"
-              className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]"
+              className="bg-input border-border text-muted-foreground"
             />
           </div>
 
           <div>
-            <Label htmlFor="user-select" className="text-[#F79B72]">Select User</Label>
+            <Label htmlFor="user-select" className="text-primary">Select User</Label>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger id="user-select" className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
-                <SelectValue placeholder="Select a user" className="text-[#2A4759]" />
+              <SelectTrigger id="user-select" className="bg-input border-border text-muted-foreground">
+                <SelectValue placeholder="Select a user" />
               </SelectTrigger>
-              <SelectContent className="bg-[#DDDDDD] border-[#2A4759] text-[#2A4759]">
+              <SelectContent>
                 {users.map((user: string) => (
-                  <SelectItem key={user} value={user} className="text-[#2A4759]">{user}</SelectItem>
+                  <SelectItem key={user} value={user}>{user}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label className="text-[#F79B72]">Select VMs</Label>
+            <Label className="text-primary">Select VMs</Label>
             <VMSelector 
               onSelectionChange={handleVMSelectionChange}
               selectedVMs={selectedVMs}
@@ -240,7 +241,7 @@ const ShellCommandOperations: React.FC = () => {
                 checked={useSudo} 
                 onCheckedChange={(checked) => setUseSudo(checked as boolean)}
               />
-              <Label htmlFor="use-sudo" className="text-[#2A4759]">Use sudo</Label>
+              <Label htmlFor="use-sudo" className="text-muted-foreground">Use sudo</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -249,18 +250,18 @@ const ShellCommandOperations: React.FC = () => {
                 checked={useCustomPath} 
                 onCheckedChange={(checked) => setUseCustomPath(checked as boolean)}
               />
-              <Label htmlFor="use-custom-path" className="text-[#2A4759]">Specify working directory</Label>
+              <Label htmlFor="use-custom-path" className="text-muted-foreground">Specify working directory</Label>
             </div>
 
             {useCustomPath && (
               <div>
-                <Label htmlFor="custom-path" className="text-[#F79B72]">Working Directory</Label>
+                <Label htmlFor="custom-path" className="text-primary">Working Directory</Label>
                 <Input
                   id="custom-path"
                   value={customPath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   placeholder="Enter working directory path"
-                  className="bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]"
+                  className="bg-input border-border text-muted-foreground"
                 />
               </div>
             )}
@@ -269,7 +270,7 @@ const ShellCommandOperations: React.FC = () => {
           <Button 
             type="button"
             onClick={handleExecute}
-            className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={shellCommandMutation.isPending || operationStatus === 'running' || operationStatus === 'loading'}
           >
             {shellCommandMutation.isPending || operationStatus === 'running' || operationStatus === 'loading' ? "Executing..." : "Execute Command"}
