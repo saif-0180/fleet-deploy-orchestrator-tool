@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,19 +187,19 @@ const SqlOperations = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card className="bg-muted/50 border-border text-foreground">
+      <Card className="bg-[#1a2b42] text-[#EEEEEE]">
         <CardHeader>
-          <CardTitle className="text-primary">SQL Execution</CardTitle>
+          <CardTitle>SQL Execution</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="ft" className="text-muted-foreground">FT</Label>
+              <Label htmlFor="ft">FT</Label>
               <Select 
                 onValueChange={setSelectedFT}
                 disabled={isLoadingFTs || fts.length === 0}
               >
-                <SelectTrigger id="ft" className="bg-input border-border text-muted-foreground">
+                <SelectTrigger id="ft">
                   <SelectValue placeholder="Select FT" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,13 +211,13 @@ const SqlOperations = () => {
             </div>
             
             <div>
-              <Label htmlFor="file" className="text-muted-foreground">SQL File</Label>
+              <Label htmlFor="file">SQL File</Label>
               <Select 
                 onValueChange={setSelectedFile}
                 disabled={isLoadingFiles || files.length === 0 || !selectedFT}
                 value={selectedFile}
               >
-                <SelectTrigger id="file" className="bg-input border-border text-muted-foreground">
+                <SelectTrigger id="file">
                   <SelectValue placeholder="Select SQL File" />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,33 +240,31 @@ const SqlOperations = () => {
             />
             
             <div>
-              <Label htmlFor="db-name" className="text-muted-foreground">Database Name</Label>
+              <Label htmlFor="db-name">Database Name</Label>
               <Input 
                 id="db-name"
                 value={dbName}
                 onChange={(e) => setDbName(e.target.value)}
                 placeholder="Enter database name"
                 required
-                className="bg-input border-border text-muted-foreground"
               />
             </div>
             
             <div>
-              <Label htmlFor="password" className="text-muted-foreground">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <Input 
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="bg-input border-border text-muted-foreground"
               />
             </div>
             
             <Button 
               type="submit" 
               disabled={!selectedFT || !selectedFile || !selectedHostname || !selectedPort || !selectedUser || !dbName || executeSqlMutation.isPending}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full"
             >
               {executeSqlMutation.isPending ? 'Executing...' : 'Execute SQL'}
             </Button>

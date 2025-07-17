@@ -5,82 +5,89 @@
 
 @layer base {
   :root {
-    --background: 30 8% 95%; /* #F2F0EF */
-    --foreground: 24 20% 25%; /* #733E24 */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 30 8% 95%; /* #F2F0EF */
-    --card-foreground: 24 20% 25%; /* #733E24 */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 30 8% 95%; /* #F2F0EF */
-    --popover-foreground: 24 20% 25%; /* #733E24 */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 195 50% 30%; /* #245F73 */
-    --primary-foreground: 30 8% 95%; /* #F2F0EF */
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 150 3% 74%; /* #BBBDBC */
-    --secondary-foreground: 24 20% 25%; /* #733E24 */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 150 3% 74%; /* #BBBDBC */
-    --muted-foreground: 24 20% 25%; /* #733E24 */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 195 50% 30%; /* #245F73 */
-    --accent-foreground: 30 8% 95%; /* #F2F0EF */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 30 8% 95%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 150 3% 74%; /* #BBBDBC */
-    --input: 30 8% 95%; /* #F2F0EF */
-    --ring: 195 50% 30%; /* #245F73 */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 30 8% 95%;
-    --sidebar-foreground: 24 20% 25%;
-    --sidebar-primary: 195 50% 30%;
-    --sidebar-primary-foreground: 30 8% 95%;
-    --sidebar-accent: 150 3% 74%;
-    --sidebar-accent-foreground: 24 20% 25%;
-    --sidebar-border: 150 3% 74%;
-    --sidebar-ring: 195 50% 30%;
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 30 8% 95%;
-    --foreground: 24 20% 25%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-    --card: 30 8% 95%;
-    --card-foreground: 24 20% 25%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 30 8% 95%;
-    --popover-foreground: 24 20% 25%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 195 50% 30%;
-    --primary-foreground: 30 8% 95%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 150 3% 74%;
-    --secondary-foreground: 24 20% 25%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 150 3% 74%;
-    --muted-foreground: 24 20% 25%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 195 50% 30%;
-    --accent-foreground: 30 8% 95%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 30 8% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 150 3% 74%;
-    --input: 30 8% 95%;
-    --ring: 195 50% 30%;
-    --sidebar-background: 30 8% 95%;
-    --sidebar-foreground: 24 20% 25%;
-    --sidebar-primary: 195 50% 30%;
-    --sidebar-primary-foreground: 30 8% 95%;
-    --sidebar-accent: 150 3% 74%;
-    --sidebar-accent-foreground: 24 20% 25%;
-    --sidebar-border: 150 3% 74%;
-    --sidebar-ring: 195 50% 30%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -94,40 +101,18 @@
   }
 }
 
-/* Beautiful gradient headings */
-.gradient-heading {
-  background: linear-gradient(135deg, hsl(195 50% 30%) 0%, hsl(24 20% 25%) 50%, hsl(195 50% 30%) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
-}
-
-.gradient-accent {
-  background: linear-gradient(135deg, hsl(195 50% 30%) 0%, hsl(150 3% 74%) 50%, hsl(195 50% 30%) 100%);
-}
-
-/* Modern light dropdown styling */
+/* Custom styles for dropdown elements */
 .select-content {
-  background-color: hsl(30 8% 95%) !important;
-  color: hsl(24 20% 25%) !important;
-  border: 1px solid hsl(150 3% 74%);
+  @apply bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30;
 }
 
 .select-item {
-  color: hsl(24 20% 25%) !important;
+  @apply text-[#EEEEEE] hover:bg-[#3a5769];
 }
 
-.select-item:hover {
-  background-color: hsl(195 50% 30%) !important;
-  color: hsl(30 8% 95%) !important;
-}
-
-/* VM selector items with modern colors */
+/* Style for VM selector items */
 .vm-item {
-  background-color: hsl(30 8% 95%);
-  color: hsl(24 20% 25%);
-  border: 1px solid hsl(150 3% 74%);
+  @apply bg-[#2A4759] text-[#EEEEEE] p-2 rounded-md;
 }
 
 /* Make sure dropdowns are always visible with proper contrast */
@@ -136,60 +121,5 @@
 }
 
 .dropdown-content {
-  background-color: hsl(30 8% 95%) !important;
-  color: hsl(24 20% 25%) !important;
-  border: 1px solid hsl(150 3% 74%);
-}
-
-/* Button and accent colors - modern theme */
-.btn-primary {
-  background-color: hsl(195 50% 30%);
-  color: hsl(30 8% 95%);
-}
-
-.btn-primary:hover {
-  background-color: hsl(195 50% 25%);
-}
-
-.accent-color {
-  color: hsl(195 50% 30%);
-}
-
-.accent-bg {
-  background-color: hsl(195 50% 30%);
-}
-
-/* Form and input styling */
-.form-section {
-  background-color: hsl(30 8% 95%);
-  border: 1px solid hsl(150 3% 74%);
-}
-
-/* Log display styling */
-.log-container {
-  background-color: hsl(24 20% 15%);
-  color: hsl(30 8% 95%);
-  border: 1px solid hsl(150 3% 74%);
-}
-
-/* Modern light dropdown styling */
-.light-dropdown {
-  background-color: hsl(30 8% 95%) !important;
-  color: hsl(24 20% 25%) !important;
-  border: 1px solid hsl(150 3% 74%);
-}
-
-.light-dropdown-item {
-  color: hsl(24 20% 25%) !important;
-}
-
-.light-dropdown-item:hover {
-  background-color: hsl(195 50% 30%) !important;
-  color: hsl(30 8% 95%) !important;
-}
-
-/* Modern selection styling */
-.light-selection {
-  background-color: hsl(195 50% 30%) !important;
-  color: hsl(30 8% 95%) !important;
+  @apply bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30;
 }

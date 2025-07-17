@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,20 +133,20 @@ const SystemctlOperations: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-primary mb-4">Systemctl Operations</h2>
+      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">Systemctl Operations</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Card className="bg-muted/50 border-border">
+          <Card className="bg-[#EEEEEE]">
             <CardHeader>
-              <CardTitle className="text-primary text-lg">Service Management</CardTitle>
+              <CardTitle className="text-[#F79B72] text-lg">Service Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <VMSelector selectedVMs={selectedVMs} onSelectionChange={setSelectedVMs} />
               
               <div className="flex items-center space-x-2">
                 <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="flex-1 bg-input border-border text-muted-foreground">
+                  <SelectTrigger className="flex-1 bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,7 +160,7 @@ const SystemctlOperations: React.FC = () => {
                 <Button
                   type="button"
                   onClick={() => refetchServices()}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 w-10 p-0"
+                  className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80 h-10 w-10 p-0"
                   title="Refresh Services"
                   disabled={isLoadingServices}
                 >
@@ -173,7 +172,7 @@ const SystemctlOperations: React.FC = () => {
               </div>
 
               <Select value={selectedOperation} onValueChange={setSelectedOperation}>
-                <SelectTrigger className="w-full bg-input border-border text-muted-foreground">
+                <SelectTrigger className="w-full bg-[#EEEEEE] border-[#2A4759] text-[#2A4759]">
                   <SelectValue placeholder="Select an operation" />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,7 +186,7 @@ const SystemctlOperations: React.FC = () => {
               <Button
                 onClick={handleExecute}
                 disabled={systemctlMutation.isPending || logStatus === 'running'}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80"
               >
                 {systemctlMutation.isPending ? (
                   <>
