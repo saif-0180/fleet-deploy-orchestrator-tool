@@ -1420,10 +1420,10 @@ def execute_template():
 # API to deploy a file
 @app.route('/api/deploy/file', methods=['POST'])
 def deploy_file():
-    # Get current authenticated user
-    # current_user = get_current_user()
-    # if not current_user:
-    #     return jsonify({"error": "Authentication required"}), 401
+    Get current authenticated user
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({"error": "Authentication required"}), 401
     
     data = request.json
     ft = data.get('ft')

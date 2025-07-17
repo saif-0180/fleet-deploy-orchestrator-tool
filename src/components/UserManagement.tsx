@@ -174,18 +174,18 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">User Management</h2>
+      <h2 className="text-2xl font-bold text-[#EEEEEE] mb-4">User Management</h2>
       
       {/* Create New User */}
-      <Card className="bg-[#EEEEEE]">
+      <Card className="bg-[#2A4759]">
         <CardHeader>
-          <CardTitle className="text-[#F79B72]">Create New User</CardTitle>
+          <CardTitle className="text-[#EEEEEE]">Create New User</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={createUser} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="username" className="text-[#2A4759]">Username</Label>
+                <Label htmlFor="username" className="text-[#EEEEEE]">Username</Label>
                 <Input
                   id="username"
                   value={newUser.username}
@@ -196,7 +196,7 @@ const UserManagement: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="password" className="text-[#2A4759]">Password</Label>
+                <Label htmlFor="password" className="text-[#EEEEEE]">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -223,7 +223,7 @@ const UserManagement: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="role" className="text-[#2A4759]">Role</Label>
+                <Label htmlFor="role" className="text-[#EEEEEE]">Role</Label>
                 <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                   <SelectTrigger className="bg-white border-[#2A4759] text-[#2A4759]">
                     <SelectValue />
@@ -236,7 +236,7 @@ const UserManagement: React.FC = () => {
               </div>
             </div>
             
-            <Button type="submit" className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80">
+            <Button type="submit" className="bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80">
               <Plus className="mr-2 h-4 w-4" />
               Create User
             </Button>
@@ -245,9 +245,9 @@ const UserManagement: React.FC = () => {
       </Card>
 
       {/* Users List */}
-      <Card className="bg-[#EEEEEE]">
+      <Card className="bg-[#2A4759]">
         <CardHeader>
-          <CardTitle className="text-[#F79B72]">Existing Users</CardTitle>
+          <CardTitle className="text-[#00a7e1]">Existing Users</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -255,7 +255,7 @@ const UserManagement: React.FC = () => {
               <div key={user.username} className="flex items-center justify-between p-4 bg-white rounded-md border border-[#2A4759]">
                 <div>
                   <span className="font-medium text-[#2A4759]">{user.username}</span>
-                  <span className="ml-2 px-2 py-1 bg-[#F79B72] text-[#2A4759] text-xs rounded">
+                  <span className="ml-2 px-2 py-1 bg-[#00a7e1] text-[#2A4759] text-xs rounded">
                     {user.role}
                   </span>
                 </div>
