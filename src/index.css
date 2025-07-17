@@ -5,82 +5,82 @@
 
 @layer base {
   :root {
-    --background: 220 13% 9%;
-    --foreground: 300 20% 95%;
+    --background: 30 8% 95%; /* #F2F0EF */
+    --foreground: 24 20% 25%; /* #733E24 */
 
-    --card: 220 13% 15%;
-    --card-foreground: 300 20% 95%;
+    --card: 30 8% 95%; /* #F2F0EF */
+    --card-foreground: 24 20% 25%; /* #733E24 */
 
-    --popover: 240 15% 25%;
-    --popover-foreground: 300 20% 95%;
+    --popover: 30 8% 95%; /* #F2F0EF */
+    --popover-foreground: 24 20% 25%; /* #733E24 */
 
-    --primary: 210 40% 85%;
-    --primary-foreground: 220 13% 9%;
+    --primary: 195 50% 30%; /* #245F73 */
+    --primary-foreground: 30 8% 95%; /* #F2F0EF */
 
-    --secondary: 210 30% 92%;
-    --secondary-foreground: 220 13% 15%;
+    --secondary: 150 3% 74%; /* #BBBDBC */
+    --secondary-foreground: 24 20% 25%; /* #733E24 */
 
-    --muted: 210 25% 95%;
-    --muted-foreground: 220 13% 35%;
+    --muted: 150 3% 74%; /* #BBBDBC */
+    --muted-foreground: 24 20% 25%; /* #733E24 */
 
-    --accent: 210 35% 88%;
-    --accent-foreground: 220 13% 15%;
+    --accent: 195 50% 30%; /* #245F73 */
+    --accent-foreground: 30 8% 95%; /* #F2F0EF */
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 300 20% 95%;
+    --destructive-foreground: 30 8% 95%;
 
-    --border: 210 30% 88%;
-    --input: 210 25% 95%;
-    --ring: 210 40% 85%;
+    --border: 150 3% 74%; /* #BBBDBC */
+    --input: 30 8% 95%; /* #F2F0EF */
+    --ring: 195 50% 30%; /* #245F73 */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 220 13% 12%;
-    --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 210 40% 85%;
-    --sidebar-primary-foreground: 220 13% 9%;
-    --sidebar-accent: 210 30% 92%;
-    --sidebar-accent-foreground: 220 13% 15%;
-    --sidebar-border: 210 30% 88%;
-    --sidebar-ring: 210 40% 85%;
+    --sidebar-background: 30 8% 95%;
+    --sidebar-foreground: 24 20% 25%;
+    --sidebar-primary: 195 50% 30%;
+    --sidebar-primary-foreground: 30 8% 95%;
+    --sidebar-accent: 150 3% 74%;
+    --sidebar-accent-foreground: 24 20% 25%;
+    --sidebar-border: 150 3% 74%;
+    --sidebar-ring: 195 50% 30%;
   }
 
   .dark {
-    --background: 220 13% 9%;
-    --foreground: 300 20% 95%;
+    --background: 30 8% 95%;
+    --foreground: 24 20% 25%;
 
-    --card: 220 13% 15%;
-    --card-foreground: 300 20% 95%;
+    --card: 30 8% 95%;
+    --card-foreground: 24 20% 25%;
 
-    --popover: 240 15% 25%;
-    --popover-foreground: 300 20% 95%;
+    --popover: 30 8% 95%;
+    --popover-foreground: 24 20% 25%;
 
-    --primary: 210 40% 85%;
-    --primary-foreground: 220 13% 9%;
+    --primary: 195 50% 30%;
+    --primary-foreground: 30 8% 95%;
 
-    --secondary: 210 30% 92%;
-    --secondary-foreground: 220 13% 15%;
+    --secondary: 150 3% 74%;
+    --secondary-foreground: 24 20% 25%;
 
-    --muted: 210 25% 95%;
-    --muted-foreground: 220 13% 35%;
+    --muted: 150 3% 74%;
+    --muted-foreground: 24 20% 25%;
 
-    --accent: 210 35% 88%;
-    --accent-foreground: 220 13% 15%;
+    --accent: 195 50% 30%;
+    --accent-foreground: 30 8% 95%;
 
     --destructive: 0 62% 30%;
-    --destructive-foreground: 300 20% 95%;
+    --destructive-foreground: 30 8% 95%;
 
-    --border: 210 30% 88%;
-    --input: 210 25% 95%;
-    --ring: 210 40% 85%;
-    --sidebar-background: 220 13% 12%;
-    --sidebar-foreground: 300 20% 90%;
-    --sidebar-primary: 210 40% 85%;
-    --sidebar-primary-foreground: 220 13% 9%;
-    --sidebar-accent: 210 30% 92%;
-    --sidebar-accent-foreground: 220 13% 15%;
-    --sidebar-border: 210 30% 88%;
-    --sidebar-ring: 210 40% 85%;
+    --border: 150 3% 74%;
+    --input: 30 8% 95%;
+    --ring: 195 50% 30%;
+    --sidebar-background: 30 8% 95%;
+    --sidebar-foreground: 24 20% 25%;
+    --sidebar-primary: 195 50% 30%;
+    --sidebar-primary-foreground: 30 8% 95%;
+    --sidebar-accent: 150 3% 74%;
+    --sidebar-accent-foreground: 24 20% 25%;
+    --sidebar-border: 150 3% 74%;
+    --sidebar-ring: 195 50% 30%;
   }
 }
 
@@ -94,18 +94,40 @@
   }
 }
 
+/* Beautiful gradient headings */
+.gradient-heading {
+  background: linear-gradient(135deg, hsl(195 50% 30%) 0%, hsl(24 20% 25%) 50%, hsl(195 50% 30%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, hsl(195 50% 30%) 0%, hsl(150 3% 74%) 50%, hsl(195 50% 30%) 100%);
+}
+
 /* Modern light dropdown styling */
 .select-content {
-  @apply bg-muted text-muted-foreground border-border;
+  background-color: hsl(30 8% 95%) !important;
+  color: hsl(24 20% 25%) !important;
+  border: 1px solid hsl(150 3% 74%);
 }
 
 .select-item {
-  @apply text-muted-foreground hover:bg-accent hover:text-accent-foreground;
+  color: hsl(24 20% 25%) !important;
 }
 
-/* VM selector items with modern light colors */
+.select-item:hover {
+  background-color: hsl(195 50% 30%) !important;
+  color: hsl(30 8% 95%) !important;
+}
+
+/* VM selector items with modern colors */
 .vm-item {
-  @apply bg-muted text-muted-foreground p-2 rounded-md border border-border;
+  background-color: hsl(30 8% 95%);
+  color: hsl(24 20% 25%);
+  border: 1px solid hsl(150 3% 74%);
 }
 
 /* Make sure dropdowns are always visible with proper contrast */
@@ -114,70 +136,60 @@
 }
 
 .dropdown-content {
-  @apply bg-muted text-muted-foreground border-border;
-}
-
-/* Modern gradient accents */
-.gradient-accent {
-  background: linear-gradient(135deg, hsl(210 40% 85%) 0%, hsl(210 35% 88%) 50%, hsl(210 30% 92%) 100%);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, hsl(210 40% 85%) 0%, hsl(210 35% 88%) 50%, hsl(210 30% 92%) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background-color: hsl(30 8% 95%) !important;
+  color: hsl(24 20% 25%) !important;
+  border: 1px solid hsl(150 3% 74%);
 }
 
 /* Button and accent colors - modern theme */
 .btn-primary {
-  @apply bg-primary hover:bg-primary/90 text-primary-foreground;
+  background-color: hsl(195 50% 30%);
+  color: hsl(30 8% 95%);
+}
+
+.btn-primary:hover {
+  background-color: hsl(195 50% 25%);
 }
 
 .accent-color {
-  color: hsl(210 40% 85%);
+  color: hsl(195 50% 30%);
 }
 
 .accent-bg {
-  background-color: hsl(210 40% 85%);
+  background-color: hsl(195 50% 30%);
 }
 
 /* Form and input styling */
 .form-section {
-  @apply bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg;
+  background-color: hsl(30 8% 95%);
+  border: 1px solid hsl(150 3% 74%);
 }
 
 /* Log display styling */
 .log-container {
-  @apply bg-muted/80 border border-border;
-}
-
-/* Modern theme overrides */
-.modern-theme {
-  --primary: 210 40% 85%;
-  --accent: 210 35% 88%;
-  --secondary: 210 30% 92%;
-  --muted: 210 25% 95%;
+  background-color: hsl(24 20% 15%);
+  color: hsl(30 8% 95%);
+  border: 1px solid hsl(150 3% 74%);
 }
 
 /* Modern light dropdown styling */
 .light-dropdown {
-  background-color: hsl(210 25% 95%) !important;
-  color: hsl(220 13% 15%) !important;
-  border: 1px solid hsl(210 30% 88%);
+  background-color: hsl(30 8% 95%) !important;
+  color: hsl(24 20% 25%) !important;
+  border: 1px solid hsl(150 3% 74%);
 }
 
 .light-dropdown-item {
-  color: hsl(220 13% 15%) !important;
+  color: hsl(24 20% 25%) !important;
 }
 
 .light-dropdown-item:hover {
-  background-color: hsl(210 40% 85%) !important;
-  color: hsl(220 13% 9%) !important;
+  background-color: hsl(195 50% 30%) !important;
+  color: hsl(30 8% 95%) !important;
 }
 
 /* Modern selection styling */
 .light-selection {
-  background-color: hsl(210 40% 85%) !important;
-  color: hsl(220 13% 9%) !important;
+  background-color: hsl(195 50% 30%) !important;
+  color: hsl(30 8% 95%) !important;
 }

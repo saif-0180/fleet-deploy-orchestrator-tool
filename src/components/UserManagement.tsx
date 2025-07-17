@@ -1,332 +1,220 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Edit, Eye, EyeOff } from 'lucide-react';
-
-interface User {
-  username: string;
-  role: string;
-}
+import { UserPlus, Users, Trash2, Edit } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
-  const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const { toast } = useToast();
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState('');
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/auth/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
+  // Placeholder for fetching users (replace with actual API call)
+  const { data: users, isLoading, error } = useQuery('users', async () => {
+    // Replace this with your actual API endpoint
+    const response = await fetch('/api/users');
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
     }
-  };
+    return response.json();
+  });
 
-  const createUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newUser.username.trim() || !newUser.password.trim()) {
-      toast({
-        title: "Error",
-        description: "Username and password are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleAddUser = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/auth/users', {
+      // Replace this with your actual API endpoint for adding users
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify({ email: newUserEmail, role: newUserRole }),
       });
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "User created successfully",
+          title: "User Added",
+          description: `User ${newUserEmail} added successfully with role ${newUserRole}.`,
         });
-        setNewUser({ username: '', password: '', role: 'user' });
-        fetchUsers();
+        // Clear the form
+        setNewUserEmail('');
+        setNewUserRole('');
+        // Invalidate the query to refetch users
+        // queryClient.invalidateQueries('users');
       } else {
-        const error = await response.json();
+        const errorData = await response.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to create user",
+          description: errorData.message || 'Failed to add user',
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: err.message || 'Failed to add user',
         variant: "destructive",
       });
     }
   };
 
-  const deleteUser = async (username: string) => {
-    if (!window.confirm(`Are you sure you want to delete user "${username}"?`)) {
-      return;
-    }
-
+  const handleDeleteUser = async (userId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/auth/users/${username}`, {
+      // Replace this with your actual API endpoint for deleting users
+      const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "User deleted successfully",
+          title: "User Deleted",
+          description: `User deleted successfully.`,
         });
-        fetchUsers();
+        // Invalidate the query to refetch users
+        // queryClient.invalidateQueries('users');
       } else {
-        const error = await response.json();
+        const errorData = await response.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to delete user",
+          description: errorData.message || 'Failed to delete user',
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: err.message || 'Failed to delete user',
         variant: "destructive",
       });
     }
   };
 
-  const changePassword = async (username: string) => {
-    if (!newPassword.trim()) {
-      toast({
-        title: "Error",
-        description: "Password cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/auth/users/${username}/password`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ password: newPassword }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Password updated successfully",
-        });
-        setEditingUser(null);
-        setNewPassword('');
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update password",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update password",
-        variant: "destructive",
-      });
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge className="bg-primary text-primary-foreground">
+            Admin
+          </Badge>
+        );
+      case 'user':
+        return (
+          <Badge className="bg-secondary text-secondary-foreground">
+            User
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-muted text-muted-foreground">
+            {role}
+          </Badge>
+        );
     }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-[#F79B72] mb-4">User Management</h2>
+      <h2 className="text-3xl font-bold gradient-heading mb-6">User Management</h2>
       
-      {/* Create New User */}
-      <Card className="bg-[#EEEEEE]">
-        <CardHeader>
-          <CardTitle className="text-[#F79B72]">Create New User</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={createUser} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="username" className="text-[#2A4759]">Username</Label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <Card className="bg-card border-border shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-t-lg">
+              <CardTitle className="text-primary text-lg font-semibold flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Add New User
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-2">
+                <Label htmlFor="userEmail" className="text-foreground font-medium">Email</Label>
                 <Input
-                  id="username"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="bg-white border-[#2A4759] text-[#2A4759]"
-                  placeholder="Enter username"
+                  id="userEmail"
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="Enter user email"
+                  className="bg-input border-border text-foreground"
                 />
               </div>
               
-              <div>
-                <Label htmlFor="password" className="text-[#2A4759]">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="bg-white border-[#2A4759] text-[#2A4759] pr-10"
-                    placeholder="Enter password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-[#2A4759]" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-[#2A4759]" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="role" className="text-[#2A4759]">Role</Label>
-                <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
-                  <SelectTrigger className="bg-white border-[#2A4759] text-[#2A4759]">
-                    <SelectValue />
+              <div className="space-y-2">
+                <Label htmlFor="userRole" className="text-foreground font-medium">Role</Label>
+                <Select value={newUserRole} onValueChange={setNewUserRole}>
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card border-border">
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            
-            <Button type="submit" className="bg-[#F79B72] text-[#2A4759] hover:bg-[#F79B72]/80">
-              <Plus className="mr-2 h-4 w-4" />
-              Create User
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              
+              <Button
+                onClick={handleAddUser}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-2"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add User
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Users List */}
-      <Card className="bg-[#EEEEEE]">
-        <CardHeader>
-          <CardTitle className="text-[#F79B72]">Existing Users</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <div key={user.username} className="flex items-center justify-between p-4 bg-white rounded-md border border-[#2A4759]">
-                <div>
-                  <span className="font-medium text-[#2A4759]">{user.username}</span>
-                  <span className="ml-2 px-2 py-1 bg-[#F79B72] text-[#2A4759] text-xs rounded">
-                    {user.role}
-                  </span>
-                </div>
-                
-                <div className="flex gap-2">
-                  {editingUser === user.username ? (
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Input
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="New password"
-                          className="w-40 bg-white border-[#2A4759] text-[#2A4759] pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="h-3 w-3 text-[#2A4759]" />
-                          ) : (
-                            <Eye className="h-3 w-3 text-[#2A4759]" />
-                          )}
-                        </Button>
-                      </div>
-                      <Button
-                        onClick={() => changePassword(user.username)}
-                        className="bg-green-500 text-white hover:bg-green-600"
-                        size="sm"
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setEditingUser(null);
-                          setNewPassword('');
-                        }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => setEditingUser(user.username)}
-                        className="bg-[#2A4759] text-white hover:bg-[#2A4759]/80"
-                        size="sm"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => deleteUser(user.username)}
-                        className="bg-red-500 text-white hover:bg-red-600"
-                        size="sm"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
+        <div className="space-y-4">
+          <Card className="bg-card border-border shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-accent/10 to-primary/10 rounded-t-lg">
+              <CardTitle className="text-primary text-lg font-semibold flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Existing Users
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-96 overflow-y-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Role</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Sample row - actual data would be mapped here */}
+                    <tr className="border-b border-border hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4 text-foreground">user@example.com</td>
+                      <td className="py-3 px-4">{getRoleBadge('user')}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

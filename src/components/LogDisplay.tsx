@@ -70,15 +70,15 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
     switch (status) {
       case 'success':
       case 'completed':
-        return 'bg-green-500 hover:bg-green-600';
+        return 'bg-green-500 hover:bg-green-600 text-white';
       case 'failed':
-        return 'bg-red-500 hover:bg-red-600';
+        return 'bg-red-500 hover:bg-red-600 text-white';
       case 'running':
-        return 'bg-yellow-500 hover:bg-yellow-600';
+        return 'bg-yellow-500 hover:bg-yellow-600 text-white';
       case 'loading':
-        return 'bg-blue-500 hover:bg-blue-600';
+        return 'bg-primary hover:bg-primary/80 text-primary-foreground';
       default:
-        return 'bg-gray-500 hover:bg-gray-600';
+        return 'bg-muted hover:bg-muted/80 text-muted-foreground';
     }
   };
 
@@ -97,9 +97,9 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
     <div className="space-y-2 h-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-[#d4c2a4]">{title}</h3>
+          <h3 className="font-medium gradient-heading text-lg">{title}</h3>
           {effectiveStatus !== 'idle' && (
-            <Badge className={`${getBadgeColorClass()} text-white`}>
+            <Badge className={getBadgeColorClass()}>
               {effectiveStatus === 'running' || effectiveStatus === 'loading' ? (
                 <div className="flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -114,7 +114,7 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
       </div>
       <ScrollArea 
         ref={scrollAreaRef}
-        className="bg-[#242321] rounded-md p-4 font-mono text-sm shadow-md border border-[#2A4759]" 
+        className="bg-slate-900 rounded-md p-4 font-mono text-sm shadow-md border border-border" 
         style={{ 
           height: fixedHeight ? height : "auto", 
           maxHeight: height,
