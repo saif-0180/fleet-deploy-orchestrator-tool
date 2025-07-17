@@ -97,7 +97,7 @@ const LogDisplay: React.FC<LogDisplayProps> = ({
     <div className="space-y-2 h-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-[#003459]">{title}</h3>
+          <h3 className="font-medium text-[#F79B72]">{title}</h3>
           {effectiveStatus !== 'idle' && (
             <Badge className={`${getBadgeColorClass()} text-white`}>
               {effectiveStatus === 'running' || effectiveStatus === 'loading' ? (

@@ -103,7 +103,7 @@
 
 /* Custom styles for dropdown elements */
 .select-content {
-  @apply bg-[#00171f] text-[#EEEEEE] border-[#EEEEEE]/30;
+  @apply bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30;
 }
 
 .select-item {
@@ -112,7 +112,7 @@
 
 /* Style for VM selector items */
 .vm-item {
-  @apply bg-[#00171f] text-[#EEEEEE] p-2 rounded-md;
+  @apply bg-[#2A4759] text-[#EEEEEE] p-2 rounded-md;
 }
 
 /* Make sure dropdowns are always visible with proper contrast */
@@ -121,5 +121,5 @@
 }
 
 .dropdown-content {
-  @apply bg-[#00171f] text-[#EEEEEE] border-[#EEEEEE]/30;
+  @apply bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30;
 }
