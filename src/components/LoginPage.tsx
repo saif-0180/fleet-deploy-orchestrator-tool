@@ -1,137 +1,109 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { Eye, EyeOff, User, Lock } from 'lucide-react';
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username.trim() || !password.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter both username and password",
-        variant: "destructive",
-      });
-      return;
-    }
+    setError('');
+    setLoading(true);
 
-    setIsLoading(true);
-    
     try {
-      const success = await login(username, password);
-      
-      if (success) {
-        toast({
-          title: "Success",
-          description: "Login successful",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Invalid username or password",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Login failed. Please try again.",
-        variant: "destructive",
-      });
+      await login(username, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div 
-      className="min-h-screen text-[#EEEEEE] bg-cover bg-center bg-no-repeat bg-fixed"
+      className="min-h-screen flex items-center justify-center p-4"
       style={{ 
         backgroundImage: 'url(/background/amdocs-loginpage-bg.png)',
-        backgroundSize: 'contain',
+        backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: '100% 100%'
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="min-h-screen w-full flex items-center justify-center ">
-        <Card className="w-full max-w-md bg-[#EEEEEE]/95">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-[#007ea7]">
-              Private-Fix-Deployment-Tool
+      <div className="min-h-screen w-full flex items-center justify-center bg-black/40">
+        <Card className="w-full max-w-md bg-[#00171f]/95 backdrop-blur-sm border-[#00a7e1]/20">
+          <CardHeader className="space-y-1 text-center">
+            <div className="mx-auto mb-4">
+              <img 
+                src="/background/amdocs-header.png" 
+                alt="Amdocs" 
+                className="h-12 mx-auto"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-[#EEEEEE]">
+              Welcome Back
             </CardTitle>
-            <p className="text-[#00171f] mt-2">Please login to continue</p>
+            <p className="text-[#BBBDBC]">
+              Sign in to your deployment management account
+            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[#00171f]">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-white border-[#00171f] text-[#00171f]"
-                  placeholder="Enter your username"
-                  disabled={isLoading}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#00171f]">Password</Label>
                 <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-[#BBBDBC]" />
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white border-[#00171f] text-[#00171f] pr-10"
-                    placeholder="Enter your password"
-                    disabled={isLoading}
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="pl-10 bg-[#003459] border-[#00a7e1]/30 text-[#EEEEEE] placeholder:text-[#BBBDBC] focus:border-[#00a7e1]"
+                    required
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-[#00171f]" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-[#00171f]" />
-                    )}
-                  </Button>
                 </div>
               </div>
               
-              <Button
-                type="submit"
-                className="w-full bg-[#007ea7] text-white hover:bg-[#005f7a]"
-                disabled={isLoading}
+              <div className="space-y-2">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-[#BBBDBC]" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-[#003459] border-[#00a7e1]/30 text-[#EEEEEE] placeholder:text-[#BBBDBC] focus:border-[#00a7e1]"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-[#BBBDBC] hover:text-[#EEEEEE]"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              {error && (
+                <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded p-3">
+                  {error}
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-[#00a7e1] hover:bg-[#00a7e1]/80 text-[#EEEEEE]"
+                disabled={loading}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
-                  </>
-                ) : (
-                  'Login'
-                )}
+                {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
           </CardContent>

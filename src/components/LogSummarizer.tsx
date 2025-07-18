@@ -49,6 +49,7 @@ const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, de
     setError(null);
     
     try {
+      console.log('Calling API with logs:', logs);
       const response = await fetch('/api/logs/summarize', {
         method: 'POST',
         headers: {
@@ -60,13 +61,17 @@ const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, de
         })
       });
 
+      console.log('API Response status:', response.status);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('API Response data:', data);
       
       if (data.success && data.analysis) {
+        console.log('Setting analysis from API:', data.analysis);
         setAnalysis(data.analysis);
       } else {
         throw new Error(data.error || 'Failed to analyze logs');
@@ -74,8 +79,36 @@ const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, de
     } catch (err) {
       console.error('Error analyzing logs:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while analyzing logs');
-      // Remove mock fallback - only show real API responses
-      setAnalysis(null);
+      
+      // Only show mock data as fallback when API fails
+      console.log('API failed, using mock data as fallback');
+      const mockAnalysis: ErrorAnalysis = {
+        summary: 'MOCK: HIGH DeploymentError detected during deployment execution',
+        shortSummary: 'DeploymentError Analysis (API Failed - Mock Data)',
+        category: 'deployment',
+        severity: 'high',
+        errorType: 'DeploymentError',
+        rootCause: {
+          cause: 'Service configuration mismatch',
+          description: 'Mock analysis: Configuration files may be inconsistent across environments',
+          confidence: 'high'
+        },
+        recommendations: [
+          'MOCK: Verify service configuration files are consistent',
+          'MOCK: Check environment-specific variables',
+          'MOCK: Review deployment pipeline for configuration drift',
+          'MOCK: Implement configuration validation in CI/CD'
+        ],
+        urgency: 'high',
+        context: {
+          deployment: deploymentId || 'unknown',
+          environment: 'mock-production',
+          service: 'mock-service',
+          note: 'This is mock data due to API failure'
+        }
+      };
+      
+      setAnalysis(mockAnalysis);
     } finally {
       setLoading(false);
     }
@@ -142,7 +175,7 @@ const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, de
                     ⚠️ API Error: {error}
                   </p>
                   <p className="text-red-300 text-xs mt-1">
-                    Please check the backend service and try again
+                    Showing fallback mock analysis data below
                   </p>
                 </div>
               )}
