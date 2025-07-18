@@ -36,6 +36,17 @@ interface ErrorAnalysis {
   };
 }
 
+const response = await fetch('/api/logs/summarize', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    logs: logs,
+    deployment_id: deploymentId
+  })
+});
+const data = await response.json();
 const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, deploymentId }) => {
   const [activeTab, setActiveTab] = useState('summary');
   const [isCollapsed, setIsCollapsed] = useState(false);

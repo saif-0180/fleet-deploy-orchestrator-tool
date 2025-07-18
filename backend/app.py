@@ -378,96 +378,197 @@ def get_systemd_services():
 
 #================================================================
 # Log Summarizer
-class ComplexErrorLogSummarizer:
+class ComplexLogSummarizer:
     def __init__(self):
-        self.error_patterns = {
-            'stack_trace': {
-                'java': r'at\s+([a-zA-Z0-9.$_]+)\.([a-zA-Z0-9$_]+)\(([^)]+)\)',
-                'javascript': r'at\s+([a-zA-Z0-9.$_]+)\s*\(([^)]+)\)',
-                'python': r'File\s+"([^"]+)",\s*line\s+(\d+),\s*in\s+([a-zA-Z0-9_]+)',
-            },
-            'database': {
-                'postgres': r'ERROR:\s*(.*?)(?:\s*DETAIL:\s*(.*?))?',
-                'mysql': r'ERROR\s*(\d+)\s*\((\w+)\):\s*(.*)',
-            },
-            'network': {
-                'connection': r'Connection\s+(refused|timeout|reset|failed)[\s:]*(.*)',
-                'dns': r'DNS\s+(resolution|lookup)\s+(failed|error)[\s:]*(.*)',
-            }
-        }
-        
-        self.severity_keywords = {
-            'critical': ['critical', 'fatal', 'panic', 'emergency'],
-            'high': ['error', 'fail', 'exception', 'crash', 'abort'],
-            'medium': ['warn', 'warning', 'deprecated', 'invalid'],
+        self.severity_levels = {
+            'critical': ['fatal', 'panic', 'emergency'],
+            'high': ['exception', 'error', 'fail', 'crash', 'abort'],
+            'medium': ['warn', 'deprecated', 'invalid'],
             'low': ['info', 'debug', 'trace', 'notice']
         }
-    
-    def analyze_logs(self, logs):
-        """Analyze deployment logs and return summary"""
-        analysis = {
-            'summary': '',
-            'short_summary': '',
-            'category': 'deployment',
-            'severity': 'medium',
-            'error_type': 'DeploymentError',
-            'root_cause': {
-                'cause': 'Configuration issue',
-                'description': 'Deployment configuration may be inconsistent',
-                'confidence': 'medium'
-            },
-            'recommendations': [
-                'Check deployment configuration files',
-                'Verify environment variables',
-                'Review service dependencies',
-                'Validate deployment pipeline'
-            ],
-            'urgency': 'medium',
-            'context': {}
+
+        self.common_causes = {
+            'NullPointerException': 'Accessing a null object reference',
+            'OutOfMemoryError': 'Insufficient memory or memory leak',
+            'ConnectionError': 'Service not reachable, connection refused or timed out',
+            'FileNotFound': 'Missing file or incorrect path',
+            'PermissionError': 'Permission denied on file or resource',
+            'SSLError': 'Certificate issue or TLS handshake failure',
+            'DNSError': 'DNS resolution or lookup failure',
+            'DeploymentError': 'Service configuration or deployment issue',
+            'ConfigurationError': 'Configuration mismatch or missing settings',
+            'GeneralError': 'Unspecified error condition'
         }
+
+        self.recommendations = {
+            'NullPointerException': [
+                'Check if objects are initialized before use',
+                'Review stack trace for where null was accessed',
+                'Add null checks in code'
+            ],
+            'OutOfMemoryError': [
+                'Increase heap size',
+                'Check for memory leaks in application',
+                'Profile memory usage patterns'
+            ],
+            'ConnectionError': [
+                'Verify service is up and port is open',
+                'Check firewall/network rules',
+                'Review connection timeout settings'
+            ],
+            'FileNotFound': [
+                'Ensure file exists at given path',
+                'Check permissions and path casing',
+                'Verify file system mount points'
+            ],
+            'PermissionError': [
+                'Verify user has access to file/folder',
+                'Check file system or OS ACLs',
+                'Review service account permissions'
+            ],
+            'SSLError': [
+                'Check certificate chain and trust store',
+                'Verify server/client TLS versions match',
+                'Update SSL certificates if expired'
+            ],
+            'DNSError': [
+                'Check DNS server config or `/etc/resolv.conf`',
+                'Try with public DNS like 8.8.8.8',
+                'Verify DNS propagation'
+            ],
+            'DeploymentError': [
+                'Verify service configuration files are consistent',
+                'Check environment-specific variables',
+                'Review deployment pipeline for configuration drift',
+                'Implement configuration validation in CI/CD'
+            ],
+            'ConfigurationError': [
+                'Validate configuration file syntax',
+                'Check for missing required parameters',
+                'Compare with working configuration',
+                'Review environment-specific settings'
+            ],
+            'GeneralError': [
+                'Review the logs for more details',
+                'Check system resources and status',
+                'Verify service dependencies'
+            ]
+        }
+
+    def summarize(self, logs):
+        """Main summarization method that returns the format expected by frontend"""
+        combined = '\n'.join(logs)
+        lower = combined.lower()
+
+        # Check for success conditions first
+        if 'success' in lower or 'completed successfully' in lower or 'deployment complete' in lower:
+            return {
+                'summary': 'SUCCESS: Task completed without issues.',
+                'shortSummary': 'Success',
+                'category': 'deployment',
+                'severity': 'low',
+                'errorType': 'None',
+                'rootCause': {
+                    'cause': 'No errors detected',
+                    'description': 'All operations completed successfully',
+                    'confidence': 'high'
+                },
+                'recommendations': ['No action required'],
+                'urgency': 'low',
+                'context': {
+                    'status': 'success',
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+            }
+
+        # Analyze errors
+        error_type = self.detect_error_type(lower)
+        severity = self.detect_severity(lower)
+        category = self.categorize(lower)
         
-        # Analyze log content
-        all_logs = ' '.join(logs)
-        analysis['severity'] = self._detect_severity(all_logs)
-        analysis['error_type'] = self._detect_error_type(all_logs)
-        analysis['category'] = self._categorize_error(all_logs)
-        
-        # Generate summary
-        analysis['summary'] = f"{analysis['severity'].upper()} {analysis['error_type']} - Deployment analysis completed"
-        analysis['short_summary'] = f"{analysis['error_type']} Analysis"
-        
-        return analysis
-    
-    def _detect_severity(self, content):
-        content_lower = content.lower()
-        for level, keywords in self.severity_keywords.items():
+        # Map severity to urgency
+        urgency_map = {
+            'critical': 'critical',
+            'high': 'high', 
+            'medium': 'medium',
+            'low': 'low'
+        }
+        urgency = urgency_map.get(severity, 'medium')
+
+        root_cause = self.common_causes.get(error_type, 'Root cause unknown')
+        recommendations = self.recommendations.get(error_type, ['Review the logs for details'])
+
+        return {
+            'summary': f"{severity.upper()} {error_type} detected during execution",
+            'shortSummary': f"{error_type} Analysis",
+            'category': category,
+            'severity': severity,
+            'errorType': error_type,
+            'rootCause': {
+                'cause': root_cause,
+                'description': f"Analysis suggests this is related to {category} issues",
+                'confidence': 'high' if error_type != 'GeneralError' else 'medium'
+            },
+            'recommendations': recommendations,
+            'urgency': urgency,
+            'context': {
+                'error_type': error_type,
+                'category': category,
+                'analyzed_logs': len(logs),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        }
+
+    def detect_error_type(self, content):
+        """Detect the type of error from log content"""
+        if 'nullpointer' in content or 'null reference' in content:
+            return 'NullPointerException'
+        elif 'outofmemory' in content or 'out of memory' in content:
+            return 'OutOfMemoryError'
+        elif 'connection refused' in content or 'connection timed out' in content or 'unable to connect' in content:
+            return 'ConnectionError'
+        elif 'no such file' in content or 'filenotfound' in content or 'enoent' in content:
+            return 'FileNotFound'
+        elif 'permission denied' in content or 'access denied' in content:
+            return 'PermissionError'
+        elif 'ssl' in content or 'certificate' in content or 'tls' in content:
+            return 'SSLError'
+        elif 'dns' in content or 'name resolution' in content:
+            return 'DNSError'
+        elif 'deploy' in content or 'deployment' in content:
+            return 'DeploymentError'
+        elif 'config' in content or 'configuration' in content:
+            return 'ConfigurationError'
+        else:
+            return 'GeneralError'
+
+    def detect_severity(self, content):
+        """Detect severity level from log content"""
+        for level, keywords in self.severity_levels.items():
             for keyword in keywords:
-                if keyword in content_lower:
+                if keyword in content:
                     return level
         return 'medium'
-    
-    def _detect_error_type(self, content):
-        content_lower = content.lower()
-        if 'deploy' in content_lower:
-            return 'DeploymentError'
-        elif 'connection' in content_lower:
-            return 'ConnectionError'
-        elif 'config' in content_lower:
-            return 'ConfigurationError'
-        return 'GeneralError'
-    
-    def _categorize_error(self, content):
-        content_lower = content.lower()
-        if 'database' in content_lower or 'sql' in content_lower:
+
+    def categorize(self, content):
+        """Categorize the error based on content"""
+        if 'sql' in content or 'database' in content or 'postgres' in content or 'mysql' in content:
             return 'database'
-        elif 'network' in content_lower or 'connection' in content_lower:
+        elif 'connection' in content or 'port' in content or 'timeout' in content or 'network' in content:
             return 'network'
-        elif 'deploy' in content_lower:
+        elif 'memory' in content or 'heap' in content or 'oom' in content:
+            return 'memory'
+        elif 'file' in content or 'disk' in content or 'filesystem' in content:
+            return 'filesystem'
+        elif 'permission' in content or 'access' in content or 'auth' in content:
+            return 'security'
+        elif 'deploy' in content or 'build' in content or 'deployment' in content:
             return 'deployment'
         return 'application'
 
+
 # Initialize summarizer
-log_summarizer = ComplexErrorLogSummarizer()
+log_summarizer = ComplexLogSummarizer()
 
 @app.route('/api/logs/summarize', methods=['POST'])
 def summarize_logs():
@@ -477,11 +578,24 @@ def summarize_logs():
         logs = data.get('logs', [])
         deployment_id = data.get('deployment_id', '')
         
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+            
+        logs = data.get('logs', [])
+        deployment_id = data.get('deployment_id', '')
+        
         if not logs:
             return jsonify({'error': 'No logs provided'}), 400
         
-        # Analyze logs
-        analysis = log_summarizer.analyze_logs(logs)
+        if not isinstance(logs, list):
+            return jsonify({'error': 'Logs must be an array'}), 400
+        
+        # Analyze logs using the summarizer
+        analysis = log_summarizer.summarize(logs)
+        
+        # Add deployment context if provided
+        if deployment_id:
+            analysis['context']['deployment'] = deployment_id
         
         return jsonify({
             'success': True,
@@ -492,7 +606,127 @@ def summarize_logs():
         
     except Exception as e:
         print(f"Error summarizing logs: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# class ComplexErrorLogSummarizer:
+#     def __init__(self):
+#         self.error_patterns = {
+#             'stack_trace': {
+#                 'java': r'at\s+([a-zA-Z0-9.$_]+)\.([a-zA-Z0-9$_]+)\(([^)]+)\)',
+#                 'javascript': r'at\s+([a-zA-Z0-9.$_]+)\s*\(([^)]+)\)',
+#                 'python': r'File\s+"([^"]+)",\s*line\s+(\d+),\s*in\s+([a-zA-Z0-9_]+)',
+#             },
+#             'database': {
+#                 'postgres': r'ERROR:\s*(.*?)(?:\s*DETAIL:\s*(.*?))?',
+#                 'mysql': r'ERROR\s*(\d+)\s*\((\w+)\):\s*(.*)',
+#             },
+#             'network': {
+#                 'connection': r'Connection\s+(refused|timeout|reset|failed)[\s:]*(.*)',
+#                 'dns': r'DNS\s+(resolution|lookup)\s+(failed|error)[\s:]*(.*)',
+#             }
+#         }
+        
+#         self.severity_keywords = {
+#             'critical': ['critical', 'fatal', 'panic', 'emergency'],
+#             'high': ['error', 'fail', 'exception', 'crash', 'abort'],
+#             'medium': ['warn', 'warning', 'deprecated', 'invalid'],
+#             'low': ['info', 'debug', 'trace', 'notice']
+#         }
+    
+#     def analyze_logs(self, logs):
+#         """Analyze deployment logs and return summary"""
+#         analysis = {
+#             'summary': '',
+#             'short_summary': '',
+#             'category': 'deployment',
+#             'severity': 'medium',
+#             'error_type': 'DeploymentError',
+#             'root_cause': {
+#                 'cause': 'Configuration issue',
+#                 'description': 'Deployment configuration may be inconsistent',
+#                 'confidence': 'medium'
+#             },
+#             'recommendations': [
+#                 'Check deployment configuration files',
+#                 'Verify environment variables',
+#                 'Review service dependencies',
+#                 'Validate deployment pipeline'
+#             ],
+#             'urgency': 'medium',
+#             'context': {}
+#         }
+        
+#         # Analyze log content
+#         all_logs = ' '.join(logs)
+#         analysis['severity'] = self._detect_severity(all_logs)
+#         analysis['error_type'] = self._detect_error_type(all_logs)
+#         analysis['category'] = self._categorize_error(all_logs)
+        
+#         # Generate summary
+#         analysis['summary'] = f"{analysis['severity'].upper()} {analysis['error_type']} - Deployment analysis completed"
+#         analysis['short_summary'] = f"{analysis['error_type']} Analysis"
+        
+#         return analysis
+    
+#     def _detect_severity(self, content):
+#         content_lower = content.lower()
+#         for level, keywords in self.severity_keywords.items():
+#             for keyword in keywords:
+#                 if keyword in content_lower:
+#                     return level
+#         return 'medium'
+    
+#     def _detect_error_type(self, content):
+#         content_lower = content.lower()
+#         if 'deploy' in content_lower:
+#             return 'DeploymentError'
+#         elif 'connection' in content_lower:
+#             return 'ConnectionError'
+#         elif 'config' in content_lower:
+#             return 'ConfigurationError'
+#         return 'GeneralError'
+    
+#     def _categorize_error(self, content):
+#         content_lower = content.lower()
+#         if 'database' in content_lower or 'sql' in content_lower:
+#             return 'database'
+#         elif 'network' in content_lower or 'connection' in content_lower:
+#             return 'network'
+#         elif 'deploy' in content_lower:
+#             return 'deployment'
+#         return 'application'
+
+# Initialize summarizer
+# log_summarizer = ComplexErrorLogSummarizer()
+
+# @app.route('/api/logs/summarize', methods=['POST'])
+# def summarize_logs():
+#     """Summarize deployment logs"""
+#     try:
+#         data = request.get_json()
+#         logs = data.get('logs', [])
+#         deployment_id = data.get('deployment_id', '')
+        
+#         if not logs:
+#             return jsonify({'error': 'No logs provided'}), 400
+        
+#         # Analyze logs
+#         result = log_summarizer.summarize(logs)
+        
+#         return jsonify({
+#             'success': True,
+#             'analysis': analysis,
+#             'deployment_id': deployment_id,
+#             'analyzed_at': datetime.utcnow().isoformat()
+#         })
+        
+#     except Exception as e:
+#         print(f"Error summarizing logs: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
 
 # ================================================================
