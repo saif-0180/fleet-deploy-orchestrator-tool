@@ -609,6 +609,7 @@ def summarize_logs():
             
         logs = data.get('logs', [])
         deployment_id = data.get('deployment_id', '')
+        print("Received logs:", logs[:2])
         
         if not logs:
             return jsonify({'error': 'No logs provided'}), 400

@@ -43,6 +43,12 @@ const LogSummarizer: React.FC<LogSummarizerProps> = ({ logs, isOpen, onClose, de
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+    // ✅ Clear old summary when logs change
+  useEffect(() => {
+    setAnalysis(null);
+    setError(null);
+  }, [logs]);
+  
   // Real API call to backend
   const analyzeErrors = async () => {
     setLoading(true);
