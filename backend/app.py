@@ -570,7 +570,7 @@ class ComplexLogSummarizer:
 # Initialize summarizer
 log_summarizer = ComplexLogSummarizer()
 
-@app.route('/api/logs/summarize', methods=['POST'])
+@app.route('/api/logs/summarize', methods=['GET'])
 def summarize_logs():
     """Summarize deployment logs"""
     try:
