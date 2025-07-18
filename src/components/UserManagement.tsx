@@ -254,7 +254,7 @@ const UserManagement: React.FC = () => {
             {users.map((user) => (
               <div key={user.username} className="flex items-center justify-between p-4 bg-[#2A4759] rounded-md border border-[#2A4759]">
                 <div>
-                  <span className="font-medium text-[#2A4759]">{user.username}</span>
+                  <span className="font-medium text-[#EEEEEE]">{user.username}</span>
                   <span className="ml-2 px-2 py-1 bg-[#00a7e1] text-[#EEEEEE] text-xs rounded">
                     {user.role}
                   </span>

@@ -591,7 +591,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
               </Select>
             </div>
 
-            <div>
+            {/* <div>
               <Label className="text-[#EEEEEE]">Target Path</Label>
               <Select value={stepTargetPath} onValueChange={setStepTargetPath}>
                 <SelectTrigger className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30">
@@ -604,6 +604,17 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
                   <SelectItem value="/tmp">/tmp</SelectItem>
                 </SelectContent>
               </Select>
+            </div> */}
+
+            
+            <div>
+              <Label className="text-[#EEEEEE]">Target Path</Label>
+              <Input 
+                value={stepTargetPath} 
+                onChange={(e) => setStepTargetPath(e.target.value)}
+                placeholder="Enter or paste your target path (e.g., /opt/amdocs/your-path)"
+                className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30 placeholder:text-[#EEEEEE]/50"
+              />
             </div>
 
             <div>
@@ -937,7 +948,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
                 <Button
                   onClick={loadSavedTemplate}
                   disabled={!selectedSavedTemplate}
-                  className="w-full bg-[#2A4759] text-[#EEEEEE] hover:bg-[#2A4759]/80 border-[#EEEEEE]/30"
+                  className="w-full bg-[#00a7e1] text-[#EEEEEE] hover:bg-[#00a7e1]/80 border-[#EEEEEE]/30"
                 >
                   <Download size={16} className="mr-2" />
                   Load Template
