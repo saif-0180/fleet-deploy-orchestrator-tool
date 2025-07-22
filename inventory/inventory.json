@@ -7,8 +7,8 @@
   "systemd_services": ["docker.service", "postgresql-15.service", "zookeeper", "apache2.service", "nginx.service", "mysql.service"],
   "playbooks": [
     {
-      "name": "DBPopulate_Consul_Tokens.yml",
-      "path": "/home/users/infadm/rm-acd/playbooks/TC1/install_playbooks/DBPopulate_Consul_Tokens.yml",
+      "name": "tc1_tc_changeSet_install.yml",
+      "path": "/home/users/infadm/rm-acd/playbooks/TC1/install_playbooks/tc1_tc_changeSet_install.yml",
       "inventory": "/home/users/infadm/rm-acd/generated_inventory.ini",
       "forks": 10,
       "env_type": "K8S",
