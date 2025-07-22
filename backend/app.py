@@ -1365,18 +1365,7 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
         temp_playbook_file = f"/tmp/ansible_deploy_{deployment_id}.yml"
         inventory_file = f"/tmp/inventory_{deployment_id}"
         
-        # Read the original playbook content and create a wrapper
-        try:
-            with open(playbook_details['path'], 'r') as original_playbook:
-                original_content = original_playbook.read()
-        except Exception as e:
-            error_msg = f"Could not read original playbook {playbook_details['path']}: {str(e)}"
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return False, logs
-
-        # Create wrapper playbook that includes the original
+        # Create wrapper playbook that executes the original playbook on the target host
         with open(temp_playbook_file, 'w') as f:
             f.write(f"""---
 - name: Ansible playbook deployment from Template 
@@ -1388,13 +1377,32 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
     - name: Test connection
       ansible.builtin.ping:
 
-    - name: Include original playbook tasks
-      ansible.builtin.include: "{playbook_details['path']}"
-      vars:
+    - name: Check if original playbook exists on target
+      ansible.builtin.stat:
+        path: "{playbook_details['path']}"
+      register: playbook_exists
+
+    - name: Fail if playbook doesn't exist on target
+      ansible.builtin.fail:
+        msg: "Playbook {playbook_details['path']} not found on target host"
+      when: not playbook_exists.stat.exists
+
+    - name: Execute original playbook on target host
+      ansible.builtin.shell: |
+        cd $(dirname "{playbook_details['path']}")
+        ansible-playbook "{playbook_details['path']}" -i localhost, -c local{" --vault-password-file " + playbook_details['vault_password_file'] if playbook_details.get('vault_password_file') else ""}{" -f " + str(playbook_details.get('forks', 10)) if playbook_details.get('forks') else ""}
+      register: playbook_result
+      failed_when: playbook_result.rc != 0
+
+    - name: Display playbook execution output
+      ansible.builtin.debug:
+        msg: "{{{{ playbook_result.stdout_lines }}}}"
+
+    - name: Display playbook execution errors (if any)
+      ansible.builtin.debug:
+        msg: "{{{{ playbook_result.stderr_lines }}}}"
+      when: playbook_result.stderr_lines is defined and playbook_result.stderr_lines | length > 0
 """)
-            # Add extra vars from playbook details
-            for extra_var_file in playbook_details.get('extra_vars', []):
-                f.write(f"        - include_vars: {extra_var_file}\n")
 
         logger.debug(f"Created Ansible playbook wrapper: {temp_playbook_file}")
 
