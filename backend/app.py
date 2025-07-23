@@ -1977,7 +1977,7 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
     - name: Run Helm upgrade
       ansible.builtin.shell: {helm_command}
       args:
-        chdir: "~"
+        chdir: "/opt/amdocs/abp/core/k8s/scripts/"
       register: helm_result
       failed_when: helm_result.rc != 0
 
