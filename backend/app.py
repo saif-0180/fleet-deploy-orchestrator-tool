@@ -1328,169 +1328,169 @@ def execute_service_restart_step(step, inventory, deployment_id):
     
 #     return success, logs
 
-def execute_ansible_playbook_step(step, inventory, deployment_id):
-    deployment = deployments[deployment_id]
-    logs = []
-    success = True
+# def execute_ansible_playbook_step(step, inventory, deployment_id):
+#     deployment = deployments[deployment_id]
+#     logs = []
+#     success = True
 
-    try:
-        logs.append(f"=== Executing Ansible Playbook Step {step['order']} ===")
-        logs.append(f"Description: {step['description']}")
+#     try:
+#         logs.append(f"=== Executing Ansible Playbook Step {step['order']} ===")
+#         logs.append(f"Description: {step['description']}")
 
-        vms = ["batch1"]
-        playbook_name = step.get('playbook')
-        playbook_details = get_playbook_details(playbook_name, inventory)
+#         vms = ["batch1"]
+#         playbook_name = step.get('playbook')
+#         playbook_details = get_playbook_details(playbook_name, inventory)
 
-        if not playbook_details:
-            error_msg = f"Playbook {playbook_name} not found in inventory"
-            logs.append(f"Error: {error_msg}")
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return False, logs
+#         if not playbook_details:
+#             error_msg = f"Playbook {playbook_name} not found in inventory"
+#             logs.append(f"Error: {error_msg}")
+#             log_message(deployment_id, f"ERROR: {error_msg}")
+#             deployments[deployment_id]["status"] = "failed"
+#             save_deployment_history()
+#             return False, logs
 
-        logs.append(f"Playbook: {playbook_details['name']}")
-        logs.append(f"Path: {playbook_details['path']}")
+#         logs.append(f"Playbook: {playbook_details['name']}")
+#         logs.append(f"Path: {playbook_details['path']}")
 
-        ssh_user = "infadm"
-        batch1_ip = next((vm["ip"] for vm in inventory["vms"] if vm["name"] == "batch1"), None)
-        if not batch1_ip:
-            error_msg = "Could not find IP for batch1 in inventory"
-            log_message(deployment_id, f"ERROR: {error_msg}")
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return False, logs
+#         ssh_user = "infadm"
+#         batch1_ip = next((vm["ip"] for vm in inventory["vms"] if vm["name"] == "batch1"), None)
+#         if not batch1_ip:
+#             error_msg = "Could not find IP for batch1 in inventory"
+#             log_message(deployment_id, f"ERROR: {error_msg}")
+#             deployments[deployment_id]["status"] = "failed"
+#             save_deployment_history()
+#             return False, logs
 
-        temp_playbook_file = f"/tmp/ansible_deploy_{deployment_id}.yml"
-        inventory_file = f"/tmp/inventory_{deployment_id}"
+#         temp_playbook_file = f"/tmp/ansible_deploy_{deployment_id}.yml"
+#         inventory_file = f"/tmp/inventory_{deployment_id}"
 
-        with open(temp_playbook_file, 'w') as f:
-            f.write(f"""---
-- name: Wrapper to run playbook on localhost
-  hosts: deployment_targets
-  gather_facts: false
-  become: true
-  become_user: infadm
-  tasks:
-    - name: Execute original playbook on localhost
-      ansible.builtin.shell: |
-        cd $(dirname "{playbook_details['path']}")
-        ansible-playbook "{playbook_details['path']}" {"-i " + str(playbook_details.get('inventory')) if playbook_details.get('inventory') else ""} \
-        {"-f " + str(playbook_details.get('forks', 10)) if playbook_details.get('forks') else ""} \
-        {"--vault-password-file " + playbook_details['vault_password_file'] if playbook_details.get('vault_password_file') else ""} \
-        {"-e env_type=" + playbook_details['env_type'] if playbook_details.get('env_type') else ""} \
-        {" ".join(["-e@" + var for var in playbook_details.get('extra_vars', [])])}
-      register: playbook_result
-      failed_when: playbook_result.rc != 0
+#         with open(temp_playbook_file, 'w') as f:
+#             f.write(f"""---
+# - name: Wrapper to run playbook on localhost
+#   hosts: deployment_targets
+#   gather_facts: false
+#   become: true
+#   become_user: infadm
+#   tasks:
+#     - name: Execute original playbook on localhost
+#       ansible.builtin.shell: |
+#         cd $(dirname "{playbook_details['path']}")
+#         ansible-playbook "{playbook_details['path']}" {"-i " + str(playbook_details.get('inventory')) if playbook_details.get('inventory') else ""} \
+#         {"-f " + str(playbook_details.get('forks', 10)) if playbook_details.get('forks') else ""} \
+#         {"--vault-password-file " + playbook_details['vault_password_file'] if playbook_details.get('vault_password_file') else ""} \
+#         {"-e env_type=" + playbook_details['env_type'] if playbook_details.get('env_type') else ""} \
+#         {" ".join(["-e@" + var for var in playbook_details.get('extra_vars', [])])}
+#       register: playbook_result
+#       failed_when: playbook_result.rc != 0
 
-    - name: Show playbook output
-      ansible.builtin.debug:
-        var: playbook_result.stdout_lines
+#     - name: Show playbook output
+#       ansible.builtin.debug:
+#         var: playbook_result.stdout_lines
 
-    - name: Show stderr if any
-      ansible.builtin.debug:
-        var: playbook_result.stderr_lines
-      when: playbook_result.stderr_lines is defined and playbook_result.stderr_lines | length > 0
-""")
+#     - name: Show stderr if any
+#       ansible.builtin.debug:
+#         var: playbook_result.stderr_lines
+#       when: playbook_result.stderr_lines is defined and playbook_result.stderr_lines | length > 0
+# """)
 
-        with open(inventory_file, 'w') as f:
-            f.write("[deployment_targets]\n")
-            for vm in vms:
-                f.write(f"{vm} ansible_host={batch1_ip} ansible_user={ssh_user} "
-                        f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
-                        f"ansible_ssh_common_args='-o StrictHostKeyChecking=no "
-                        f"-o UserKnownHostsFile=/dev/null "
-                        f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r "
-                        f"-o ControlPersist=60s'\n")
+#         with open(inventory_file, 'w') as f:
+#             f.write("[deployment_targets]\n")
+#             for vm in vms:
+#                 f.write(f"{vm} ansible_host={batch1_ip} ansible_user={ssh_user} "
+#                         f"ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa "
+#                         f"ansible_ssh_common_args='-o StrictHostKeyChecking=no "
+#                         f"-o UserKnownHostsFile=/dev/null "
+#                         f"-o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r "
+#                         f"-o ControlPersist=60s'\n")
 
-        os.makedirs("/tmp/ansible-ssh", exist_ok=True)
-        try:
-            os.chmod("/tmp/ansible-ssh", 0o777)
-        except PermissionError:
-            logger.warning("Permission denied setting mode on /tmp/ansible-ssh")
+#         os.makedirs("/tmp/ansible-ssh", exist_ok=True)
+#         try:
+#             os.chmod("/tmp/ansible-ssh", 0o777)
+#         except PermissionError:
+#             logger.warning("Permission denied setting mode on /tmp/ansible-ssh")
 
-        env_vars = os.environ.copy()
-        env_vars.update({
-            "ANSIBLE_CONFIG": "/etc/ansible/ansible.cfg",
-            "ANSIBLE_HOST_KEY_CHECKING": "False",
-            "ANSIBLE_SSH_CONTROL_PATH": "/tmp/ansible-ssh/%h-%p-%r",
-            "ANSIBLE_SSH_CONTROL_PATH_DIR": "/tmp/ansible-ssh",
-            "ANSIBLE_SSH_PIPELINING": "True",
-            "ANSIBLE_PERSISTENT_CONNECT_TIMEOUT": "60",
-            "ANSIBLE_COMMAND_TIMEOUT": "300",
-            "ANSIBLE_GATHERING": "smart",
-            "ANSIBLE_FACT_CACHING": "memory"
-        })
+#         env_vars = os.environ.copy()
+#         env_vars.update({
+#             "ANSIBLE_CONFIG": "/etc/ansible/ansible.cfg",
+#             "ANSIBLE_HOST_KEY_CHECKING": "False",
+#             "ANSIBLE_SSH_CONTROL_PATH": "/tmp/ansible-ssh/%h-%p-%r",
+#             "ANSIBLE_SSH_CONTROL_PATH_DIR": "/tmp/ansible-ssh",
+#             "ANSIBLE_SSH_PIPELINING": "True",
+#             "ANSIBLE_PERSISTENT_CONNECT_TIMEOUT": "60",
+#             "ANSIBLE_COMMAND_TIMEOUT": "300",
+#             "ANSIBLE_GATHERING": "smart",
+#             "ANSIBLE_FACT_CACHING": "memory"
+#         })
 
-        cmd = ["ansible-playbook", "-i", inventory_file, temp_playbook_file]
-        cmd.extend(["-f", str(min(playbook_details.get('forks', 10), 5))])
-        cmd.append("-v")  # if verbosity is desired
+#         cmd = ["ansible-playbook", "-i", inventory_file, temp_playbook_file]
+#         cmd.extend(["-f", str(min(playbook_details.get('forks', 10), 5))])
+#         cmd.append("-v")  # if verbosity is desired
 
 
-        log_message(deployment_id, f"Executing: {' '.join(cmd)}")
-        logs.append(f"Executing playbook command: {' '.join(cmd)}")
+#         log_message(deployment_id, f"Executing: {' '.join(cmd)}")
+#         logs.append(f"Executing playbook command: {' '.join(cmd)}")
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   text=True, env=env_vars, bufsize=1, universal_newlines=True)
+#         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+#                                    text=True, env=env_vars, bufsize=1, universal_newlines=True)
 
-        deployments[deployment_id]["status"] = "running"
-        save_deployment_history()
-        log_message(deployment_id, "Ansible playbook execution started...")
+#         deployments[deployment_id]["status"] = "running"
+#         save_deployment_history()
+#         log_message(deployment_id, "Ansible playbook execution started...")
 
-        last_heartbeat = time.time()
-        heartbeat_interval = 300
+#         last_heartbeat = time.time()
+#         heartbeat_interval = 300
 
-        try:
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    line_stripped = output.strip()
-                    log_message(deployment_id, line_stripped)
-                    logger.debug(f"[{deployment_id}] {line_stripped}")
-                    last_heartbeat = time.time()
-                elif time.time() - last_heartbeat > heartbeat_interval:
-                    log_message(deployment_id, "Playbook still running... (heartbeat)")
-                    last_heartbeat = time.time()
-                time.sleep(1)
+#         try:
+#             while True:
+#                 output = process.stdout.readline()
+#                 if output == '' and process.poll() is not None:
+#                     break
+#                 if output:
+#                     line_stripped = output.strip()
+#                     log_message(deployment_id, line_stripped)
+#                     logger.debug(f"[{deployment_id}] {line_stripped}")
+#                     last_heartbeat = time.time()
+#                 elif time.time() - last_heartbeat > heartbeat_interval:
+#                     log_message(deployment_id, "Playbook still running... (heartbeat)")
+#                     last_heartbeat = time.time()
+#                 time.sleep(1)
 
-        except KeyboardInterrupt:
-            process.terminate()
-            log_message(deployment_id, "Playbook execution interrupted")
-            deployments[deployment_id]["status"] = "failed"
-            save_deployment_history()
-            return False, logs
+#         except KeyboardInterrupt:
+#             process.terminate()
+#             log_message(deployment_id, "Playbook execution interrupted")
+#             deployments[deployment_id]["status"] = "failed"
+#             save_deployment_history()
+#             return False, logs
 
-        process.wait()
+#         process.wait()
 
-        if process.returncode == 0:
-            log_message(deployment_id, "SUCCESS: Playbook completed")
-            deployments[deployment_id]["status"] = "success"
-            success = True
-        else:
-            log_message(deployment_id, "ERROR: Playbook failed")
-            deployments[deployment_id]["status"] = "failed"
-            success = False
+#         if process.returncode == 0:
+#             log_message(deployment_id, "SUCCESS: Playbook completed")
+#             deployments[deployment_id]["status"] = "success"
+#             success = True
+#         else:
+#             log_message(deployment_id, "ERROR: Playbook failed")
+#             deployments[deployment_id]["status"] = "failed"
+#             success = False
 
-        try:
-            os.remove(temp_playbook_file)
-            os.remove(inventory_file)
-        except Exception as e:
-            logger.warning(f"Cleanup failed: {e}")
+#         try:
+#             os.remove(temp_playbook_file)
+#             os.remove(inventory_file)
+#         except Exception as e:
+#             logger.warning(f"Cleanup failed: {e}")
 
-        save_deployment_history()
-        logs.append(f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ===")
+#         save_deployment_history()
+#         logs.append(f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ===")
 
-    except Exception as e:
-        log_message(deployment_id, f"Exception: {str(e)}")
-        deployments[deployment_id]["status"] = "failed"
-        logger.exception(f"Exception in deployment {deployment_id}: {str(e)}")
-        logs.append(f"Error: {str(e)}")
-        save_deployment_history()
-        success = False
+#     except Exception as e:
+#         log_message(deployment_id, f"Exception: {str(e)}")
+#         deployments[deployment_id]["status"] = "failed"
+#         logger.exception(f"Exception in deployment {deployment_id}: {str(e)}")
+#         logs.append(f"Error: {str(e)}")
+#         save_deployment_history()
+#         success = False
 
-    return success, logs
+#     return success, logs
 
 # def execute_ansible_playbook_step(step, inventory, deployment_id):
 #     deployment = deployments[deployment_id]
@@ -1620,7 +1620,115 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
 
 #     return success, logs
 
+def execute_ansible_playbook_step(step, inventory, deployment_id):
+    deployment = deployments[deployment_id]
+    logs = []
+    success = True
 
+    try:
+        logs.append(f"=== Executing Ansible Playbook Step {step['order']} ===")
+        logs.append(f"Description: {step['description']}")
+
+        playbook_name = step.get('playbook')
+        playbook_details = get_playbook_details(playbook_name, inventory)
+
+        if not playbook_details:
+            error_msg = f"Playbook {playbook_name} not found in inventory"
+            logs.append(f"Error: {error_msg}")
+            log_message(deployment_id, f"ERROR: {error_msg}")
+            deployments[deployment_id]["status"] = "failed"
+            save_deployment_history()
+            return False, logs
+
+        logs.append(f"Playbook: {playbook_details['name']}")
+        logs.append(f"Path: {playbook_details['path']}")
+
+        ssh_user = "infadm"
+        ssh_key_path = "/home/users/infadm/.ssh/id_rsa"
+
+        batch1_ip = next((vm["ip"] for vm in inventory["vms"] if vm["name"] == "batch1"), None)
+        if not batch1_ip:
+            error_msg = "Could not find IP for batch1 in inventory"
+            log_message(deployment_id, f"ERROR: {error_msg}")
+            deployments[deployment_id]["status"] = "failed"
+            save_deployment_history()
+            return False, logs
+
+        run_path = playbook_details.get("run_path", "/home/users/infadm/rm-acd")  # Default just in case
+
+        # Construct the remote ansible-playbook command
+        remote_ansible_cmd = f"cd '{run_path}' && ansible-playbook '{playbook_details['path']}'"
+
+        if playbook_details.get('inventory'):
+            remote_ansible_cmd += f" -i '{playbook_details['inventory']}'"
+        if playbook_details.get('forks'):
+            remote_ansible_cmd += f" -f {playbook_details['forks']}"
+        if playbook_details.get('vault_password_file'):
+            remote_ansible_cmd += f" --vault-password-file '{playbook_details['vault_password_file']}'"
+        if playbook_details.get('env_type'):
+            remote_ansible_cmd += f" -e env_type={playbook_details['env_type']}"
+        if playbook_details.get('extra_vars'):
+            extra_vars_str = " ".join([f"-e@'{var}'" for var in playbook_details['extra_vars']])
+            remote_ansible_cmd += f" {extra_vars_str}"
+
+        # Full SSH command
+        ssh_cmd = [
+            "ssh", "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-i", ssh_key_path,
+            f"{ssh_user}@{batch1_ip}",
+            remote_ansible_cmd
+        ]
+
+        deployments[deployment_id]["status"] = "running"
+        save_deployment_history()
+
+        log_message(deployment_id, f"Executing remotely on batch1: {remote_ansible_cmd}")
+        logs.append(f"Executing via SSH: {' '.join(ssh_cmd)}")
+
+        process = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, bufsize=1, universal_newlines=True)
+
+        last_heartbeat = time.time()
+        heartbeat_interval = 300
+
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                line_stripped = output.strip()
+                log_message(deployment_id, line_stripped)
+                logger.debug(f"[{deployment_id}] {line_stripped}")
+                last_heartbeat = time.time()
+            elif time.time() - last_heartbeat > heartbeat_interval:
+                log_message(deployment_id, "Playbook still running... (heartbeat)")
+                last_heartbeat = time.time()
+            time.sleep(1)
+
+        process.wait()
+
+        if process.returncode == 0:
+            log_message(deployment_id, "SUCCESS: Playbook completed")
+            deployments[deployment_id]["status"] = "success"
+            success = True
+        else:
+            log_message(deployment_id, "ERROR: Playbook failed")
+            deployments[deployment_id]["status"] = "failed"
+            success = False
+
+        logs.append(f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ===")
+        save_deployment_history()
+
+    except Exception as e:
+        log_message(deployment_id, f"Exception: {str(e)}")
+        deployments[deployment_id]["status"] = "failed"
+        logger.exception(f"Exception in deployment {deployment_id}: {str(e)}")
+        logs.append(f"Error: {str(e)}")
+        save_deployment_history()
+        success = False
+
+    return success, logs
 
 def execute_helm_upgrade_step(step, inventory, deployment_id):
     deployment = deployments[deployment_id]
