@@ -1,0 +1,11 @@
+#d4c2a4      heading color
+#F79B72      original orange
+#2A4759      teal blue
+#EEEEEE      white beige
+#00171f
+#1a2b42
+#003459
+#070808
+#00171f
+#1a2b42
+#00a7e1

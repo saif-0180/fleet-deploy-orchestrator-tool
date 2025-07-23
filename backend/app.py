@@ -1620,6 +1620,116 @@ def execute_service_restart_step(step, inventory, deployment_id):
 
 #     return success, logs
 
+# def execute_ansible_playbook_step(step, inventory, deployment_id):
+#     deployment = deployments[deployment_id]
+#     logs = []
+#     success = True
+
+#     try:
+#         logs.append(f"=== Executing Ansible Playbook Step {step['order']} ===")
+#         logs.append(f"Description: {step['description']}")
+
+#         playbook_name = step.get('playbook')
+#         playbook_details = get_playbook_details(playbook_name, inventory)
+
+#         if not playbook_details:
+#             error_msg = f"Playbook {playbook_name} not found in inventory"
+#             logs.append(f"Error: {error_msg}")
+#             log_message(deployment_id, f"ERROR: {error_msg}")
+#             deployments[deployment_id]["status"] = "failed"
+#             save_deployment_history()
+#             return False, logs
+
+#         logs.append(f"Playbook: {playbook_details['name']}")
+#         logs.append(f"Path: {playbook_details['path']}")
+
+#         ssh_user = "infadm"
+#         ssh_key_path = "/home/users/infadm/.ssh/id_rsa"
+
+#         batch1_ip = next((vm["ip"] for vm in inventory["vms"] if vm["name"] == "batch1"), None)
+#         if not batch1_ip:
+#             error_msg = "Could not find IP for batch1 in inventory"
+#             log_message(deployment_id, f"ERROR: {error_msg}")
+#             deployments[deployment_id]["status"] = "failed"
+#             save_deployment_history()
+#             return False, logs
+
+#         run_path = playbook_details.get("run_path", "/home/users/infadm/rm-acd")  # Default just in case
+
+#         # Construct the remote ansible-playbook command
+#         remote_ansible_cmd = f"cd '{run_path}' && ansible-playbook '{playbook_details['path']}'"
+
+#         if playbook_details.get('inventory'):
+#             remote_ansible_cmd += f" -i '{playbook_details['inventory']}'"
+#         if playbook_details.get('forks'):
+#             remote_ansible_cmd += f" -f {playbook_details['forks']}"
+#         if playbook_details.get('vault_password_file'):
+#             remote_ansible_cmd += f" --vault-password-file '{playbook_details['vault_password_file']}'"
+#         if playbook_details.get('env_type'):
+#             remote_ansible_cmd += f" -e env_type={playbook_details['env_type']}"
+#         if playbook_details.get('extra_vars'):
+#             extra_vars_str = " ".join([f"-e@'{var}'" for var in playbook_details['extra_vars']])
+#             remote_ansible_cmd += f" {extra_vars_str}"
+
+#         # Full SSH command
+#         ssh_cmd = [
+#             "ssh", "-o", "StrictHostKeyChecking=no",
+#             "-o", "UserKnownHostsFile=/dev/null",
+#             "-i", ssh_key_path,
+#             f"{ssh_user}@{batch1_ip}",
+#             remote_ansible_cmd
+#         ]
+
+#         deployments[deployment_id]["status"] = "running"
+#         save_deployment_history()
+
+#         log_message(deployment_id, f"Executing remotely on batch1: {remote_ansible_cmd}")
+#         logs.append(f"Executing via SSH: {' '.join(ssh_cmd)}")
+
+#         process = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+#                                    text=True, bufsize=1, universal_newlines=True)
+
+#         last_heartbeat = time.time()
+#         heartbeat_interval = 300
+
+#         while True:
+#             output = process.stdout.readline()
+#             if output == '' and process.poll() is not None:
+#                 break
+#             if output:
+#                 line_stripped = output.strip()
+#                 log_message(deployment_id, line_stripped)
+#                 logger.debug(f"[{deployment_id}] {line_stripped}")
+#                 last_heartbeat = time.time()
+#             elif time.time() - last_heartbeat > heartbeat_interval:
+#                 log_message(deployment_id, "Playbook still running... (heartbeat)")
+#                 last_heartbeat = time.time()
+#             time.sleep(1)
+
+#         process.wait()
+
+#         if process.returncode == 0:
+#             log_message(deployment_id, "SUCCESS: Playbook completed")
+#             deployments[deployment_id]["status"] = "success"
+#             success = True
+#         else:
+#             log_message(deployment_id, "ERROR: Playbook failed")
+#             deployments[deployment_id]["status"] = "failed"
+#             success = False
+
+#         logs.append(f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ===")
+#         save_deployment_history()
+
+#     except Exception as e:
+#         log_message(deployment_id, f"Exception: {str(e)}")
+#         deployments[deployment_id]["status"] = "failed"
+#         logger.exception(f"Exception in deployment {deployment_id}: {str(e)}")
+#         logs.append(f"Error: {str(e)}")
+#         save_deployment_history()
+#         success = False
+
+#     return success, logs
+
 def execute_ansible_playbook_step(step, inventory, deployment_id):
     deployment = deployments[deployment_id]
     logs = []
@@ -1654,7 +1764,7 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
             save_deployment_history()
             return False, logs
 
-        run_path = playbook_details.get("run_path", "/home/users/infadm/rm-acd")  # Default just in case
+        run_path = playbook_details.get("run_path", "/home/users/infadm/rm-acd")
 
         # Construct the remote ansible-playbook command
         remote_ansible_cmd = f"cd '{run_path}' && ansible-playbook '{playbook_details['path']}'"
@@ -1671,10 +1781,17 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
             extra_vars_str = " ".join([f"-e@'{var}'" for var in playbook_details['extra_vars']])
             remote_ansible_cmd += f" {extra_vars_str}"
 
-        # Full SSH command
+        # Add verbose output and timeout handling to ansible command
+        remote_ansible_cmd += " -v"  # Add verbose output for better monitoring
+
+        # Full SSH command with connection timeout and keep-alive
         ssh_cmd = [
-            "ssh", "-o", "StrictHostKeyChecking=no",
+            "ssh", 
+            "-o", "StrictHostKeyChecking=no",
             "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ServerAliveInterval=60",  # Send keep-alive every 60 seconds
+            "-o", "ServerAliveCountMax=10",  # Allow 10 failed keep-alives before disconnect
+            "-o", "ConnectTimeout=30",       # Connection timeout
             "-i", ssh_key_path,
             f"{ssh_user}@{batch1_ip}",
             remote_ansible_cmd
@@ -1686,42 +1803,123 @@ def execute_ansible_playbook_step(step, inventory, deployment_id):
         log_message(deployment_id, f"Executing remotely on batch1: {remote_ansible_cmd}")
         logs.append(f"Executing via SSH: {' '.join(ssh_cmd)}")
 
-        process = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   text=True, bufsize=1, universal_newlines=True)
+        # Enhanced process execution with better error handling
+        process = subprocess.Popen(
+            ssh_cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,
+            text=True, 
+            bufsize=1, 
+            universal_newlines=True,
+            preexec_fn=None  # Ensure proper signal handling
+        )
 
+        # Enhanced monitoring with shorter heartbeat and better timeout handling
         last_heartbeat = time.time()
-        heartbeat_interval = 300
+        last_output_time = time.time()
+        heartbeat_interval = 60  # Reduced from 300 to 60 seconds
+        max_silence_duration = 1800  # 30 minutes max without any output
+        output_buffer = []
+        
+        log_message(deployment_id, "Starting playbook execution monitoring...")
 
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                line_stripped = output.strip()
-                log_message(deployment_id, line_stripped)
-                logger.debug(f"[{deployment_id}] {line_stripped}")
-                last_heartbeat = time.time()
-            elif time.time() - last_heartbeat > heartbeat_interval:
-                log_message(deployment_id, "Playbook still running... (heartbeat)")
-                last_heartbeat = time.time()
-            time.sleep(1)
+        try:
+            while True:
+                # Use select for non-blocking read (Unix/Linux only)
+                # For Windows compatibility, you might need to use threading
+                ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                
+                if ready:
+                    output = process.stdout.readline()
+                    if output:
+                        line_stripped = output.strip()
+                        if line_stripped:  # Only log non-empty lines
+                            log_message(deployment_id, line_stripped)
+                            logger.debug(f"[{deployment_id}] {line_stripped}")
+                            output_buffer.append(line_stripped)
+                            last_output_time = time.time()
+                            last_heartbeat = time.time()
+                            
+                            # Keep only last 100 lines in buffer to prevent memory issues
+                            if len(output_buffer) > 100:
+                                output_buffer = output_buffer[-100:]
+                
+                # Check if process is still running
+                if process.poll() is not None:
+                    # Process has finished, read any remaining output
+                    remaining_output = process.stdout.read()
+                    if remaining_output:
+                        for line in remaining_output.strip().split('\n'):
+                            if line.strip():
+                                log_message(deployment_id, line.strip())
+                                logger.debug(f"[{deployment_id}] {line.strip()}")
+                    break
+                
+                current_time = time.time()
+                
+                # Send heartbeat message
+                if current_time - last_heartbeat > heartbeat_interval:
+                    heartbeat_msg = f"Playbook still running... (heartbeat) - Last output: {int(current_time - last_output_time)}s ago"
+                    log_message(deployment_id, heartbeat_msg)
+                    logger.info(f"[{deployment_id}] {heartbeat_msg}")
+                    last_heartbeat = current_time
+                
+                # Check for excessive silence (possible hang)
+                if current_time - last_output_time > max_silence_duration:
+                    warning_msg = f"WARNING: No output received for {max_silence_duration} seconds. Playbook may be hanging."
+                    log_message(deployment_id, warning_msg)
+                    logger.warning(f"[{deployment_id}] {warning_msg}")
+                    
+                    # Optionally terminate the process if it's been silent too long
+                    # Uncomment the following lines if you want to auto-terminate hanging processes
+                    # log_message(deployment_id, "Terminating potentially hanging process...")
+                    # process.terminate()
+                    # time.sleep(10)
+                    # if process.poll() is None:
+                    #     process.kill()
+                    # break
+                
+                # Small sleep to prevent excessive CPU usage
+                time.sleep(0.1)
 
-        process.wait()
+        except Exception as monitoring_error:
+            logger.error(f"Error during process monitoring: {str(monitoring_error)}")
+            log_message(deployment_id, f"Monitoring error: {str(monitoring_error)}")
 
-        if process.returncode == 0:
-            log_message(deployment_id, "SUCCESS: Playbook completed")
+        # Wait for process completion with timeout
+        try:
+            process.wait(timeout=30)  # Wait up to 30 seconds for clean shutdown
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Process didn't terminate cleanly, killing it")
+            process.kill()
+            process.wait()
+
+        # Enhanced result handling
+        return_code = process.returncode
+        
+        if return_code == 0:
+            success_msg = "SUCCESS: Playbook completed successfully"
+            log_message(deployment_id, success_msg)
+            logger.info(f"[{deployment_id}] {success_msg}")
             deployments[deployment_id]["status"] = "success"
             success = True
         else:
-            log_message(deployment_id, "ERROR: Playbook failed")
+            error_msg = f"ERROR: Playbook failed with return code {return_code}"
+            log_message(deployment_id, error_msg)
+            logger.error(f"[{deployment_id}] {error_msg}")
             deployments[deployment_id]["status"] = "failed"
             success = False
 
-        logs.append(f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ===")
+        # Log final summary
+        final_msg = f"=== Step {step['order']} {'Succeeded' if success else 'Failed'} ==="
+        logs.append(final_msg)
+        log_message(deployment_id, final_msg)
+        
         save_deployment_history()
 
     except Exception as e:
-        log_message(deployment_id, f"Exception: {str(e)}")
+        error_msg = f"Exception during playbook execution: {str(e)}"
+        log_message(deployment_id, error_msg)
         deployments[deployment_id]["status"] = "failed"
         logger.exception(f"Exception in deployment {deployment_id}: {str(e)}")
         logs.append(f"Error: {str(e)}")
