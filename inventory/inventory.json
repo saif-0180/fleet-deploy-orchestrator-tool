@@ -9,6 +9,7 @@
     {
       "name": "tc1_tc_changeSet_install.yml",
       "path": "/home/users/infadm/rm-acd/playbooks/TC1/install_playbooks/tc1_tc_changeSet_install.yml",
+      "run_path": "/home/users/infadm/rm-acd/",
       "inventory": "/home/users/infadm/rm-acd/generated_inventory.ini",
       "forks": 10,
       "env_type": "K8S",
@@ -44,15 +45,15 @@
   "helm_upgrades": [
     {
       "pod_name": "avm1",
-      "command": "helmFU.Sh -f avm1 -t upgrade"
+      "command": "/opt/amdocs/abp/core/k8s/scripts/helmFU.Sh -f avm1 -t upgrade"
     },
     {
       "pod_name": "avm2",
-      "command": "helmFU.Sh -f avm2 -t upgrade"
+      "command": "/opt/amdocs/abp/core/k8s/scripts/helmFU.Sh -f avm2 -t upgrade"
     },
     {
       "pod_name": "cr1",
-      "command": "helmFU.Sh -f cr -t upgrade -c 1"
+      "command": "/opt/amdocs/abp/core/k8s/scripts/helmFU.Sh -f cr -t upgrade -c 1"
     }
   ]
 }
