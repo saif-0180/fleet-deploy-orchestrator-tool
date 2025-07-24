@@ -8,25 +8,7 @@ import { RefreshCw, Play, Loader2 } from 'lucide-react';
 import LogDisplay from '@/components/LogDisplay';
 import TemplateFlowchart from '@/components/TemplateFlowchart';
 
-// interface DeploymentTemplate {
-//   metadata: {
-//     ft_number: string;
-//     generated_at: string;
-//     description: string;
-//     total_steps?: number;
-//   };
-//   steps: Array<{
-//     type: string;
-//     description: string;
-//     order: number;
-//     [key: string]: any;
-//   }>;
-//   dependencies: Array<{
-//     step: number;
-//     depends_on: number[];
-//     parallel: boolean;
-//   }>;
-// }
+
 
 interface DeploymentTemplate {
   metadata: {
@@ -70,6 +52,23 @@ const DeployTemplate: React.FC = () => {
   const [currentDeploymentId, setCurrentDeploymentId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
+
+  useEffect(() => {
+  if (!deploymentId || !loadedTemplate) return;
+
+  const totalSteps = loadedTemplate.metadata.total_steps || 0;
+
+  const cleanup = pollLogs(
+    deploymentId,
+    setDeploymentLogs,
+    setDeploymentStatus,
+    totalSteps
+  );
+
+  return () => {
+    if (cleanup) cleanup();
+  };
+}, [deploymentId, loadedTemplate]);
 
   const {
     data: templates = [],
@@ -130,7 +129,7 @@ const DeployTemplate: React.FC = () => {
         title: "Deployment Started",
         description: `Template deployment started with ID: ${data.deployment_id}`,
       });
-      startLogPolling(data.deployment_id);
+      pollLogs(data.deployment_id);
     },
     onError: (error) => {
       toast({
@@ -141,55 +140,135 @@ const DeployTemplate: React.FC = () => {
     },
   });
 
-  const startLogPolling = (id: string) => {
-    setIsPolling(true);
-    let polling = true;
+  const pollLogs = (
+  id: string,
+  logSetter: React.Dispatch<React.SetStateAction<string[]>>,
+  statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
+  totalSteps: number
+) => {
+  if (!id || !totalSteps) return;
 
-    const poll = async () => {
-      try {
-        const response = await fetch(`/api/deploy/${id}/logs?ts=${Date.now()}`);
-        if (response.ok) {
-          const data = await response.json();
+  logSetter([]);
+  statusSetter("running");
 
-          if (data.logs) {
-            setDeploymentLogs((prev) => {
-              const newLogs = data.logs.filter((log: string) => !prev.includes(log));
-              const combined = [...prev, ...newLogs];
+  setIsPolling(true);
+  let pollCount = 0;
+  let lastLogLength = 0;
 
-              if (loadedTemplate?.metadata.total_steps) {
-                const totalSteps = loadedTemplate.metadata.total_steps;
-                const completedSteps = combined.filter((line) =>
-                  /step\s+\d+.*(completed|done|finished)/i.test(line)
-                ).length;
-                const percent = Math.min(Math.round((completedSteps / totalSteps) * 100), 100);
-                setProgress(percent);
-              }
+  const pollInterval = setInterval(async () => {
+    try {
+      const response = await fetch(`/api/deploy/${id}/logs`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch logs");
+      }
 
-              return combined;
-            });
+      const data = await response.json();
+      const logs: string[] = data.logs || [];
+
+      logSetter(logs);
+
+      const failedLog = logs.find((line) => /failed/i.test(line));
+      if (failedLog) {
+        statusSetter("failed");
+        clearInterval(pollInterval);
+        return;
+      }
+
+      const completedSteps = logs.filter((line) =>
+        /step\s+\d+\/\d+\s+completed/i.test(line)
+      ).length;
+
+      if (completedSteps >= totalSteps) {
+        statusSetter("success");
+        clearInterval(pollInterval);
+        return;
+      }
+
+      if (logs.length === lastLogLength) {
+        pollCount++;
+        if (pollCount >= 5) {
+          console.log("Logs unchanged — assuming success if steps match total.");
+          if (completedSteps >= totalSteps) {
+            statusSetter("success");
+          } else {
+            statusSetter("failed");
           }
-
-          if (data.status) {
-            setLogStatus(data.status);
-            if (['success', 'failed'].includes(data.status)) {
-              polling = true;
-              setIsPolling(true);
-              queryClient.invalidateQueries({ queryKey: ['deployment-history'] });
-              return;
-            }
-          }
+          clearInterval(pollInterval);
+          return;
         }
-      } catch (err) {
-        console.error("Polling error:", err);
+      } else {
+        pollCount = 0;
+        lastLogLength = logs.length;
       }
 
-      if (polling) {
-        setTimeout(poll, 2000);
+      if (pollCount > 120) {
+        console.log("Operation timed out after 2 minutes.");
+        statusSetter(completedSteps >= totalSteps ? "success" : "failed");
+        clearInterval(pollInterval);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      pollCount += 5;
+      if (pollCount > 20) {
+        statusSetter("failed");
+        clearInterval(pollInterval);
+      }
+    }
+  }, 1000);
 
-    poll();
-  };
+  return () => clearInterval(pollInterval);
+};
+
+
+  // const startLogPolling = (id: string) => {
+  //   setIsPolling(true);
+  //   let polling = true;
+
+  //   const poll = async () => {
+  //     try {
+  //       const response = await fetch(`/api/deploy/${id}/logs?ts=${Date.now()}`);
+  //       if (response.ok) {
+  //         const data = await response.json();
+
+  //         if (data.logs) {
+  //           setDeploymentLogs((prev) => {
+  //             const newLogs = data.logs.filter((log: string) => !prev.includes(log));
+  //             const combined = [...prev, ...newLogs];
+
+  //             if (loadedTemplate?.metadata.total_steps) {
+  //               const totalSteps = loadedTemplate.metadata.total_steps;
+  //               const completedSteps = combined.filter((line) =>
+  //                 /step\s+\d+.*(completed|done|finished)/i.test(line)
+  //               ).length;
+  //               const percent = Math.min(Math.round((completedSteps / totalSteps) * 100), 100);
+  //               setProgress(percent);
+  //             }
+
+  //             return combined;
+  //           });
+  //         }
+
+  //         if (data.status) {
+  //           setLogStatus(data.status);
+  //           if (['success', 'failed'].includes(data.status)) {
+  //             polling = true;
+  //             setIsPolling(true);
+  //             queryClient.invalidateQueries({ queryKey: ['deployment-history'] });
+  //             return;
+  //           }
+  //         }
+  //       }
+  //     } catch (err) {
+  //       console.error("Polling error:", err);
+  //     }
+
+  //     if (polling) {
+  //       setTimeout(poll, 2000);
+  //     }
+  //   };
+
+  //   poll();
+  // };
 
   const handleLoadTemplate = () => {
     if (selectedTemplate) {
