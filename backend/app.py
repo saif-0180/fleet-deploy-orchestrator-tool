@@ -806,6 +806,7 @@ def run_command_with_logging(command, logs):
 
 
 def execute_file_deployment_step(step, inventory, deployment_id):
+    deployment = deployments[deployment_id]
     """Execute file deployment step using ansible"""
     logs = []
     success = True
@@ -926,7 +927,8 @@ def execute_file_deployment_step(step, inventory, deployment_id):
         env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
 
         cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-vvv"]
-        logs.append(f"Executing: {' '.join(cmd)}")
+        # logs.append(f"Executing: {' '.join(cmd)}")
+        log_message(deployment_id, f"Executing: {' '.join(cmd)}")
 
         # result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars)
 
@@ -947,11 +949,11 @@ def execute_file_deployment_step(step, inventory, deployment_id):
         process.wait()
 
         if process.returncode == 0:
-            logs.append("SUCCESS: All files deployed successfully")
+            log_message(deployment_id, f"SUCCESS: All files deployed successfully")
             deployments[deployment_id]["status"] = "success"
             logger.info(f"File deployment {deployment_id} succeeded")
         else:
-            logs.append(f"ERROR: Deployment failed with return code {process.returncode}")
+            log_message(deployment_id, f"ERROR: Deployment failed with return code {process.returncode}")
             deployments[deployment_id]["status"] = "failed"
             logger.error(f"File deployment {deployment_id} failed with return code {process.returncode}")
 
@@ -962,14 +964,21 @@ def execute_file_deployment_step(step, inventory, deployment_id):
             os.remove(playbook_file)
             os.remove(inventory_file)
         except Exception as e:
-            logs.append(f"Warning: Error cleaning up temp files: {str(e)}")
+            logs.append(deployment_id, f"Warning: Error cleaning up temp files: {str(e)}")
         save_deployment_history()
+        return success, logs
 
-    except Exception as e:
-        logs.append(f"Exception during file deployment step: {str(e)}")
-        success = False
+    # except Exception as e:
+    #     log_message(f"Exception during file deployment step: {str(e)}")
+    #     success = False
+    #     save_deployment_history()
+    # return success, logs
+     except Exception as e:
+        log_message(deployment_id, f"ERROR: Exception during File deployment: {str(e)}")
+        deployments[deployment_id]["status"] = "failed"
+        logger.exception(f"Exception in File deployment {deployment_id}: {str(e)}")
         save_deployment_history()
-    return success, logs
+        return success, logs
 
 
 def execute_sql_deployment_step(step, db_inventory, deployment_id):
