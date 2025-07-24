@@ -1965,25 +1965,6 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
         
         with open(playbook_file, 'w') as f:
             f.write(f"""---
-# - name: Helm chart deployment from Template 
-#   hosts: deployment_targets
-#   gather_facts: false
-#   become: true
-#   become_user: admin
-#   tasks:
-#     - name: Test connection
-#       ansible.builtin.ping:
-
-#     - name: Run Helm upgrade
-#       ansible.builtin.shell: {helm_command}
-#       args:
-#         chdir: "/opt/amdocs/abp/core/k8s/scripts/"
-#       register: helm_result
-#       failed_when: helm_result.rc != 0
-
-#     - name: Log Helm output
-#       ansible.builtin.debug:
-#         msg: "{{{{ helm_result.stdout_lines }}}}"
 - name: Helm chart deployment from Template 
   hosts: deployment_targets
   gather_facts: false
@@ -1993,44 +1974,64 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
     - name: Test connection
       ansible.builtin.ping:
 
-    - name: List files in scripts directory
-      ansible.builtin.shell: "ls -la /opt/amdocs/abp/core/k8s/scripts/"
-      register: scripts_list
-
-    - name: Show scripts directory contents
-      ansible.builtin.debug:
-        msg: "{{{{ scripts_list.stdout_lines }}}}"
-
-    - name: Find k8s_Logger.ksh file
-      ansible.builtin.shell: "find /opt/amdocs -name 'k8s_Logger.ksh' -type f 2>/dev/null"
-      register: logger_find
-      ignore_errors: true
-
-    - name: Show logger file location
-      ansible.builtin.debug:
-        msg: "Found k8s_Logger.ksh at: {{{{ logger_find.stdout_lines }}}}"
-
-    - name: Check helmFU.Sh content (first 10 lines)
-      ansible.builtin.shell: "head -10 /opt/amdocs/abp/core/k8s/scripts/helmFU.Sh"
-      register: helm_content
-
-    - name: Show helmFU.Sh header
-      ansible.builtin.debug:
-        msg: "{{{{ helm_content.stdout_lines }}}}"
-
-    - name: Run Helm upgrade with debug
-      ansible.builtin.shell: "bash -x {helm_command}"
+    - name: Run Helm upgrade
+      ansible.builtin.shell: {helm_command}
       args:
         chdir: "/opt/amdocs/abp/core/k8s/scripts/"
+        executable: /bin/ksh
       register: helm_result
-      failed_when: false
+      failed_when: helm_result.rc != 0
 
     - name: Log Helm output
       ansible.builtin.debug:
-        msg: 
-          - "Return code: {{{{ helm_result.rc }}}}"
-          - "Stdout: {{{{ helm_result.stdout_lines }}}}"
-          - "Stderr: {{{{ helm_result.stderr_lines }}}}"
+        msg: "{{{{ helm_result.stdout_lines }}}}"
+# - name: Helm chart deployment from Template 
+#   hosts: deployment_targets
+#   gather_facts: false
+#   become: true
+#   become_user: admin
+#   tasks:
+#     - name: Test connection
+#       ansible.builtin.ping:
+
+#     - name: List files in scripts directory
+#       ansible.builtin.shell: "ls -la /opt/amdocs/abp/core/k8s/scripts/"
+#       register: scripts_list
+
+#     - name: Show scripts directory contents
+#       ansible.builtin.debug:
+#         msg: "{{{{ scripts_list.stdout_lines }}}}"
+
+#     - name: Find k8s_Logger.ksh file
+#       ansible.builtin.shell: "find /opt/amdocs -name 'k8s_Logger.ksh' -type f 2>/dev/null"
+#       register: logger_find
+#       ignore_errors: true
+
+#     - name: Show logger file location
+#       ansible.builtin.debug:
+#         msg: "Found k8s_Logger.ksh at: {{{{ logger_find.stdout_lines }}}}"
+
+#     - name: Check helmFU.Sh content (first 10 lines)
+#       ansible.builtin.shell: "head -10 /opt/amdocs/abp/core/k8s/scripts/helmFU.Sh"
+#       register: helm_content
+
+#     - name: Show helmFU.Sh header
+#       ansible.builtin.debug:
+#         msg: "{{{{ helm_content.stdout_lines }}}}"
+
+#     - name: Run Helm upgrade with debug
+#       ansible.builtin.shell: "bash -x {helm_command}"
+#       args:
+#         chdir: "/opt/amdocs/abp/core/k8s/scripts/"
+#       register: helm_result
+#       failed_when: false
+
+#     - name: Log Helm output
+#       ansible.builtin.debug:
+#         msg: 
+#           - "Return code: {{{{ helm_result.rc }}}}"
+#           - "Stdout: {{{{ helm_result.stdout_lines }}}}"
+#           - "Stderr: {{{{ helm_result.stderr_lines }}}}"
 
 """)
 
