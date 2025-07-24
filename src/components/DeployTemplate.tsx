@@ -62,7 +62,7 @@ const DeployTemplate: React.FC = () => {
   const cleanup = pollLogs(
     deploymentId,
     setDeploymentLogs,
-    setDeploymentStatus,
+    setLogStatus,
     totalSteps
   );
 
@@ -130,7 +130,7 @@ const DeployTemplate: React.FC = () => {
         title: "Deployment Started",
         description: `Template deployment started with ID: ${data.deployment_id}`,
       });
-      pollLogs(data.deployment_id, setDeploymentLogs, setLogStatus);
+      pollLogs(data.deployment_id, setDeploymentLogs, setLogStatus, loadedTemplate?.metadata.total_steps || 0);
     },
     onError: (error) => {
       toast({
@@ -155,6 +155,7 @@ const DeployTemplate: React.FC = () => {
   setIsPolling(true);
   let pollCount = 0;
   let lastLogLength = 0;
+  let completedSteps = 0;
 
   const pollInterval = setInterval(async () => {
     try {
@@ -167,14 +168,14 @@ const DeployTemplate: React.FC = () => {
       if (data.logs) {
         logSetter(data.logs);
 
-        const failedLog = logs.find((line) => /failed/i.test(line));
+        const failedLog = data.logs.find((line: string) => /failed/i.test(line));
         if (failedLog) {
           statusSetter("failed");
           clearInterval(pollInterval);
           return;
         }
 
-        const completedSteps = logs.filter((line) =>
+        completedSteps = data.logs.filter((line: string) =>
           /step\s+\d+\/\d+\s+completed/i.test(line)
         ).length;
 
@@ -219,6 +220,86 @@ const DeployTemplate: React.FC = () => {
 
   return () => clearInterval(pollInterval);
 };
+
+
+//   const pollLogs = (
+//   id: string,
+//   logSetter: React.Dispatch<React.SetStateAction<string[]>>,
+//   statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
+//   totalSteps: number
+// ) => {
+//   if (!id || !totalSteps) return;
+
+//   logSetter([]);
+//   statusSetter("running");
+
+//   setIsPolling(true);
+//   let pollCount = 0;
+//   let lastLogLength = 0;
+
+//   const pollInterval = setInterval(async () => {
+//     try {
+//       const response = await fetch(`/api/deploy/${id}/logs`);
+//       if (!response.ok) {
+//         throw new Error("Failed to fetch logs");
+//       }
+
+//       const data = await response.json();
+//       if (data.logs) {
+//         logSetter(data.logs);
+
+//         const failedLog = data.logs.find((line) => /failed/i.test(line));
+//         if (failedLog) {
+//           statusSetter("failed");
+//           clearInterval(pollInterval);
+//           return;
+//         }
+
+//         const completedSteps = data.logs.filter((line) =>
+//           /step\s+\d+\/\d+\s+completed/i.test(line)
+//         ).length;
+
+//         if (completedSteps >= totalSteps) {
+//           statusSetter("success");
+//           clearInterval(pollInterval);
+//           return;
+//         }
+
+//         if (data.logs.length === lastLogLength) {
+//           pollCount++;
+//           if (pollCount >= 5) {
+//             console.log("Logs unchanged — assuming success if steps match total.");
+//             if (completedSteps >= totalSteps) {
+//               statusSetter("success");
+//             } else {
+//               statusSetter("failed");
+//             }
+//             clearInterval(pollInterval);
+//             return;
+//           }
+//         } else {
+//           pollCount = 0;
+//           lastLogLength = data.logs.length;
+//         }
+//       }
+
+//       if (pollCount > 120) {
+//         console.log("Operation timed out after 2 minutes.");
+//         statusSetter(completedSteps >= totalSteps ? "success" : "failed");
+//         clearInterval(pollInterval);
+//       }
+//     } catch (error) {
+//       console.error("Error fetching logs:", error);
+//       pollCount += 5;
+//       if (pollCount > 20) {
+//         statusSetter("failed");
+//         clearInterval(pollInterval);
+//       }
+//     }
+//   }, 1000);
+
+//   return () => clearInterval(pollInterval);
+// };
 
 
   // const startLogPolling = (id: string) => {
