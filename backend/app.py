@@ -835,6 +835,7 @@ def execute_file_deployment_step(step, inventory, deployment_id):
                 if not os.path.exists(src_file):
                     logs.append(f"ERROR: File not found: {src_file}")
                     success = False
+                    save_deployment_history()
                     continue    
 
         # Generate an ansible playbook for file deployment            
@@ -927,19 +928,33 @@ def execute_file_deployment_step(step, inventory, deployment_id):
         cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-vvv"]
         logs.append(f"Executing: {' '.join(cmd)}")
 
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars)
+        # result = subprocess.run(cmd, capture_output=True, text=True, env=env_vars)
 
-        if result.stdout:
-            logs.append("=== ANSIBLE OUTPUT ===")
-            logs.extend(line.strip() for line in result.stdout.splitlines() if line.strip())
-        if result.stderr:
-            logs.append("=== ANSIBLE STDERR ===")
-            logs.extend(line.strip() for line in result.stderr.splitlines() if line.strip())
+        # if result.stdout:
+        #     logs.append("=== ANSIBLE OUTPUT ===")
+        #     logs.extend(line.strip() for line in result.stdout.splitlines() if line.strip())
+        # if result.stderr:
+        #     logs.append("=== ANSIBLE STDERR ===")
+        #     logs.extend(line.strip() for line in result.stderr.splitlines() if line.strip())
 
-        if result.returncode == 0:
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env_vars)
+
+        for line in process.stdout:
+            line_stripped = line.strip()
+            log_message(deployment_id, line_stripped)
+            logger.debug(f"[{deployment_id}] {line_stripped}")
+
+        process.wait()
+
+        if process.returncode == 0:
             logs.append("SUCCESS: All files deployed successfully")
+            deployments[deployment_id]["status"] = "success"
+            logger.info(f"File deployment {deployment_id} succeeded")
         else:
-            logs.append(f"ERROR: Deployment failed with return code {result.returncode}")
+            logs.append(f"ERROR: Deployment failed with return code {process.returncode}")
+            deployments[deployment_id]["status"] = "failed"
+            logger.error(f"File deployment {deployment_id} failed with return code {process.returncode}")
+
             success = False
 
         # Cleanup
