@@ -172,8 +172,8 @@ const DeployTemplate: React.FC = () => {
           if (data.status) {
             setLogStatus(data.status);
             if (['success', 'failed'].includes(data.status)) {
-              polling = false;
-              setIsPolling(false);
+              polling = true;
+              setIsPolling(true);
               queryClient.invalidateQueries({ queryKey: ['deployment-history'] });
               return;
             }
