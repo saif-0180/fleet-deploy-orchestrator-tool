@@ -1969,16 +1969,13 @@ def execute_helm_upgrade_step(step, inventory, deployment_id):
   hosts: deployment_targets
   gather_facts: false
   become: true
-  become_user: admin
+  become_user: infadm
   tasks:
     - name: Test connection
       ansible.builtin.ping:
 
     - name: Run Helm upgrade
-      ansible.builtin.shell: {helm_command}
-      args:
-        chdir: "/opt/amdocs/abp/core/k8s/scripts/"
-        executable: /bin/ksh
+      ansible.builtin.shell: "sudo su - admin -c 'cd ~ && {helm_command}'"
       register: helm_result
       failed_when: helm_result.rc != 0
 
