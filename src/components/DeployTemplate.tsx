@@ -167,38 +167,39 @@ const DeployTemplate: React.FC = () => {
       if (data.logs) {
         logSetter(data.logs);
 
-      const failedLog = logs.find((line) => /failed/i.test(line));
-      if (failedLog) {
-        statusSetter("failed");
-        clearInterval(pollInterval);
-        return;
-      }
-
-      const completedSteps = logs.filter((line) =>
-        /step\s+\d+\/\d+\s+completed/i.test(line)
-      ).length;
-
-      if (completedSteps >= totalSteps) {
-        statusSetter("success");
-        clearInterval(pollInterval);
-        return;
-      }
-
-      if (data.logs.length === lastLogLength) {
-        pollCount++;
-        if (pollCount >= 5) {
-          console.log("Logs unchanged — assuming success if steps match total.");
-          if (completedSteps >= totalSteps) {
-            statusSetter("success");
-          } else {
-            statusSetter("failed");
-          }
+        const failedLog = logs.find((line) => /failed/i.test(line));
+        if (failedLog) {
+          statusSetter("failed");
           clearInterval(pollInterval);
           return;
         }
-      } else {
-        pollCount = 0;
-        lastLogLength = data.logs.length;
+
+        const completedSteps = logs.filter((line) =>
+          /step\s+\d+\/\d+\s+completed/i.test(line)
+        ).length;
+
+        if (completedSteps >= totalSteps) {
+          statusSetter("success");
+          clearInterval(pollInterval);
+          return;
+        }
+
+        if (data.logs.length === lastLogLength) {
+          pollCount++;
+          if (pollCount >= 5) {
+            console.log("Logs unchanged — assuming success if steps match total.");
+            if (completedSteps >= totalSteps) {
+              statusSetter("success");
+            } else {
+              statusSetter("failed");
+            }
+            clearInterval(pollInterval);
+            return;
+          }
+        } else {
+          pollCount = 0;
+          lastLogLength = data.logs.length;
+        }
       }
 
       if (pollCount > 120) {
