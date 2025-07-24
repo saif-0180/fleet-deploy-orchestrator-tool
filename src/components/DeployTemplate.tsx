@@ -48,6 +48,7 @@ const DeployTemplate: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [loadedTemplate, setLoadedTemplate] = useState<DeploymentTemplate | null>(null);
   const [deploymentLogs, setDeploymentLogs] = useState<string[]>([]);
+  const [deploymentId, setDeploymentId] = useState<string | null>(null);
   const [logStatus, setLogStatus] = useState<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>('idle');
   const [currentDeploymentId, setCurrentDeploymentId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState<boolean>(false);
