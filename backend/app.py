@@ -973,7 +973,7 @@ def execute_file_deployment_step(step, inventory, deployment_id):
     #     success = False
     #     save_deployment_history()
     # return success, logs
-     except Exception as e:
+    except Exception as e:
         log_message(deployment_id, f"ERROR: Exception during File deployment: {str(e)}")
         deployments[deployment_id]["status"] = "failed"
         logger.exception(f"Exception in File deployment {deployment_id}: {str(e)}")
