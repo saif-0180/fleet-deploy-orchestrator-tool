@@ -130,7 +130,7 @@ const DeployTemplate: React.FC = () => {
         title: "Deployment Started",
         description: `Template deployment started with ID: ${data.deployment_id}`,
       });
-      pollLogs(data.deployment_id);
+      pollLogs(data.deployment_id, setDeploymentLogs, setLogStatus);
     },
     onError: (error) => {
       toast({
@@ -164,9 +164,8 @@ const DeployTemplate: React.FC = () => {
       }
 
       const data = await response.json();
-      const logs: string[] = data.logs || [];
-
-      logSetter(logs);
+      if (data.logs) {
+        logSetter(data.logs);
 
       const failedLog = logs.find((line) => /failed/i.test(line));
       if (failedLog) {
@@ -185,7 +184,7 @@ const DeployTemplate: React.FC = () => {
         return;
       }
 
-      if (logs.length === lastLogLength) {
+      if (data.logs.length === lastLogLength) {
         pollCount++;
         if (pollCount >= 5) {
           console.log("Logs unchanged — assuming success if steps match total.");
@@ -199,7 +198,7 @@ const DeployTemplate: React.FC = () => {
         }
       } else {
         pollCount = 0;
-        lastLogLength = logs.length;
+        lastLogLength = data.logs.length;
       }
 
       if (pollCount > 120) {
@@ -281,6 +280,8 @@ const DeployTemplate: React.FC = () => {
     if (selectedTemplate && loadedTemplate) {
       deployTemplateMutation.mutate(selectedTemplate);
     }
+    setDeploymentLogs([]);
+    deployTemplateMutation.mutate();
   };
 
   return (
