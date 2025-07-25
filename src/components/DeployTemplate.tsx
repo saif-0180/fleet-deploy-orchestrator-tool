@@ -602,55 +602,63 @@ const DeployTemplate: React.FC = () => {
                 <CardTitle className="text-[#EEEEEE] text-lg">Deployment Flow</CardTitle>
               </CardHeader>
               <CardContent>
-                <TemplateFlowchart template={loadedTemplate} />
+                <div 
+                  className="overflow-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+                  style={{ height: "400px", maxHeight: "400px" }}
+                >
+                  <TemplateFlowchart template={loadedTemplate} />
+                </div>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* Right Column - Logs (Full Height) */}
+        {/* Right Column - Logs (Fixed Height) */}
         <div className="space-y-4">
-          <div className={`${loadedTemplate ? 'h-full' : ''}`}>
-            <Card className="bg-[#1a2b42] h-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-[#EEEEEE] text-lg">
-                    Template Deployment Logs{currentDeploymentId ? ` - ${currentDeploymentId}` : ''}
-                  </CardTitle>
-                  <div className="flex items-center">
-                    {logStatus === 'running' && (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                    )}
-                    {logStatus === 'success' && (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    )}
-                    {logStatus === 'failed' && (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div 
-                  className="bg-black text-green-400 font-mono text-sm p-4 overflow-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
-                  style={{ 
-                    height: loadedTemplate ? "calc(100vh - 350px)" : "350px",
-                    maxHeight: loadedTemplate ? "calc(100vh - 350px)" : "350px"
-                  }}
-                >
-                  {deploymentLogs.length === 0 ? (
-                    <div className="text-gray-500 italic">No logs available...</div>
-                  ) : (
-                    deploymentLogs.map((log, index) => (
-                      <div key={index} className="whitespace-pre-wrap break-words">
-                        {log}
-                      </div>
-                    ))
+          <Card className="bg-[#1a2b42]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-[#EEEEEE] text-lg">
+                  Template Deployment Logs{currentDeploymentId ? ` - ${currentDeploymentId}` : ''}
+                </CardTitle>
+                <div className="flex items-center">
+                  {logStatus === 'running' && (
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                  )}
+                  {logStatus === 'success' && (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  )}
+                  {logStatus === 'failed' && (
+                    <XCircle className="h-5 w-5 text-red-500" />
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div 
+                ref={(el) => {
+                  if (el && deploymentLogs.length > 0) {
+                    el.scrollTop = el.scrollHeight;
+                  }
+                }}
+                className="bg-black text-white font-mono text-sm p-4 overflow-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+                style={{ 
+                  height: "480px",
+                  maxHeight: "480px"
+                }}
+              >
+                {deploymentLogs.length === 0 ? (
+                  <div className="text-gray-500 italic">No logs available...</div>
+                ) : (
+                  deploymentLogs.map((log, index) => (
+                    <div key={index} className="whitespace-pre-wrap break-words">
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
