@@ -89,6 +89,7 @@ const DeployTemplate: React.FC = () => {
 
   const loadTemplateMutation = useMutation({
     mutationFn: async (templateName: string) => {
+      console.log("Loading template:", templateName);
       const response = await fetch(`/api/deploy/templates/${templateName}`);
       if (!response.ok) throw new Error('Failed to load template');
       const data = await response.json();
@@ -112,13 +113,18 @@ const DeployTemplate: React.FC = () => {
 
   const deployTemplateMutation = useMutation({
     mutationFn: async (templateName: string) => {
+      console.log(`Deploying template: ${templateName}`);
       const response = await fetch('/api/deploy/templates/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+         },
         body: JSON.stringify({ template_name: templateName }),
       });
+      
       if (!response.ok) throw new Error('Failed to start template deployment');
       const data = await response.json();
+      console.log("Template deployment started:", data);
       return data;
     },
     onSuccess: (data) => {
@@ -425,6 +431,291 @@ const getCurrentDeploymentStatus = (logs: string[], completedSteps: number, tota
   
   return `Progress: ${completedSteps}/${totalSteps} steps completed`;
 };
+
+//   const pollLogs = (
+//   id: string,
+//   logSetter: React.Dispatch<React.SetStateAction<string[]>>,
+//   statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
+//   totalSteps: number
+// ) => {
+//   if (!id || !totalSteps) return;
+
+//   logSetter([]);
+//   statusSetter("running");
+//   setIsPolling(true);
+
+//   let pollCount = 0;
+//   let lastLogLength = 0;
+//   let completedSteps = 0;
+//   let hasActualFailure = false;
+
+//   const pollInterval = setInterval(async () => {
+//     try {
+//       const response = await fetch(`/api/deploy/${id}/logs`);
+//       if (!response.ok) {
+//         throw new Error("Failed to fetch logs");
+//       }
+
+//       const data = await response.json();
+//       if (data.logs) {
+//         logSetter(data.logs);
+
+//         // Check for actual failures (not just "failed=0" in recap)
+//         hasActualFailure = checkForActualFailures(data.logs);
+        
+//         if (hasActualFailure) {
+//           console.log("Deployment failed due to actual step failure");
+//           statusSetter("failed");
+//           clearInterval(pollInterval);
+//           setIsPolling(false);
+//           return;
+//         }
+
+//         // Count completed steps more accurately
+//         completedSteps = countCompletedSteps(data.logs);
+        
+//         // Debug logging
+//         console.log(`Completed steps: ${completedSteps}/${totalSteps}`);
+//         console.log(`Last few log lines:`, data.logs.slice(-5));
+
+//         // Check if all steps are completed successfully
+//         if (completedSteps >= totalSteps) {
+//           // Additional check to ensure the final step is actually completed
+//           const finalSuccess = checkFinalSuccess(data.logs);
+//           if (finalSuccess) {
+//             console.log("All steps completed successfully");
+//             statusSetter("success");
+//             clearInterval(pollInterval);
+//             setIsPolling(false);
+//             return;
+//           }
+//         }
+
+//         // Check if deployment is still actively running
+//         const isActivelyRunning = checkIfActivelyRunning(data.logs);
+//         if (isActivelyRunning) {
+//           console.log("Deployment is actively running, resetting poll count");
+//           pollCount = 0; // Reset poll count if we see active execution
+//         }
+
+//         // Check for unchanged logs (potential stall)
+//         if (data.logs.length === lastLogLength) {
+//           pollCount++;
+          
+//           // Be more patient - steps can take time to start
+//           const waitThreshold = completedSteps < totalSteps ? 30 : 10; // 30 seconds between steps, 10 for final check
+          
+//           if (pollCount >= waitThreshold) {
+//             console.log(`Logs unchanged for ${waitThreshold} seconds. Completed: ${completedSteps}/${totalSteps}`);
+            
+//             // If we have all steps completed, check for final success
+//             if (completedSteps >= totalSteps) {
+//               const finalSuccess = checkFinalSuccess(data.logs);
+//               if (finalSuccess) {
+//                 console.log("All steps completed - marking as success");
+//                 statusSetter("success");
+//               } else {
+//                 console.log("All steps completed but no final success indicator - checking recent activity");
+//                 // Check if the last step was recently completed
+//                 const recentCompletion = checkRecentStepCompletion(data.logs);
+//                 statusSetter(recentCompletion ? "success" : "failed");
+//               }
+//             } else {
+//               // Not all steps completed yet - continue waiting unless it's been too long
+//               if (pollCount >= 60) { // 60 seconds total wait for stalled deployment
+//                 console.log("Deployment appears genuinely stalled - marking as failed");
+//                 statusSetter("failed");
+//               } else {
+//                 console.log("Waiting for next step to begin...");
+//                 return; // Continue polling
+//               }
+//             }
+//             clearInterval(pollInterval);
+//             setIsPolling(false);
+//             return;
+//           }
+//         } else {
+//           pollCount = 0;
+//           lastLogLength = data.logs.length;
+//         }
+//       }
+
+//       // Timeout after 10 minutes (600 seconds) - increased for longer deployments
+//       if (pollCount > 600) {
+//         console.log("Operation timed out after 10 minutes");
+//         // Even on timeout, if all steps completed, consider it success
+//         const finalCheck = completedSteps >= totalSteps && (checkFinalSuccess(data.logs) || checkRecentStepCompletion(data.logs));
+//         statusSetter(finalCheck ? "success" : "failed");
+//         clearInterval(pollInterval);
+//         setIsPolling(false);
+//       }
+
+//     } catch (error) {
+//       console.error("Error fetching logs:", error);
+//       pollCount += 5;
+//       if (pollCount > 30) { // Allow more retries for network issues
+//         console.log("Too many polling errors - marking as failed");
+//         statusSetter("failed");
+//         clearInterval(pollInterval);
+//         setIsPolling(false);
+//       }
+//     }
+//   }, 1000);
+
+//   return () => {
+//     clearInterval(pollInterval);
+//     setIsPolling(false);
+//   };
+// };
+
+// // Helper function to check for actual deployment failures
+// const checkForActualFailures = (logs: string[]): boolean => {
+//   const failurePatterns = [
+//     /FAILED - RETRYING:/i,
+//     /fatal:/i,
+//     /^error:/i, // Only lines that start with "error:", not containing "error"
+//     /deployment failed/i,
+//     /step \d+ failed/i,
+//     /unreachable=[1-9]/i, // Unreachable hosts (not unreachable=0)
+//     /failed=[1-9]/i, // Actual failed tasks (not failed=0)
+//     /ansible.*failed.*[^=][1-9]/i // Ansible failures that are not "failed=0"
+//   ];
+
+//   // Check last 20 lines for failure patterns, excluding PLAY RECAP success lines
+//   const recentLogs = logs.slice(-20);
+  
+//   return recentLogs.some(line => {
+//     // Skip PLAY RECAP lines with failed=0 and unreachable=0 (these indicate success)
+//     if (line.includes('PLAY RECAP') && (line.includes('failed=0') || line.includes('unreachable=0'))) {
+//       return false;
+//     }
+    
+//     // Skip SUCCESS messages
+//     if (line.includes('SUCCESS:') || line.includes('completed successfully')) {
+//       return false;
+//     }
+    
+//     return failurePatterns.some(pattern => pattern.test(line));
+//   });
+// };
+
+// // Helper function to count completed steps more accurately
+// const countCompletedSteps = (logs: string[]): number => {
+//   const processedSteps = new Set<number>();
+  
+//   // Only count explicit step completion messages, not intermediate success messages
+//   logs.forEach(line => {
+//     // Match exact patterns for step completion
+//     const stepCompletionPatterns = [
+//       /^Step (\d+) completed successfully$/i,
+//       /^=== .* Step (\d+) Completed Successfully ===$/i,
+//       /^--- Step (\d+) succeeded ---$/i
+//     ];
+    
+//     stepCompletionPatterns.forEach(pattern => {
+//       const match = line.match(pattern);
+//       if (match) {
+//         const stepNum = parseInt(match[1]);
+//         if (stepNum && stepNum > 0) {
+//           processedSteps.add(stepNum);
+//         }
+//       }
+//     });
+//   });
+
+//   return processedSteps.size;
+// };
+
+// // Helper function to check if the final deployment is successful
+// const checkFinalSuccess = (logs: string[]): boolean => {
+//   const successPatterns = [
+//     /All files deployed successfully/i,
+//     /Template deployment completed successfully/i,
+//     /All steps completed successfully/i,
+//     /Deployment finished successfully/i,
+//     /SUCCESS: .* completed successfully/i
+//   ];
+
+//   // Check the last 30 lines for final success indicators
+//   const recentLogs = logs.slice(-30);
+  
+//   return recentLogs.some(line => 
+//     successPatterns.some(pattern => pattern.test(line))
+//   );
+// };
+
+// // Helper function to check if a step was recently completed
+// const checkRecentStepCompletion = (logs: string[]): boolean => {
+//   const recentLogs = logs.slice(-20); // Check last 20 lines
+  
+//   const recentCompletionPatterns = [
+//     /Step \d+ completed successfully/i,
+//     /=== .* Step \d+ Completed Successfully ===/i,
+//     /SUCCESS: .* completed successfully/i,
+//     /PLAY RECAP.*failed=0/i // Ansible success recap
+//   ];
+  
+//   return recentLogs.some(line => 
+//     recentCompletionPatterns.some(pattern => pattern.test(line))
+//   );
+// };
+
+// // Helper function to check if deployment is actively running
+// const checkIfActivelyRunning = (logs: string[]): boolean => {
+//   const recentLogs = logs.slice(-15); // Check last 15 lines
+  
+//   const activePatterns = [
+//     /=== Starting Step \d+:/i,
+//     /=== Executing File Deployment Step \d+ ===/i,
+//     /PLAY \[/i,
+//     /TASK \[/i,
+//     /changed:/i,
+//     /ok:/i,
+//     /Executing: ansible-playbook/i,
+//     /Using .* as config file/i,
+//     /PLAY RECAP \*+/i, // Ansible is running a playbook
+//     /ansible-playbook -i/i,
+//     /Created inventory file/i
+//   ];
+  
+//   const isActive = recentLogs.some(line => 
+//     activePatterns.some(pattern => pattern.test(line))
+//   );
+  
+//   // Additional check: if we see step completion but not the final step, it's still active
+//   const hasRecentStepCompletion = recentLogs.some(line => 
+//     /Step \d+ completed successfully/i.test(line)
+//   );
+  
+//   const hasFinalSuccess = recentLogs.some(line => 
+//     /=== Template Deployment SUCCESS ===/i.test(line) ||
+//     /All steps completed successfully/i.test(line)
+//   );
+  
+//   return isActive || (hasRecentStepCompletion && !hasFinalSuccess);
+// };
+
+// // Additional helper to get current deployment status for UI display
+// const getCurrentDeploymentStatus = (logs: string[], completedSteps: number, totalSteps: number): string => {
+//   if (logs.length === 0) return "Initializing deployment...";
+  
+//   const lastFewLines = logs.slice(-10);
+  
+//   // Look for current step indicators
+//   for (const line of lastFewLines.reverse()) {
+//     if (line.includes("=== Starting Step")) {
+//       const stepMatch = line.match(/Step (\d+)/);
+//       if (stepMatch) {
+//         return `Executing Step ${stepMatch[1]} of ${totalSteps}...`;
+//       }
+//     }
+//     if (line.includes("=== Executing")) {
+//       return "Executing deployment step...";
+//     }
+//   }
+  
+//   return `Progress: ${completedSteps}/${totalSteps} steps completed`;
+// };
 
 //   const pollLogs = (
 //   id: string,
