@@ -361,6 +361,14 @@ const DeployTemplate: React.FC = () => {
       if (line.includes('SUCCESS:') || line.includes('completed successfully')) {
         return false;
       }
+
+      if (line.includes('ERROR:') || line.includes('FAILED')) {
+        return false;
+      }
+
+      if (line.includes('failed:') || line.includes('error')) {
+        return false;
+      }
       
       return failurePatterns.some(pattern => pattern.test(line));
     });
