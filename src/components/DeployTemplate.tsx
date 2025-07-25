@@ -603,8 +603,8 @@ const DeployTemplate: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div 
-                  className="overflow-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
-                  style={{ height: "400px", maxHeight: "400px" }}
+                  className=""
+                  style={{ height: "400px", maxHeight: "400px", overflow: "hidden" }}
                 >
                   <TemplateFlowchart template={loadedTemplate} />
                 </div>
@@ -641,10 +641,10 @@ const DeployTemplate: React.FC = () => {
                     el.scrollTop = el.scrollHeight;
                   }
                 }}
-                className="bg-black text-white font-mono text-sm p-4 overflow-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+                className=""
                 style={{ 
-                  height: "480px",
-                  maxHeight: "480px"
+                  height: "800px",
+                  maxHeight: "800px"
                 }}
               >
                 {deploymentLogs.length === 0 ? (
