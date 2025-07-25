@@ -201,14 +201,34 @@ const DeployTemplate: React.FC = () => {
         // Check for unchanged logs (potential stall)
         if (data.logs.length === lastLogLength) {
           pollCount++;
-          if (pollCount >= 10) { // Increased threshold for stability
-            console.log("Logs unchanged for extended period");
-            // Only mark as success if we have all steps completed
-            if (completedSteps >= totalSteps && checkFinalSuccess(data.logs)) {
-              statusSetter("success");
+          
+          // Be more patient - steps can take time to start
+          const waitThreshold = completedSteps < totalSteps ? 30 : 10; // 30 seconds between steps, 10 for final check
+          
+          if (pollCount >= waitThreshold) {
+            console.log(`Logs unchanged for ${waitThreshold} seconds. Completed: ${completedSteps}/${totalSteps}`);
+            
+            // If we have all steps completed, check for final success
+            if (completedSteps >= totalSteps) {
+              const finalSuccess = checkFinalSuccess(data.logs);
+              if (finalSuccess) {
+                console.log("All steps completed - marking as success");
+                statusSetter("success");
+              } else {
+                console.log("All steps completed but no final success indicator - checking recent activity");
+                // Check if the last step was recently completed
+                const recentCompletion = checkRecentStepCompletion(data.logs);
+                statusSetter(recentCompletion ? "success" : "failed");
+              }
             } else {
-              console.log("Deployment appears stalled - marking as failed");
-              statusSetter("failed");
+              // Not all steps completed yet - continue waiting unless it's been too long
+              if (pollCount >= 60) { // 60 seconds total wait for stalled deployment
+                console.log("Deployment appears genuinely stalled - marking as failed");
+                statusSetter("failed");
+              } else {
+                console.log("Waiting for next step to begin...");
+                return; // Continue polling
+              }
             }
             clearInterval(pollInterval);
             setIsPolling(false);
@@ -220,10 +240,12 @@ const DeployTemplate: React.FC = () => {
         }
       }
 
-      // Timeout after 5 minutes (300 seconds)
-      if (pollCount > 300) {
-        console.log("Operation timed out after 5 minutes");
-        statusSetter(completedSteps >= totalSteps ? "success" : "failed");
+      // Timeout after 10 minutes (600 seconds) - increased for longer deployments
+      if (pollCount > 600) {
+        console.log("Operation timed out after 10 minutes");
+        // Even on timeout, if all steps completed, consider it success
+        const finalCheck = completedSteps >= totalSteps && (checkFinalSuccess(data.logs) || checkRecentStepCompletion(data.logs));
+        statusSetter(finalCheck ? "success" : "failed");
         clearInterval(pollInterval);
         setIsPolling(false);
       }
@@ -312,14 +334,31 @@ const checkFinalSuccess = (logs: string[]): boolean => {
     /All files deployed successfully/i,
     /Template deployment completed successfully/i,
     /All steps completed successfully/i,
-    /Deployment finished successfully/i
+    /Deployment finished successfully/i,
+    /SUCCESS: .* completed successfully/i
   ];
 
-  // Check the last 20 lines for final success indicators
-  const recentLogs = logs.slice(-20);
+  // Check the last 30 lines for final success indicators
+  const recentLogs = logs.slice(-30);
   
   return recentLogs.some(line => 
     successPatterns.some(pattern => pattern.test(line))
+  );
+};
+
+// Helper function to check if a step was recently completed
+const checkRecentStepCompletion = (logs: string[]): boolean => {
+  const recentLogs = logs.slice(-20); // Check last 20 lines
+  
+  const recentCompletionPatterns = [
+    /Step \d+ completed successfully/i,
+    /=== .* Step \d+ Completed Successfully ===/i,
+    /SUCCESS: .* completed successfully/i,
+    /PLAY RECAP.*failed=0/i // Ansible success recap
+  ];
+  
+  return recentLogs.some(line => 
+    recentCompletionPatterns.some(pattern => pattern.test(line))
   );
 };
 
