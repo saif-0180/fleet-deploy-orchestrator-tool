@@ -141,7 +141,7 @@ const DeployTemplate: React.FC = () => {
     },
   });
 
-  const pollLogs = (
+const pollLogs = (
   id: string,
   logSetter: React.Dispatch<React.SetStateAction<string[]>>,
   statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
@@ -183,7 +183,9 @@ const DeployTemplate: React.FC = () => {
         // Count completed steps more accurately
         completedSteps = countCompletedSteps(data.logs);
         
+        // Debug logging
         console.log(`Completed steps: ${completedSteps}/${totalSteps}`);
+        console.log(`Last few log lines:`, data.logs.slice(-5));
 
         // Check if all steps are completed successfully
         if (completedSteps >= totalSteps) {
@@ -196,6 +198,13 @@ const DeployTemplate: React.FC = () => {
             setIsPolling(false);
             return;
           }
+        }
+
+        // Check if deployment is still actively running
+        const isActivelyRunning = checkIfActivelyRunning(data.logs);
+        if (isActivelyRunning) {
+          console.log("Deployment is actively running, resetting poll count");
+          pollCount = 0; // Reset poll count if we see active execution
         }
 
         // Check for unchanged logs (potential stall)
@@ -296,36 +305,38 @@ const checkForActualFailures = (logs: string[]): boolean => {
 
 // Helper function to count completed steps more accurately
 const countCompletedSteps = (logs: string[]): number => {
-  const stepCompletionPatterns = [
-    /Step \d+ completed successfully/i,
-    /=== .* Step \d+ Completed Successfully ===/i,
-    /SUCCESS: .* completed successfully/i
-  ];
-
-  let completedCount = 0;
   const processedSteps = new Set<number>();
 
   logs.forEach(line => {
-    stepCompletionPatterns.forEach(pattern => {
-      const match = line.match(pattern);
-      if (match) {
-        // Try to extract step number
-        const stepMatch = line.match(/Step (\d+)/i);
-        if (stepMatch) {
-          const stepNum = parseInt(stepMatch[1]);
-          if (!processedSteps.has(stepNum)) {
-            processedSteps.add(stepNum);
-            completedCount++;
-          }
-        } else {
-          // Fallback: count generic success messages
-          completedCount++;
-        }
+    // Look for explicit step completion messages
+    if (/Step (\d+) completed successfully/i.test(line)) {
+      const stepMatch = line.match(/Step (\d+) completed successfully/i);
+      if (stepMatch) {
+        const stepNum = parseInt(stepMatch[1]);
+        processedSteps.add(stepNum);
       }
-    });
+    }
+    
+    // Look for step completion in format "=== Step X Completed Successfully ==="
+    if (/=== .* Step (\d+) Completed Successfully ===/i.test(line)) {
+      const stepMatch = line.match(/=== .* Step (\d+) Completed Successfully ===/i);
+      if (stepMatch) {
+        const stepNum = parseInt(stepMatch[1]);
+        processedSteps.add(stepNum);
+      }
+    }
+    
+    // Look for "--- Step X succeeded ---" pattern
+    if (/--- Step (\d+) succeeded ---/i.test(line)) {
+      const stepMatch = line.match(/--- Step (\d+) succeeded ---/i);
+      if (stepMatch) {
+        const stepNum = parseInt(stepMatch[1]);
+        processedSteps.add(stepNum);
+      }
+    }
   });
 
-  return completedCount;
+  return processedSteps.size;
 };
 
 // Helper function to check if the final deployment is successful
@@ -359,6 +370,26 @@ const checkRecentStepCompletion = (logs: string[]): boolean => {
   
   return recentLogs.some(line => 
     recentCompletionPatterns.some(pattern => pattern.test(line))
+  );
+};
+
+// Helper function to check if deployment is actively running
+const checkIfActivelyRunning = (logs: string[]): boolean => {
+  const recentLogs = logs.slice(-10); // Check last 10 lines
+  
+  const activePatterns = [
+    /=== Starting Step \d+:/i,
+    /=== Executing/i,
+    /PLAY \[/i,
+    /TASK \[/i,
+    /changed:/i,
+    /ok:/i,
+    /Executing: ansible-playbook/i,
+    /Using .* as config file/i
+  ];
+  
+  return recentLogs.some(line => 
+    activePatterns.some(pattern => pattern.test(line))
   );
 };
 
