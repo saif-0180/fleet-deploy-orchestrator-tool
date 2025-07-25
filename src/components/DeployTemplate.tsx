@@ -141,7 +141,7 @@ const DeployTemplate: React.FC = () => {
     },
   });
 
-const pollLogs = (
+  const pollLogs = (
   id: string,
   logSetter: React.Dispatch<React.SetStateAction<string[]>>,
   statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
@@ -282,20 +282,25 @@ const checkForActualFailures = (logs: string[]): boolean => {
   const failurePatterns = [
     /FAILED - RETRYING:/i,
     /fatal:/i,
-    /error:/i,
+    /^error:/i, // Only lines that start with "error:", not containing "error"
     /deployment failed/i,
     /step \d+ failed/i,
-    /ansible.*failed.*[^=]0/i, // Ansible failures that are not "failed=0"
-    /unreachable=\d*[1-9]/i, // Unreachable hosts (not unreachable=0)
-    /failed=\d*[1-9]/i, // Actual failed tasks (not failed=0)
+    /unreachable=[1-9]/i, // Unreachable hosts (not unreachable=0)
+    /failed=[1-9]/i, // Actual failed tasks (not failed=0)
+    /ansible.*failed.*[^=][1-9]/i // Ansible failures that are not "failed=0"
   ];
 
-  // Check recent logs for failure patterns
-  const recentLogs = logs.slice(-50); // Check last 50 lines for performance
+  // Check last 20 lines for failure patterns, excluding PLAY RECAP success lines
+  const recentLogs = logs.slice(-20);
   
   return recentLogs.some(line => {
-    // Skip PLAY RECAP lines with failed=0 (these are success indicators)
-    if (line.includes('PLAY RECAP') && line.includes('failed=0')) {
+    // Skip PLAY RECAP lines with failed=0 and unreachable=0 (these indicate success)
+    if (line.includes('PLAY RECAP') && (line.includes('failed=0') || line.includes('unreachable=0'))) {
+      return false;
+    }
+    
+    // Skip SUCCESS messages
+    if (line.includes('SUCCESS:') || line.includes('completed successfully')) {
       return false;
     }
     
@@ -306,34 +311,25 @@ const checkForActualFailures = (logs: string[]): boolean => {
 // Helper function to count completed steps more accurately
 const countCompletedSteps = (logs: string[]): number => {
   const processedSteps = new Set<number>();
-
+  
+  // Only count explicit step completion messages, not intermediate success messages
   logs.forEach(line => {
-    // Look for explicit step completion messages
-    if (/Step (\d+) completed successfully/i.test(line)) {
-      const stepMatch = line.match(/Step (\d+) completed successfully/i);
-      if (stepMatch) {
-        const stepNum = parseInt(stepMatch[1]);
-        processedSteps.add(stepNum);
-      }
-    }
+    // Match exact patterns for step completion
+    const stepCompletionPatterns = [
+      /^Step (\d+) completed successfully$/i,
+      /^=== .* Step (\d+) Completed Successfully ===$/i,
+      /^--- Step (\d+) succeeded ---$/i
+    ];
     
-    // Look for step completion in format "=== Step X Completed Successfully ==="
-    if (/=== .* Step (\d+) Completed Successfully ===/i.test(line)) {
-      const stepMatch = line.match(/=== .* Step (\d+) Completed Successfully ===/i);
-      if (stepMatch) {
-        const stepNum = parseInt(stepMatch[1]);
-        processedSteps.add(stepNum);
+    stepCompletionPatterns.forEach(pattern => {
+      const match = line.match(pattern);
+      if (match) {
+        const stepNum = parseInt(match[1]);
+        if (stepNum && stepNum > 0) {
+          processedSteps.add(stepNum);
+        }
       }
-    }
-    
-    // Look for "--- Step X succeeded ---" pattern
-    if (/--- Step (\d+) succeeded ---/i.test(line)) {
-      const stepMatch = line.match(/--- Step (\d+) succeeded ---/i);
-      if (stepMatch) {
-        const stepNum = parseInt(stepMatch[1]);
-        processedSteps.add(stepNum);
-      }
-    }
+    });
   });
 
   return processedSteps.size;
@@ -414,6 +410,8 @@ const getCurrentDeploymentStatus = (logs: string[], completedSteps: number, tota
   
   return `Progress: ${completedSteps}/${totalSteps} steps completed`;
 };
+
+
 
   // const pollLogs = (
   // id: string,
