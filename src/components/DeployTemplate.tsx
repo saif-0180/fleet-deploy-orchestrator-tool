@@ -154,97 +154,83 @@ const DeployTemplate: React.FC = () => {
   totalSteps: number
 ) => {
   if (!id || !totalSteps) return;
-
   logSetter([]);
   statusSetter("running");
   setIsPolling(true);
-
   let pollCount = 0;
   let lastLogLength = 0;
   let completedSteps = 0;
   let hasActualFailure = false;
-
   const pollInterval = setInterval(async () => {
     try {
       const response = await fetch(`/api/deploy/${id}/logs`);
       if (!response.ok) {
         throw new Error("Failed to fetch logs");
       }
-
       const data = await response.json();
       if (data.logs) {
         logSetter(data.logs);
-
-        // Check for actual failures (not just "failed=0" in recap)
+        // Track failures but don't immediately set status
         hasActualFailure = checkForActualFailures(data.logs);
         
-        if (hasActualFailure) {
-          console.log("Deployment failed due to actual step failure");
-          statusSetter("failed");
-          clearInterval(pollInterval);
-          setIsPolling(false);
-          return;
-        }
-
-        // Count completed steps more accurately
+        // Update completed steps
         completedSteps = countCompletedSteps(data.logs);
         
-        // Debug logging
-        console.log(`Completed steps: ${completedSteps}/${totalSteps}`);
-        console.log(`Last few log lines:`, data.logs.slice(-5));
-
-        // Check if all steps are completed successfully
+        // Check if all steps are completed
         if (completedSteps >= totalSteps) {
-          // Additional check to ensure the final step is actually completed
           const finalSuccess = checkFinalSuccess(data.logs);
-          if (finalSuccess) {
+          const recentCompletion = checkRecentStepCompletion(data.logs);
+          
+          if (finalSuccess || recentCompletion) {
             console.log("All steps completed successfully");
             statusSetter("success");
             clearInterval(pollInterval);
             setIsPolling(false);
             return;
           }
+          
+          // If all steps completed but no success indicator
+          if (hasActualFailure) {
+            console.log("Deployment failed during execution");
+            statusSetter("failed");
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            return;
+          }
         }
-
-        // Check if deployment is still actively running
+        
+        // Check for active execution
         const isActivelyRunning = checkIfActivelyRunning(data.logs);
         if (isActivelyRunning) {
-          console.log("Deployment is actively running, resetting poll count");
-          pollCount = 0; // Reset poll count if we see active execution
+          console.log("Deployment is actively running");
+          return;
         }
-
+        
         // Check for unchanged logs (potential stall)
         if (data.logs.length === lastLogLength) {
           pollCount++;
           
-          // Be more patient - steps can take time to start
-          const waitThreshold = completedSteps < totalSteps ? 30 : 10; // 30 seconds between steps, 10 for final check
+          // Be more patient during step transitions
+          const waitThreshold = completedSteps < totalSteps ? 30 : 10;
           
           if (pollCount >= waitThreshold) {
             console.log(`Logs unchanged for ${waitThreshold} seconds. Completed: ${completedSteps}/${totalSteps}`);
             
-            // If we have all steps completed, check for final success
             if (completedSteps >= totalSteps) {
-              const finalSuccess = checkFinalSuccess(data.logs);
-              if (finalSuccess) {
-                console.log("All steps completed - marking as success");
+              // Check if completed steps show success
+              if (checkRecentStepCompletion(data.logs)) {
                 statusSetter("success");
               } else {
-                console.log("All steps completed but no final success indicator - checking recent activity");
-                // Check if the last step was recently completed
-                const recentCompletion = checkRecentStepCompletion(data.logs);
-                statusSetter(recentCompletion ? "success" : "failed");
+                statusSetter("failed");
               }
             } else {
-              // Not all steps completed yet - continue waiting unless it's been too long
-              if (pollCount >= 60) { // 60 seconds total wait for stalled deployment
-                console.log("Deployment appears genuinely stalled - marking as failed");
+              // Not all steps completed - continue waiting unless stalled too long
+              if (pollCount >= 60) {
+                console.log("Deployment appears genuinely stalled");
                 statusSetter("failed");
-              } else {
-                console.log("Waiting for next step to begin...");
-                return; // Continue polling
               }
             }
+            
             clearInterval(pollInterval);
             setIsPolling(false);
             return;
@@ -254,21 +240,20 @@ const DeployTemplate: React.FC = () => {
           lastLogLength = data.logs.length;
         }
       }
-
-      // Timeout after 10 minutes (600 seconds) - increased for longer deployments
+      
+      // Timeout after 10 minutes
       if (pollCount > 600) {
         console.log("Operation timed out after 10 minutes");
-        // Even on timeout, if all steps completed, consider it success
-        const finalCheck = completedSteps >= totalSteps && (checkFinalSuccess(data.logs) || checkRecentStepCompletion(data.logs));
+        const finalCheck = completedSteps >= totalSteps && 
+                          (checkFinalSuccess(data.logs) || checkRecentStepCompletion(data.logs));
         statusSetter(finalCheck ? "success" : "failed");
         clearInterval(pollInterval);
         setIsPolling(false);
       }
-
     } catch (error) {
       console.error("Error fetching logs:", error);
       pollCount += 5;
-      if (pollCount > 30) { // Allow more retries for network issues
+      if (pollCount > 30) {
         console.log("Too many polling errors - marking as failed");
         statusSetter("failed");
         clearInterval(pollInterval);
@@ -276,12 +261,149 @@ const DeployTemplate: React.FC = () => {
       }
     }
   }, 1000);
-
   return () => {
     clearInterval(pollInterval);
     setIsPolling(false);
   };
 };
+
+//   const pollLogs = (
+//   id: string,
+//   logSetter: React.Dispatch<React.SetStateAction<string[]>>,
+//   statusSetter: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'running' | 'success' | 'failed' | 'completed'>>,
+//   totalSteps: number
+// ) => {
+//   if (!id || !totalSteps) return;
+
+//   logSetter([]);
+//   statusSetter("running");
+//   setIsPolling(true);
+
+//   let pollCount = 0;
+//   let lastLogLength = 0;
+//   let completedSteps = 0;
+//   let hasActualFailure = false;
+
+//   const pollInterval = setInterval(async () => {
+//     try {
+//       const response = await fetch(`/api/deploy/${id}/logs`);
+//       if (!response.ok) {
+//         throw new Error("Failed to fetch logs");
+//       }
+
+//       const data = await response.json();
+//       if (data.logs) {
+//         logSetter(data.logs);
+
+//         // Check for actual failures (not just "failed=0" in recap)
+//         hasActualFailure = checkForActualFailures(data.logs);
+        
+//         if (hasActualFailure) {
+//           console.log("Deployment failed due to actual step failure");
+//           statusSetter("failed");
+//           clearInterval(pollInterval);
+//           setIsPolling(false);
+//           return;
+//         }
+
+//         // Count completed steps more accurately
+//         completedSteps = countCompletedSteps(data.logs);
+        
+//         // Debug logging
+//         console.log(`Completed steps: ${completedSteps}/${totalSteps}`);
+//         console.log(`Last few log lines:`, data.logs.slice(-5));
+
+//         // Check if all steps are completed successfully
+//         if (completedSteps >= totalSteps) {
+//           // Additional check to ensure the final step is actually completed
+//           const finalSuccess = checkFinalSuccess(data.logs);
+//           if (finalSuccess) {
+//             console.log("All steps completed successfully");
+//             statusSetter("success");
+//             clearInterval(pollInterval);
+//             setIsPolling(false);
+//             return;
+//           }
+//         }
+
+//         // Check if deployment is still actively running
+//         const isActivelyRunning = checkIfActivelyRunning(data.logs);
+//         if (isActivelyRunning) {
+//           console.log("Deployment is actively running, resetting poll count");
+//           pollCount = 0; // Reset poll count if we see active execution
+//         }
+
+//         // Check for unchanged logs (potential stall)
+//         if (data.logs.length === lastLogLength) {
+//           pollCount++;
+          
+//           // Be more patient - steps can take time to start
+//           const waitThreshold = completedSteps < totalSteps ? 30 : 10; // 30 seconds between steps, 10 for final check
+          
+//           if (pollCount >= waitThreshold) {
+//             console.log(`Logs unchanged for ${waitThreshold} seconds. Completed: ${completedSteps}/${totalSteps}`);
+            
+//             // If we have all steps completed, check for final success
+//             if (completedSteps >= totalSteps) {
+//               const finalSuccess = checkFinalSuccess(data.logs);
+//               if (finalSuccess) {
+//                 console.log("All steps completed - marking as success");
+//                 statusSetter("success");
+//               } else {
+//                 console.log("All steps completed but no final success indicator - checking recent activity");
+//                 // Check if the last step was recently completed
+//                 const recentCompletion = checkRecentStepCompletion(data.logs);
+//                 statusSetter(recentCompletion ? "success" : "failed");
+//               }
+//             } else {
+//               // Not all steps completed yet - continue waiting unless it's been too long
+//               if (pollCount >= 60) { // 60 seconds total wait for stalled deployment
+//                 console.log("Deployment appears genuinely stalled - marking as failed");
+//                 statusSetter("failed");
+//               } else {
+//                 console.log("Waiting for next step to begin...");
+//                 return; // Continue polling
+//               }
+//             }
+//             clearInterval(pollInterval);
+//             setIsPolling(false);
+//             return;
+//           }
+//         } else {
+//           pollCount = 0;
+//           lastLogLength = data.logs.length;
+//         }
+//       }
+
+//       // Timeout after 10 minutes (600 seconds) - increased for longer deployments
+//       if (pollCount > 600) {
+//         console.log("Operation timed out after 10 minutes");
+//         // Even on timeout, if all steps completed, consider it success
+//         const finalCheck = completedSteps >= totalSteps && (checkFinalSuccess(data.logs) || checkRecentStepCompletion(data.logs));
+//         statusSetter(finalCheck ? "success" : "failed");
+//         clearInterval(pollInterval);
+//         setIsPolling(false);
+//       }
+
+//     } catch (error) {
+//       console.error("Error fetching logs:", error);
+//       pollCount += 5;
+//       if (pollCount > 30) { // Allow more retries for network issues
+//         console.log("Too many polling errors - marking as failed");
+//         statusSetter("failed");
+//         clearInterval(pollInterval);
+//         setIsPolling(false);
+//       }
+//     }
+//   }, 1000);
+
+//   return () => {
+//     clearInterval(pollInterval);
+//     setIsPolling(false);
+//   };
+// };
+
+
 
 // Helper function to check for actual deployment failures
 const checkForActualFailures = (logs: string[]): boolean => {
@@ -1206,12 +1328,19 @@ const getCurrentDeploymentStatus = (logs: string[], completedSteps: number, tota
   };
 
   const handleDeployTemplate = () => {
-    if (selectedTemplate && loadedTemplate) {
-      deployTemplateMutation.mutate(selectedTemplate);
-    }
+  if (selectedTemplate && loadedTemplate) {
     setDeploymentLogs([]);
-    deployTemplateMutation.mutate();
-  };
+    deployTemplateMutation.mutate(selectedTemplate); 
+  }
+};
+
+  // const handleDeployTemplate = () => {
+  //   if (selectedTemplate && loadedTemplate) {
+  //     deployTemplateMutation.mutate(selectedTemplate);
+  //   }
+  //   setDeploymentLogs([]);
+  //   deployTemplateMutation.mutate();
+  // };
 
   return (
     <div className="space-y-6">
