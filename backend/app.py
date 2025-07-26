@@ -10,6 +10,7 @@ import logging
 import glob
 import tempfile
 import re
+import base64
 import select
 import pytz
 from logging.handlers import RotatingFileHandler
