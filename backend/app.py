@@ -992,6 +992,7 @@ def execute_sql_deployment_step(step, db_inventory, deployment_id):
         logs.append(f"Description: {step['description']}")
         
         # Get database connection details
+        ft_number = step.get('ftNumber')
         db_conn_name = step.get('dbConnection')
         db_details = get_db_connection_details(db_conn_name, db_inventory)
         
@@ -1008,7 +1009,7 @@ def execute_sql_deployment_step(step, db_inventory, deployment_id):
         
         # Process SQL files
         for file_name in step.get('files', []):
-            sql_file_path = f"/app/fixfiles/{file_name}"
+            sql_file_path = f"/app/fixfiles/AllFts/{ft_number}/{file_name}"
             
             if not os.path.exists(sql_file_path):
                 logs.append(f"Error: SQL file {sql_file_path} not found")
