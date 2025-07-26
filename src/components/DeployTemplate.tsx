@@ -512,6 +512,57 @@ const DeployTemplate: React.FC = () => {
     return `Progress: ${completedSteps}/${totalSteps} steps completed`;
   };
 
+  // Function to determine log color based on content
+  const getLogColor = (log: string): string => {
+    // Success patterns - green
+    if (log.includes('SUCCESS:') || 
+        log.includes('completed successfully') ||
+        log.includes('Step') && log.includes('completed successfully') ||
+        log.includes('=== Template Deployment SUCCESS ===') ||
+        log.includes('All steps completed successfully') ||
+        log.includes('Deployment finished successfully') ||
+        log.match(/ok=\d+.*changed=\d+.*unreachable=0.*failed=0/)) {
+      return 'text-green-400';
+    }
+    
+    // Error/Failure patterns - red
+    if (log.includes('ERROR:') || 
+        log.includes('FAILED') || 
+        log.includes('failed:') || 
+        log.includes('fatal:') ||
+        log.includes('Step') && log.includes('failed') ||
+        log.match(/failed=[1-9]/) ||
+        log.match(/unreachable=[1-9]/)) {
+      return 'text-red-400';
+    }
+    
+    // Warning patterns - yellow
+    if (log.includes('WARNING:') || 
+        log.includes('WARN:') ||
+        log.includes('RETRY:')) {
+      return 'text-yellow-400';
+    }
+    
+    // Info patterns - blue
+    if (log.includes('[INFO]') || 
+        log.includes('Starting Step') ||
+        log.includes('=== Executing') ||
+        log.includes('Description:') ||
+        log.includes('Command:')) {
+      return 'text-blue-400';
+    }
+    
+    // PLAY RECAP and task execution - cyan
+    if (log.includes('PLAY RECAP') || 
+        log.includes('PLAY [') ||
+        log.includes('TASK [')) {
+      return 'text-cyan-400';
+    }
+    
+    // Default color - gray
+    return 'text-gray-300';
+  };
+
   const handleLoadTemplate = () => {
     if (selectedTemplate) {
       loadTemplateMutation.mutate(selectedTemplate);
@@ -638,13 +689,20 @@ const DeployTemplate: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="bg-black rounded-lg p-4" style={{ height: '400px' }}>
-                <div className="h-full overflow-y-auto font-mono text-sm">
+                <div 
+                  ref={(el) => {
+                    if (el) {
+                      el.scrollTop = el.scrollHeight;
+                    }
+                  }}
+                  className="h-full overflow-y-auto font-mono text-sm"
+                >
                   {deploymentLogs.length === 0 ? (
                     <div className="text-gray-500 italic">No logs available...</div>
                   ) : (
                     deploymentLogs.map((log, index) => (
                       <div key={index} className="mb-1">
-                        <span className="text-gray-300">{log}</span>
+                        <span className={getLogColor(log)}>{log}</span>
                       </div>
                     ))
                   )}
