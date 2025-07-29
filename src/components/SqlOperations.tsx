@@ -217,9 +217,8 @@ const SqlOperations = () => {
     }
   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle button click
+  const handleSubmit = () => {
     setLogs([]);
     executeSqlMutation.mutate();
   };
@@ -240,14 +239,14 @@ const SqlOperations = () => {
           <CardTitle>SQL Execution</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="ft">FT</Label>
               <Select 
                 onValueChange={setSelectedFT}
                 disabled={isLoadingFTs || fts.length === 0}
               >
-                <SelectTrigger id="ft">
+                <SelectTrigger id="ft" className="bg-[#2a3f5f] border-[#3a4f6f] text-[#EEEEEE]">
                   <SelectValue placeholder="Select FT" />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,7 +264,7 @@ const SqlOperations = () => {
                 disabled={isLoadingFiles || files.length === 0 || !selectedFT}
                 value={selectedFile}
               >
-                <SelectTrigger id="file">
+                <SelectTrigger id="file" className="bg-[#2a3f5f] border-[#3a4f6f] text-[#EEEEEE]">
                   <SelectValue placeholder="Select SQL File" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +283,7 @@ const SqlOperations = () => {
                 onValueChange={handleDbConnectionChange}
                 disabled={isLoadingConnections}
               >
-                <SelectTrigger id="db-connection">
+                <SelectTrigger id="db-connection" className="bg-[#2a3f5f] border-[#3a4f6f] text-[#EEEEEE]">
                   <SelectValue placeholder="Select database connection..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -311,7 +310,7 @@ const SqlOperations = () => {
                     id="hostname"
                     value={hostname}
                     readOnly
-                    className="bg-gray-700/50 text-xs"
+                    className="bg-gray-700/50 text-xs border-[#3a4f6f] text-[#EEEEEE]"
                     placeholder="Auto-populated"
                   />
                 </div>
@@ -321,7 +320,7 @@ const SqlOperations = () => {
                     id="port"
                     value={port}
                     readOnly
-                    className="bg-gray-700/50 text-xs"
+                    className="bg-gray-700/50 text-xs border-[#3a4f6f] text-[#EEEEEE]"
                     placeholder="Auto-populated"
                   />
                 </div>
@@ -331,7 +330,7 @@ const SqlOperations = () => {
                     id="db-name-display"
                     value={dbName}
                     readOnly
-                    className="bg-gray-700/50 text-xs"
+                    className="bg-gray-700/50 text-xs border-[#3a4f6f] text-[#EEEEEE]"
                     placeholder="Auto-populated"
                   />
                 </div>
@@ -345,7 +344,7 @@ const SqlOperations = () => {
                 onValueChange={setSelectedUser} 
                 disabled={isLoadingUsers}
               >
-                <SelectTrigger id="user">
+                <SelectTrigger id="user" className="bg-[#2a3f5f] border-[#3a4f6f] text-[#EEEEEE]">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,11 +363,12 @@ const SqlOperations = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                className="bg-[#2a3f5f] border-[#3a4f6f] text-[#EEEEEE] placeholder:text-gray-400"
               />
             </div>
             
             <Button 
-              type="submit" 
+              onClick={handleSubmit}
               disabled={!selectedFT || !selectedFile || !selectedDbConnection || !selectedUser || !dbName || executeSqlMutation.isPending}
               className="w-full"
             >
@@ -384,7 +384,7 @@ const SqlOperations = () => {
                 <div>User: {selectedUser}</div>
               </div>
             )}
-          </form>
+          </div>
         </CardContent>
       </Card>
       
