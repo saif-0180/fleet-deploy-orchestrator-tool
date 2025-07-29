@@ -984,6 +984,7 @@ def execute_file_deployment_step(step, inventory, deployment_id):
 
 def execute_sql_deployment_step(step, db_inventory, deployment_id):
     """Execute SQL deployment step"""
+    deployment = deployments[deployment_id]
     logs = []
     success = True
     
@@ -1034,7 +1035,7 @@ def execute_sql_deployment_step(step, db_inventory, deployment_id):
             env['PGPASSWORD'] = db_password
             
             try:
-                result = subprocess.run(psql_cmd, capture_output=True, text=True, env=env, timeout=300)
+                result = subprocess.run(psql_cmd, capture_output=True, text=True, env=env, timeout=200)
                 
                 if result.stdout:
                     logs.extend(result.stdout.split('\n'))
@@ -1043,8 +1044,14 @@ def execute_sql_deployment_step(step, db_inventory, deployment_id):
                 
                 if result.returncode == 0:
                     logs.append(f"SQL file {file_name} executed successfully")
+                    log_message(deployment_id, f"SUCCESS: Template deployment completed successfully ")
+                    deployments[deployment_id]["status"] = "success"
+                    logger.info(f"SQL deployment {deployment_id} succeeded")
                 else:
                     logs.append(f"SQL file {file_name} failed with return code {result.returncode}")
+                    log_message(deployment_id, f"ERROR: SQL deployment failed ")
+                    deployments[deployment_id]["status"] = "failed"
+                    logger.error(f"SQL deployment {deployment_id} failed with return code {result.returncode}")
                     success = False
                     
             except subprocess.TimeoutExpired:
@@ -1053,7 +1060,7 @@ def execute_sql_deployment_step(step, db_inventory, deployment_id):
             except Exception as e:
                 logs.append(f"Error executing SQL file {file_name}: {str(e)}")
                 success = False
-        
+        save_deployment_history()
         logs.append(f"=== SQL Deployment Step {step['order']} {'Completed Successfully' if success else 'Failed'} ===")
         
     except Exception as e:
