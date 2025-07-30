@@ -2444,26 +2444,26 @@ def process_file_deployment(deployment_id):
     - name: Check if {file_name} already exists
       ansible.builtin.stat:
         path: "{final_target_path}"
-      register: file_stat_{safe_file_name}
+      register: file_stat_{file_name}
       
     - name: Generate timestamp for backup
       ansible.builtin.command: date +%s
-      register: backup_timestamp_{safe_file_name}
-      when: file_stat_{safe_file_name}.stat.exists and {str(create_backup).lower()}
+      register: backup_timestamp_{file_name}
+      when: file_stat_{file_name}.stat.exists and {str(create_backup).lower()}
       changed_when: false
       
     - name: Create backup of existing {file_name} if it exists
       ansible.builtin.copy:
         src: "{final_target_path}"
-        dest: "{final_target_path}.bak.{{{{ backup_timestamp_{safe_file_name}.stdout }}}}"
+        dest: "{final_target_path}.bak.{{{{ backup_timestamp_{file_name}.stdout }}}}"
         remote_src: yes
-      when: file_stat_{safe_file_name}.stat.exists and {str(create_backup).lower()}
-      register: backup_result_{safe_file_name}
+      when: file_stat_{file_name}.stat.exists and {str(create_backup).lower()}
+      register: backup_result_{file_name}
       
     - name: Log backup result for {file_name}
       ansible.builtin.debug:
-        msg: "Created backup for {file_name} at {{{{ backup_result_{safe_file_name}.dest }}}} (deployment by {logged_in_user})"
-      when: backup_result_{safe_file_name}.changed is defined and backup_result_{safe_file_name}.changed
+        msg: "Created backup for {file_name} at {{{{ backup_result_{file_name}.dest }}}} (deployment by {logged_in_user})"
+      when: backup_result_{file_name}.changed is defined and backup_result_{file_name}.changed
       
     - name: Copy {file_name} to target VMs
       ansible.builtin.copy:
@@ -2471,7 +2471,7 @@ def process_file_deployment(deployment_id):
         dest: "{final_target_path}"
         mode: '0644'
         owner: "{user}"
-      register: copy_result_{safe_file_name}
+      register: copy_result_{file_name}
                   
     # # Tasks for file: {file_name}
     # - name: Check if {file_name} already exists
