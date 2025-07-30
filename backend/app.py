@@ -2859,25 +2859,26 @@ def validate_deployment(deployment_id):
     data = request.json or {}
     use_sudo = data.get('sudo', False)
     # Support both single file (backward compatibility) and multiple files
-    files_to_validate = data.get('files', [])
+    # files_to_validate = data.get('files', [])
+    files_to_validate = deployment["files"]
     
     # # Backward compatibility: if no files specified in request, use deployment file(s)
-    # if not files_to_validate:
-    #     if deployment_id not in deployments:
-    #         logger.error(f"Deployment not found with ID: {deployment_id}")
-    #         return jsonify({"error": "Deployment not found"}), 404
+    if not files_to_validate:
+        if deployment_id not in deployments:
+            logger.error(f"Deployment not found with ID: {deployment_id}")
+            return jsonify({"error": "Deployment not found"}), 404
         
-    #     deployment = deployments[deployment_id]
+        deployment = deployments[deployment_id]
         
-    #     if deployment["type"] != "file":
-    #         logger.error(f"Cannot validate non-file deployment type: {deployment['type']}")
-    #         return jsonify({"error": "Only file deployments can be validated"}), 400
+        if deployment["type"] != "file":
+            logger.error(f"Cannot validate non-file deployment type: {deployment['type']}")
+            return jsonify({"error": "Only file deployments can be validated"}), 400
         
-    #     # Handle both single file and multiple files from deployment
-    #     if isinstance(deployment.get("file"), list):
-    #         files_to_validate = deployment["file"]
-    #     else:
-    #         files_to_validate = [deployment["file"]] if deployment.get("file") else []
+        # Handle both single file and multiple files from deployment
+        if isinstance(deployment.get("file"), list):
+            files_to_validate = deployment["file"]
+        else:
+            files_to_validate = [deployment["file"]] if deployment.get("file") else []
     
     if deployment_id not in deployments:
         logger.error(f"Deployment not found with ID: {deployment_id}")
