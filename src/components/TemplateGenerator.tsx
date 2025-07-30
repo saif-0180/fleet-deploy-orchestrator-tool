@@ -47,6 +47,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
   const [savedTemplates, setSavedTemplates] = useState<string[]>([]);
   const [selectedSavedTemplate, setSelectedSavedTemplate] = useState<string>("");
   const { toast } = useToast();
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   // Step form state
   const [stepType, setStepType] = useState('');
@@ -95,7 +96,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
 
   // Fetch files for step FT
   const { data: stepFtFiles = [] } = useQuery({
-    queryKey: ['files', stepFt],
+    queryKey: ['files', 'stepFt', stepFt],
     queryFn: async () => {
       if (!stepFt) return [];
       const response = await fetch(`/api/fts/${stepFt}/files`);
@@ -104,6 +105,11 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onTemplateGenerat
     },
     enabled: !!stepFt,
   });
+
+  useEffect(() => {
+  // Clear selected files when FT changes
+  setSelectedFiles([]);
+  }, [stepFt]);
 
   // Fetch database connections from db_inventory
   const { data: dbInventory = { db_connections: [], db_users: [] } } = useQuery({
