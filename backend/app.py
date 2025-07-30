@@ -2449,7 +2449,8 @@ def process_file_deployment(deployment_id):
     - name: Generate timestamp for backup
       ansible.builtin.command: date +%s
       register: backup_timestamp_{file_name}
-      when: file_stat_{file_name}.stat.exists and {str(create_backup).lower()}
+      when: file_stat_{file_name.replace('.', '_').replace('-', '_')}.stat.exists and {str(create_backup).lower()}
+    #   when: file_stat_{file_name}.stat.exists and {str(create_backup).lower()}
       changed_when: false
       
     - name: Create backup of existing {file_name} if it exists
