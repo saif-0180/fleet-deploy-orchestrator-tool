@@ -2852,176 +2852,176 @@ def process_file_deployment(deployment_id):
 # # API to validate file deployment
 
 
-@app.route('/api/deploy/<deployment_id>/validate', methods=['POST'])
-def validate_deployment(deployment_id):
-    logger.info(f"Validating deployment with ID: {deployment_id}")
+# @app.route('/api/deploy/<deployment_id>/validate', methods=['POST'])
+# def validate_deployment(deployment_id):
+#     logger.info(f"Validating deployment with ID: {deployment_id}")
     
-    data = request.json or {}
-    use_sudo = data.get('sudo', False)
-    # Support both single file (backward compatibility) and multiple files
-    # files_to_validate = data.get('files', [])
-    files_to_validate = deployment["files"]
+#     data = request.json or {}
+#     use_sudo = data.get('sudo', False)
+#     # Support both single file (backward compatibility) and multiple files
+#     # files_to_validate = data.get('files', [])
+#     files_to_validate = deployment["files"]
     
-    # # Backward compatibility: if no files specified in request, use deployment file(s)
-    if not files_to_validate:
-        if deployment_id not in deployments:
-            logger.error(f"Deployment not found with ID: {deployment_id}")
-            return jsonify({"error": "Deployment not found"}), 404
+#     # # Backward compatibility: if no files specified in request, use deployment file(s)
+#     if not files_to_validate:
+#         if deployment_id not in deployments:
+#             logger.error(f"Deployment not found with ID: {deployment_id}")
+#             return jsonify({"error": "Deployment not found"}), 404
         
-        deployment = deployments[deployment_id]
+#         deployment = deployments[deployment_id]
         
-        if deployment["type"] != "file":
-            logger.error(f"Cannot validate non-file deployment type: {deployment['type']}")
-            return jsonify({"error": "Only file deployments can be validated"}), 400
+#         if deployment["type"] != "file":
+#             logger.error(f"Cannot validate non-file deployment type: {deployment['type']}")
+#             return jsonify({"error": "Only file deployments can be validated"}), 400
         
-        # Handle both single file and multiple files from deployment
-        if isinstance(deployment.get("file"), list):
-            files_to_validate = deployment["file"]
-        else:
-            files_to_validate = [deployment["file"]] if deployment.get("file") else []
+#         # Handle both single file and multiple files from deployment
+#         if isinstance(deployment.get("file"), list):
+#             files_to_validate = deployment["file"]
+#         else:
+#             files_to_validate = [deployment["file"]] if deployment.get("file") else []
     
-    if deployment_id not in deployments:
-        logger.error(f"Deployment not found with ID: {deployment_id}")
-        return jsonify({"error": "Deployment not found"}), 404
+#     if deployment_id not in deployments:
+#         logger.error(f"Deployment not found with ID: {deployment_id}")
+#         return jsonify({"error": "Deployment not found"}), 404
     
-    deployment = deployments[deployment_id]
-    vms = deployment["vms"]
+#     deployment = deployments[deployment_id]
+#     vms = deployment["vms"]
     
-    if not files_to_validate:
-        logger.error(f"No files specified for validation")
-        return jsonify({"error": "No files specified for validation"}), 400
+#     if not files_to_validate:
+#         logger.error(f"No files specified for validation")
+#         return jsonify({"error": "No files specified for validation"}), 400
 
-    log_message(deployment_id, f"Starting validation for {len(files_to_validate)} file(s) on {len(vms)} VMs")
+#     log_message(deployment_id, f"Starting validation for {len(files_to_validate)} file(s) on {len(vms)} VMs")
     
-    results = []
+#     results = []
 
-    for vm_name in vms:
-        vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
-        if not vm:
-            log_message(deployment_id, f"ERROR: VM {vm_name} not found in inventory")
-            results.append({
-                "vm": vm_name,
-                "status": "ERROR",
-                "message": "VM not found",
-                "files": []
-            })
-            continue
+#     for vm_name in vms:
+#         vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
+#         if not vm:
+#             log_message(deployment_id, f"ERROR: VM {vm_name} not found in inventory")
+#             results.append({
+#                 "vm": vm_name,
+#                 "status": "ERROR",
+#                 "message": "VM not found",
+#                 "files": []
+#             })
+#             continue
 
-        vm_file_results = []
+#         vm_file_results = []
         
-        for file_name in files_to_validate:
-            target_path = os.path.join(deployment["target_path"], file_name)
+#         for file_name in files_to_validate:
+#             target_path = os.path.join(deployment["target_path"], file_name)
             
-            try:
-                # Use tempfile to create unique playbook and inventory files
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yml') as tmp_playbook, \
-                     tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_inventory:
+#             try:
+#                 # Use tempfile to create unique playbook and inventory files
+#                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yml') as tmp_playbook, \
+#                      tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_inventory:
                     
-                    validate_playbook = tmp_playbook.name
-                    validate_inventory = tmp_inventory.name
+#                     validate_playbook = tmp_playbook.name
+#                     validate_inventory = tmp_inventory.name
 
-                    # Write Ansible playbook for single file validation
-                    tmp_playbook.write(f"""---
-- name: Validate file
-  hosts: {vm_name}
-  gather_facts: false
-  become: {"true" if use_sudo else "false"}
-  tasks:
-    - name: Check if file exists
-      stat:
-        path: "{target_path}"
-      register: file_check
-      failed_when: not file_check.stat.exists
+#                     # Write Ansible playbook for single file validation
+#                     tmp_playbook.write(f"""---
+# - name: Validate file
+#   hosts: {vm_name}
+#   gather_facts: false
+#   become: {"true" if use_sudo else "false"}
+#   tasks:
+#     - name: Check if file exists
+#       stat:
+#         path: "{target_path}"
+#       register: file_check
+#       failed_when: not file_check.stat.exists
 
-    - name: Get file checksum
-      shell: cksum "{target_path}" | awk '{{print $1, $2}}'
-      register: cksum_result
-      when: file_check.stat.exists
+#     - name: Get file checksum
+#       shell: cksum "{target_path}" | awk '{{print $1, $2}}'
+#       register: cksum_result
+#       when: file_check.stat.exists
 
-    - name: Get file permissions
-      shell: ls -la "{target_path}" | awk '{{print $1, $3, $4}}'
-      register: perm_result
-      when: file_check.stat.exists
-""")
+#     - name: Get file permissions
+#       shell: ls -la "{target_path}" | awk '{{print $1, $3, $4}}'
+#       register: perm_result
+#       when: file_check.stat.exists
+# """)
 
-                validate_inventory = f"/tmp/validate_inventory_{deployment_id}_{vm_name}_{file_name.replace('/', '_')}"
-                with open(validate_inventory, 'w') as f:
-                    f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'")
+#                 validate_inventory = f"/tmp/validate_inventory_{deployment_id}_{vm_name}_{file_name.replace('/', '_')}"
+#                 with open(validate_inventory, 'w') as f:
+#                     f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'")
 
-                log_message(deployment_id, f"Running validation on {vm_name} for file {file_name}")
-                cmd = ["ansible-playbook", "-i", validate_inventory, validate_playbook, "--limit", vm_name, "-v"]
-                output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode().strip()
-                logger.debug(f"Validation output for {vm_name}, file {file_name}: {output}")
-                log_message(deployment_id, f"Raw validation output on {vm_name} for file {file_name}: {output}")
+#                 log_message(deployment_id, f"Running validation on {vm_name} for file {file_name}")
+#                 cmd = ["ansible-playbook", "-i", validate_inventory, validate_playbook, "--limit", vm_name, "-v"]
+#                 output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode().strip()
+#                 logger.debug(f"Validation output for {vm_name}, file {file_name}: {output}")
+#                 log_message(deployment_id, f"Raw validation output on {vm_name} for file {file_name}: {output}")
 
-                # Initialize defaults
-                cksum_info = "File not found"
-                perm_info = "N/A"
+#                 # Initialize defaults
+#                 cksum_info = "File not found"
+#                 perm_info = "N/A"
 
-                # Extract checksum - look for the stdout value in the checksum task
-                cksum_match = re.search(r'TASK \[Get file checksum\].*?"stdout": "([^"]*)"', output, re.DOTALL)
-                if cksum_match:
-                    cksum_info = cksum_match.group(1).strip()
-                    logger.debug(f"Extracted checksum for {vm_name}, file {file_name}: {cksum_info}")
-                else:
-                    # Fallback: try to find any stdout with checksum pattern (numbers followed by number)
-                    fallback_cksum = re.search(r'"stdout": "(\d+\s+\d+)"', output)
-                    if fallback_cksum:
-                        cksum_info = fallback_cksum.group(1).strip()
-                        logger.debug(f"Extracted checksum (fallback) for {vm_name}, file {file_name}: {cksum_info}")
+#                 # Extract checksum - look for the stdout value in the checksum task
+#                 cksum_match = re.search(r'TASK \[Get file checksum\].*?"stdout": "([^"]*)"', output, re.DOTALL)
+#                 if cksum_match:
+#                     cksum_info = cksum_match.group(1).strip()
+#                     logger.debug(f"Extracted checksum for {vm_name}, file {file_name}: {cksum_info}")
+#                 else:
+#                     # Fallback: try to find any stdout with checksum pattern (numbers followed by number)
+#                     fallback_cksum = re.search(r'"stdout": "(\d+\s+\d+)"', output)
+#                     if fallback_cksum:
+#                         cksum_info = fallback_cksum.group(1).strip()
+#                         logger.debug(f"Extracted checksum (fallback) for {vm_name}, file {file_name}: {cksum_info}")
 
-                # Extract permissions - look for the stdout value in the permissions task  
-                perm_match = re.search(r'TASK \[Get file permissions\].*?"stdout": "([^"]*)"', output, re.DOTALL)
-                if perm_match:
-                    perm_info = perm_match.group(1).strip()
-                    logger.debug(f"Extracted permissions for {vm_name}, file {file_name}: {perm_info}")
-                else:
-                    # Fallback: try to find any stdout with file permission pattern
-                    fallback_perm = re.search(r'"stdout": "(-[rwx-]+\.?\s+\w+\s+\w+)"', output)
-                    if fallback_perm:
-                        perm_info = fallback_perm.group(1).strip()
-                        logger.debug(f"Extracted permissions (fallback) for {vm_name}, file {file_name}: {perm_info}")
+#                 # Extract permissions - look for the stdout value in the permissions task  
+#                 perm_match = re.search(r'TASK \[Get file permissions\].*?"stdout": "([^"]*)"', output, re.DOTALL)
+#                 if perm_match:
+#                     perm_info = perm_match.group(1).strip()
+#                     logger.debug(f"Extracted permissions for {vm_name}, file {file_name}: {perm_info}")
+#                 else:
+#                     # Fallback: try to find any stdout with file permission pattern
+#                     fallback_perm = re.search(r'"stdout": "(-[rwx-]+\.?\s+\w+\s+\w+)"', output)
+#                     if fallback_perm:
+#                         perm_info = fallback_perm.group(1).strip()
+#                         logger.debug(f"Extracted permissions (fallback) for {vm_name}, file {file_name}: {perm_info}")
 
-                result_message = f"Checksum={cksum_info}, Permissions={perm_info}"
-                log_message(deployment_id, f"Validation on {vm_name} for file {file_name}: {result_message}")
+#                 result_message = f"Checksum={cksum_info}, Permissions={perm_info}"
+#                 log_message(deployment_id, f"Validation on {vm_name} for file {file_name}: {result_message}")
                 
-                vm_file_results.append({
-                    "file": file_name,
-                    "status": "SUCCESS",
-                    "message": result_message,
-                    "cksum": cksum_info,
-                    "permissions": perm_info
-                })
+#                 vm_file_results.append({
+#                     "file": file_name,
+#                     "status": "SUCCESS",
+#                     "message": result_message,
+#                     "cksum": cksum_info,
+#                     "permissions": perm_info
+#                 })
 
-            except subprocess.CalledProcessError as e:
-                error = e.output.decode().strip()
-                log_message(deployment_id, f"Validation failed on {vm_name} for file {file_name}: {error}")
-                vm_file_results.append({
-                    "file": file_name,
-                    "status": "ERROR",
-                    "message": "Validation failed",
-                    "output": error
-                })
+#             except subprocess.CalledProcessError as e:
+#                 error = e.output.decode().strip()
+#                 log_message(deployment_id, f"Validation failed on {vm_name} for file {file_name}: {error}")
+#                 vm_file_results.append({
+#                     "file": file_name,
+#                     "status": "ERROR",
+#                     "message": "Validation failed",
+#                     "output": error
+#                 })
 
-            finally:
-                # Ensure cleanup even on error
-                try:
-                    os.remove(validate_playbook)
-                    os.remove(validate_inventory)
-                except Exception as cleanup_err:
-                    logger.warning(f"Failed to clean up temp files for {vm_name}, file {file_name}: {cleanup_err}")
+#             finally:
+#                 # Ensure cleanup even on error
+#                 try:
+#                     os.remove(validate_playbook)
+#                     os.remove(validate_inventory)
+#                 except Exception as cleanup_err:
+#                     logger.warning(f"Failed to clean up temp files for {vm_name}, file {file_name}: {cleanup_err}")
 
-        # Add VM result with all file results
-        overall_status = "SUCCESS" if all(f["status"] == "SUCCESS" for f in vm_file_results) else "ERROR"
-        results.append({
-            "vm": vm_name,
-            "status": overall_status,
-            "files": vm_file_results
-        })
+#         # Add VM result with all file results
+#         overall_status = "SUCCESS" if all(f["status"] == "SUCCESS" for f in vm_file_results) else "ERROR"
+#         results.append({
+#             "vm": vm_name,
+#             "status": overall_status,
+#             "files": vm_file_results
+#         })
 
-    logger.info(f"Validation completed for deployment {deployment_id} with {len(results)} VM results")
-    save_deployment_history()
-    return jsonify({"results": results})
+#     logger.info(f"Validation completed for deployment {deployment_id} with {len(results)} VM results")
+#     save_deployment_history()
+#     return jsonify({"results": results})
 
 # @app.route('/api/deploy/<deployment_id>/validate', methods=['POST'])
 # def validate_deployment(deployment_id):
@@ -3160,6 +3160,174 @@ def validate_deployment(deployment_id):
 #     logger.info(f"Validation completed for deployment {deployment_id} with {len(results)} results")
 #     save_deployment_history()
 #     return jsonify({"results": results})
+
+
+@app.route('/api/deploy/<deployment_id>/validate', methods=['POST'])
+def validate_deployment(deployment_id):
+    logger.info(f"Validating deployment with ID: {deployment_id}")
+    
+    data = request.json or {}
+    use_sudo = data.get('sudo', False)
+
+    if deployment_id not in deployments:
+        logger.error(f"Deployment not found with ID: {deployment_id}")
+        return jsonify({"error": "Deployment not found"}), 404
+    
+    deployment = deployments[deployment_id]
+
+    if deployment["type"] != "file":
+        logger.error(f"Cannot validate non-file deployment type: {deployment['type']}")
+        return jsonify({"error": "Only file deployments can be validated"}), 400
+    
+    vms = deployment["vms"]
+    # Updated to handle both single file (legacy) and multiple files
+    files = deployment.get("files", [deployment.get("file")] if deployment.get("file") else [])
+    target_path = deployment["target_path"]
+
+    if not files:
+        logger.error(f"No files found in deployment {deployment_id}")
+        return jsonify({"error": "No files to validate"}), 400
+
+    log_message(deployment_id, f"Starting validation for {len(files)} file(s) on {len(vms)} VMs")
+    
+    results = []
+
+    for vm_name in vms:
+        vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
+        if not vm:
+            log_message(deployment_id, f"ERROR: VM {vm_name} not found in inventory")
+            results.append({
+                "vm": vm_name,
+                "status": "ERROR",
+                "message": "VM not found",
+                "files": []
+            })
+            continue
+
+        try:
+            # Use tempfile to create unique playbook and inventory files
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yml') as tmp_playbook, \
+                 tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_inventory:
+                
+                validate_playbook = tmp_playbook.name
+                validate_inventory = tmp_inventory.name
+
+                # Write Ansible playbook for multiple files
+                tmp_playbook.write(f"""---
+- name: Validate files
+  hosts: {vm_name}
+  gather_facts: false
+  become: {"true" if use_sudo else "false"}
+  tasks:
+""")
+                
+                # Add tasks for each file
+                for i, file_name in enumerate(files):
+                    target_file_path = os.path.join(target_path, file_name)
+                    tmp_playbook.write(f"""
+    - name: Check if file {file_name} exists
+      stat:
+        path: "{target_file_path}"
+      register: file_check_{i}
+      failed_when: not file_check_{i}.stat.exists
+
+    - name: Get file checksum for {file_name}
+      shell: cksum "{target_file_path}" | awk '{{print $1, $2}}'
+      register: cksum_result_{i}
+      when: file_check_{i}.stat.exists
+
+    - name: Get file permissions for {file_name}
+      shell: ls -la "{target_file_path}" | awk '{{print $1, $3, $4}}'
+      register: perm_result_{i}
+      when: file_check_{i}.stat.exists
+""")
+
+            # Create inventory file
+            validate_inventory = f"/tmp/validate_inventory_{deployment_id}_{vm_name}"
+            with open(validate_inventory, 'w') as f:
+                f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'")
+
+            log_message(deployment_id, f"Running validation on {vm_name} for {len(files)} file(s)")
+            cmd = ["ansible-playbook", "-i", validate_inventory, validate_playbook, "--limit", vm_name, "-v"]
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode().strip()
+            logger.debug(f"Validation output for {vm_name}: {output}")
+            log_message(deployment_id, f"Raw validation output on {vm_name}: {output}")
+
+            # Process results for each file
+            file_results = []
+            for i, file_name in enumerate(files):
+                # Initialize defaults
+                cksum_info = "File not found"
+                perm_info = "N/A"
+
+                # Extract checksum for this specific file
+                cksum_pattern = rf'TASK \[Get file checksum for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
+                cksum_match = re.search(cksum_pattern, output, re.DOTALL)
+                if cksum_match:
+                    cksum_info = cksum_match.group(1).strip()
+                    logger.debug(f"Extracted checksum for {vm_name}:{file_name}: {cksum_info}")
+                else:
+                    # Fallback: try to find cksum_result_{i} pattern
+                    fallback_cksum = re.search(rf'"var": "cksum_result_{i}".*?"stdout": "(\d+\s+\d+)"', output, re.DOTALL)
+                    if fallback_cksum:
+                        cksum_info = fallback_cksum.group(1).strip()
+                        logger.debug(f"Extracted checksum (fallback) for {vm_name}:{file_name}: {cksum_info}")
+
+                # Extract permissions for this specific file
+                perm_pattern = rf'TASK \[Get file permissions for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
+                perm_match = re.search(perm_pattern, output, re.DOTALL)
+                if perm_match:
+                    perm_info = perm_match.group(1).strip()
+                    logger.debug(f"Extracted permissions for {vm_name}:{file_name}: {perm_info}")
+                else:
+                    # Fallback: try to find perm_result_{i} pattern
+                    fallback_perm = re.search(rf'"var": "perm_result_{i}".*?"stdout": "(-[rwx-]+\.?\s+\w+\s+\w+)"', output, re.DOTALL)
+                    if fallback_perm:
+                        perm_info = fallback_perm.group(1).strip()
+                        logger.debug(f"Extracted permissions (fallback) for {vm_name}:{file_name}: {perm_info}")
+
+                file_results.append({
+                    "file": file_name,
+                    "cksum": cksum_info,
+                    "permissions": perm_info,
+                    "status": "SUCCESS" if cksum_info != "File not found" else "ERROR"
+                })
+
+                result_message = f"{file_name}: Checksum={cksum_info}, Permissions={perm_info}"
+                log_message(deployment_id, f"Validation on {vm_name}: {result_message}")
+
+            # Overall result for the VM
+            overall_status = "SUCCESS" if all(f["status"] == "SUCCESS" for f in file_results) else "PARTIAL" if any(f["status"] == "SUCCESS" for f in file_results) else "ERROR"
+            
+            results.append({
+                "vm": vm_name,
+                "status": overall_status,
+                "message": f"Validated {len(file_results)} file(s)",
+                "files": file_results
+            })
+
+        except subprocess.CalledProcessError as e:
+            error = e.output.decode().strip()
+            log_message(deployment_id, f"Validation failed on {vm_name}: {error}")
+            results.append({
+                "vm": vm_name,
+                "status": "ERROR",
+                "message": "Validation failed",
+                "output": error,
+                "files": []
+            })
+
+        finally:
+            # Ensure cleanup even on error
+            try:
+                os.remove(validate_playbook)
+                os.remove(validate_inventory)
+            except Exception as cleanup_err:
+                logger.warning(f"Failed to clean up temp files for {vm_name}: {cleanup_err}")
+
+    logger.info(f"Validation completed for deployment {deployment_id} with {len(results)} results")
+    save_deployment_history()
+    return jsonify({"results": results})
 
 # API to run shell command
 @app.route('/api/command/shell', methods=['POST'])

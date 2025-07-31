@@ -303,57 +303,138 @@ const FileOperations: React.FC = () => {
     },
   });
 
-  // Validate mutation
-  const validateMutation = useMutation({
-    mutationFn: async () => {
-      if (!deploymentId) {
-        throw new Error('No active deployment to validate');
-      }
+  // // Validate mutation
+  // const validateMutation = useMutation({
+  //   mutationFn: async () => {
+  //     if (!deploymentId) {
+  //       throw new Error('No active deployment to validate');
+  //     }
       
-      const response = await fetch(`/api/deploy/${deploymentId}/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sudo: validateUseSudo
-        })
-      });
+  //     const response = await fetch(`/api/deploy/${deploymentId}/validate`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         sudo: validateUseSudo
+  //       })
+  //     });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Validation failed');
-      }
+  //     if (!response.ok) {
+  //       const errorText = await response.text();
+  //       throw new Error(errorText || 'Validation failed');
+  //     }
       
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Validation Complete",
-        description: "File checksum validation has been completed.",
-      });
-      if (data.results) {
-        data.results.forEach((result: any) => {
+  //     return response.json();
+  //   },
+  //   onSuccess: (data) => {
+  //     toast({
+  //       title: "Validation Complete",
+  //       description: "File checksum validation has been completed.",
+  //     });
+  //     if (data.results) {
+  //       data.results.forEach((result: any) => {
+  //         const checksum = result.cksum ? `Checksum=${result.cksum}` : 'No checksum available';
+  //         const permissions = result.permissions ? `Permissions: ${result.permissions}` : '';
+          
+  //         setFileLogs(prev => [
+  //           ...prev, 
+  //           `Validation on ${result.vm}: ${result.status}`, 
+  //           checksum, 
+  //           permissions
+  //         ]);
+  //       });
+  //     }
+  //   },
+  //   onError: (error) => {
+  //     toast({
+  //       title: "Validation Failed",
+  //       description: error instanceof Error ? error.message : "An unknown error occurred during validation",
+  //       variant: "destructive",
+  //     });
+  //   },
+  // });
+
+// Updated Validate mutation to handle multiple files
+const validateMutation = useMutation({
+  mutationFn: async () => {
+    if (!deploymentId) {
+      throw new Error('No active deployment to validate');
+    }
+    
+    const response = await fetch(`/api/deploy/${deploymentId}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sudo: validateUseSudo
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Validation failed');
+    }
+    
+    return response.json();
+  },
+  onSuccess: (data) => {
+    toast({
+      title: "Validation Complete",
+      description: "File validation has been completed.",
+    });
+    
+    if (data.results) {
+      data.results.forEach((result: any) => {
+        // Log VM-level status
+        setFileLogs(prev => [
+          ...prev, 
+          `Validation on ${result.vm}: ${result.status} - ${result.message}`
+        ]);
+        
+        // Log details for each file
+        if (result.files && result.files.length > 0) {
+          result.files.forEach((fileResult: any) => {
+            const checksum = fileResult.cksum && fileResult.cksum !== "File not found" 
+              ? `Checksum=${fileResult.cksum}` 
+              : 'No checksum available';
+            const permissions = fileResult.permissions && fileResult.permissions !== "N/A" 
+              ? `Permissions: ${fileResult.permissions}` 
+              : 'No permissions available';
+            
+            setFileLogs(prev => [
+              ...prev,
+              `  └─ ${fileResult.file}: ${fileResult.status}`,
+              `     ${checksum}`,
+              `     ${permissions}`
+            ]);
+          });
+        } else {
+          // Fallback for backward compatibility or error cases
           const checksum = result.cksum ? `Checksum=${result.cksum}` : 'No checksum available';
           const permissions = result.permissions ? `Permissions: ${result.permissions}` : '';
           
           setFileLogs(prev => [
             ...prev, 
-            `Validation on ${result.vm}: ${result.status}`, 
             checksum, 
             permissions
           ]);
-        });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Validation Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred during validation",
-        variant: "destructive",
+        }
+        
+        // Add separator for readability
+        setFileLogs(prev => [...prev, '']);
       });
-    },
-  });
+    }
+  },
+  onError: (error) => {
+    toast({
+      title: "Validation Failed",
+      description: error instanceof Error ? error.message : "An unknown error occurred during validation",
+      variant: "destructive",
+    });
+  },
+});
 
   // Run shell command mutation
   const shellCommandMutation = useMutation({
