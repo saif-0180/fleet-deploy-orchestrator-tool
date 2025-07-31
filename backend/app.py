@@ -3254,37 +3254,68 @@ def validate_deployment(deployment_id):
             log_message(deployment_id, f"Raw validation output on {vm_name}: {output}")
 
             # Process results for each file
+
             file_results = []
             for i, file_name in enumerate(files):
                 # Initialize defaults
                 cksum_info = "File not found"
                 perm_info = "N/A"
 
-                # Extract checksum for this specific file
-                cksum_pattern = rf'TASK \[Get file checksum for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
-                cksum_match = re.search(cksum_pattern, output, re.DOTALL)
-                if cksum_match:
-                    cksum_info = cksum_match.group(1).strip()
-                    logger.debug(f"Extracted checksum for {vm_name}:{file_name}: {cksum_info}")
-                else:
-                    # Fallback: try to find cksum_result_{i} pattern
-                    fallback_cksum = re.search(rf'"var": "cksum_result_{i}".*?"stdout": "(\d+\s+\d+)"', output, re.DOTALL)
-                    if fallback_cksum:
-                        cksum_info = fallback_cksum.group(1).strip()
-                        logger.debug(f"Extracted checksum (fallback) for {vm_name}:{file_name}: {cksum_info}")
+                logger.debug(f"Processing file {file_name} (index {i}) for VM {vm_name}")
 
-                # Extract permissions for this specific file
-                perm_pattern = rf'TASK \[Get file permissions for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
-                perm_match = re.search(perm_pattern, output, re.DOTALL)
-                if perm_match:
-                    perm_info = perm_match.group(1).strip()
-                    logger.debug(f"Extracted permissions for {vm_name}:{file_name}: {perm_info}")
-                else:
-                    # Fallback: try to find perm_result_{i} pattern
-                    fallback_perm = re.search(rf'"var": "perm_result_{i}".*?"stdout": "(-[rwx-]+\.?\s+\w+\s+\w+)"', output, re.DOTALL)
-                    if fallback_perm:
-                        perm_info = fallback_perm.group(1).strip()
-                        logger.debug(f"Extracted permissions (fallback) for {vm_name}:{file_name}: {perm_info}")
+                # Try multiple patterns to extract checksum
+                checksum_patterns = [
+                    # Pattern 1: Look for the specific task output
+                    rf'TASK \[Get file checksum for {re.escape(file_name)}\].*?"stdout": "([^"]*)"',
+                    # Pattern 2: Look for cksum_result_{i} variable
+                    rf'"var": "cksum_result_{i}".*?"stdout": "([^"]*)"',
+                    # Pattern 3: Look for any cksum_result_{i} pattern
+                    rf'cksum_result_{i}.*?"stdout": "([^"]*)"',
+                    # Pattern 4: Look for checksum pattern in debug output
+                    rf'DEBUG:.*{re.escape(file_name)}.*?(\d+\s+\d+)',
+                    # Pattern 5: Generic checksum pattern near file name
+                    rf'{re.escape(file_name)}.*?(\d+\s+\d+)'
+                ]
+
+                for pattern in checksum_patterns:
+                    cksum_match = re.search(pattern, output, re.DOTALL | re.IGNORECASE)
+                    if cksum_match:
+                        cksum_info = cksum_match.group(1).strip()
+                        logger.debug(f"Extracted checksum for {vm_name}:{file_name} using pattern: {cksum_info}")
+                        break
+
+                # Try multiple patterns to extract permissions
+                permission_patterns = [
+                    # Pattern 1: Look for the specific task output
+                    rf'TASK \[Get file permissions for {re.escape(file_name)}\].*?"stdout": "([^"]*)"',
+                    # Pattern 2: Look for perm_result_{i} variable
+                    rf'"var": "perm_result_{i}".*?"stdout": "([^"]*)"',
+                    # Pattern 3: Look for any perm_result_{i} pattern
+                    rf'perm_result_{i}.*?"stdout": "([^"]*)"',
+                    # Pattern 4: Look for permission pattern in debug output
+                    rf'DEBUG:.*{re.escape(file_name)}.*?(-[rwx-]+\.?\s+\w+\s+\w+)',
+                    # Pattern 5: Generic permission pattern near file name
+                    rf'{re.escape(file_name)}.*?(-[rwx-]+\.?\s+\w+\s+\w+)'
+                ]
+
+                for pattern in permission_patterns:
+                    perm_match = re.search(pattern, output, re.DOTALL | re.IGNORECASE)
+                    if perm_match:
+                        perm_info = perm_match.group(1).strip()
+                        logger.debug(f"Extracted permissions for {vm_name}:{file_name} using pattern: {perm_info}")
+                        break
+
+                # If we still don't have checksum, try looking in the debug logs from your backend
+                if cksum_info == "File not found":
+                    # Look for the debug pattern from your logs
+                    debug_pattern = rf'DEBUG:fix_deployment_orchestrator:.*{re.escape(file_name)}.*?(\d+\s+\d+)'
+                    debug_match = re.search(debug_pattern, output, re.IGNORECASE)
+                    if debug_match:
+                        cksum_info = debug_match.group(1).strip()
+                        logger.debug(f"Extracted checksum from debug log for {vm_name}:{file_name}: {cksum_info}")
+
+                # Log what we found for debugging
+                logger.info(f"Final extraction for {vm_name}:{file_name} - Checksum: '{cksum_info}', Permissions: '{perm_info}'")
 
                 file_results.append({
                     "file": file_name,
@@ -3295,6 +3326,47 @@ def validate_deployment(deployment_id):
 
                 result_message = f"{file_name}: Checksum={cksum_info}, Permissions={perm_info}"
                 log_message(deployment_id, f"Validation on {vm_name}: {result_message}")
+            # file_results = []
+            # for i, file_name in enumerate(files):
+            #     # Initialize defaults
+            #     cksum_info = "File not found"
+            #     perm_info = "N/A"
+
+            #     # Extract checksum for this specific file
+            #     cksum_pattern = rf'TASK \[Get file checksum for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
+            #     cksum_match = re.search(cksum_pattern, output, re.DOTALL)
+            #     if cksum_match:
+            #         cksum_info = cksum_match.group(1).strip()
+            #         logger.debug(f"Extracted checksum for {vm_name}:{file_name}: {cksum_info}")
+            #     else:
+            #         # Fallback: try to find cksum_result_{i} pattern
+            #         fallback_cksum = re.search(rf'"var": "cksum_result_{i}".*?"stdout": "(\d+\s+\d+)"', output, re.DOTALL)
+            #         if fallback_cksum:
+            #             cksum_info = fallback_cksum.group(1).strip()
+            #             logger.debug(f"Extracted checksum (fallback) for {vm_name}:{file_name}: {cksum_info}")
+
+            #     # Extract permissions for this specific file
+            #     perm_pattern = rf'TASK \[Get file permissions for {re.escape(file_name)}\].*?"stdout": "([^"]*)"'
+            #     perm_match = re.search(perm_pattern, output, re.DOTALL)
+            #     if perm_match:
+            #         perm_info = perm_match.group(1).strip()
+            #         logger.debug(f"Extracted permissions for {vm_name}:{file_name}: {perm_info}")
+            #     else:
+            #         # Fallback: try to find perm_result_{i} pattern
+            #         fallback_perm = re.search(rf'"var": "perm_result_{i}".*?"stdout": "(-[rwx-]+\.?\s+\w+\s+\w+)"', output, re.DOTALL)
+            #         if fallback_perm:
+            #             perm_info = fallback_perm.group(1).strip()
+            #             logger.debug(f"Extracted permissions (fallback) for {vm_name}:{file_name}: {perm_info}")
+
+            #     file_results.append({
+            #         "file": file_name,
+            #         "cksum": cksum_info,
+            #         "permissions": perm_info,
+            #         "status": "SUCCESS" if cksum_info != "File not found" else "ERROR"
+            #     })
+
+            #     result_message = f"{file_name}: Checksum={cksum_info}, Permissions={perm_info}"
+            #     log_message(deployment_id, f"Validation on {vm_name}: {result_message}")
 
             # Overall result for the VM
             overall_status = "SUCCESS" if all(f["status"] == "SUCCESS" for f in file_results) else "PARTIAL" if any(f["status"] == "SUCCESS" for f in file_results) else "ERROR"
