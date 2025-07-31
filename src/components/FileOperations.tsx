@@ -1151,7 +1151,7 @@ const rollbackMutation = useMutation({
                     <div><strong>Total Files:</strong> {selectedDeploymentDetails.fileCount ?? selectedDeploymentDetails.filesList?.length ?? 0}</div>
 
                     <div>
-                      <strong>File{(selectedDeploymentDetails.filesList?.length || 0) !== 1 ? 's' : ''}:</strong>
+                      <strong>Files ({selectedDeploymentDetails.filesList?.length || 0}) - {selectedDeploymentDetails.ft || 'N/A'}:</strong>
                       {selectedDeploymentDetails.filesList && selectedDeploymentDetails.filesList.length > 0 ? (
                         <ul className="list-disc ml-5 mt-1">
                           {selectedDeploymentDetails.filesList.map((file: string, idx: number) => (
