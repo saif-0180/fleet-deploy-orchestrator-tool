@@ -1139,8 +1139,32 @@ const rollbackMutation = useMutation({
                     )}
                   </div>
                 </div>
-
                 {/* Selected deployment details */}
+                {selectedDeploymentDetails && (
+                  <div className="mt-2 p-2 bg-blue-900/20 border border-blue-500/50 rounded text-xs text-blue-300">
+                    <div className="font-medium text-blue-400 mb-1">Deployment Details:</div>
+
+                    <div><strong>FT:</strong> {selectedDeploymentDetails.ft || 'N/A'}</div>
+                    <div><strong>User:</strong> {selectedDeploymentDetails.user || 'N/A'}</div>
+                    <div><strong>Target:</strong> {selectedDeploymentDetails.targetPath || selectedDeploymentDetails.target_path || 'N/A'}</div>
+                    <div><strong>VMs:</strong> {selectedDeploymentDetails.vms?.join(', ') || 'N/A'}</div>
+                    <div><strong>Total Files:</strong> {selectedDeploymentDetails.fileCount ?? selectedDeploymentDetails.filesList?.length ?? 0}</div>
+
+                    <div>
+                      <strong>File{(selectedDeploymentDetails.filesList?.length || 0) !== 1 ? 's' : ''}:</strong>
+                      {selectedDeploymentDetails.filesList && selectedDeploymentDetails.filesList.length > 0 ? (
+                        <ul className="list-disc ml-5 mt-1">
+                          {selectedDeploymentDetails.filesList.map((file: string, idx: number) => (
+                            <li key={idx}>{file}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span> N/A</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Selected deployment details
                 {selectedDeploymentDetails && (
                   <div className="mt-2 p-2 bg-blue-900/20 border border-blue-500/50 rounded text-xs text-blue-300">
                     <div className="font-medium text-blue-400 mb-1">Deployment Details:</div>
@@ -1161,7 +1185,7 @@ const rollbackMutation = useMutation({
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
 
 
                 {/* Warning message */}
