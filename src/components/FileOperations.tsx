@@ -1127,14 +1127,27 @@ const rollbackMutation = useMutation({
                                 : "Select a deployment"}
                         </div>
                       </SelectTrigger>
-
+                      
                       <SelectContent className="max-h-40">
+                        {recentFileDeployments.map((deployment) => {
+                          const filesList = deployment.filesList || [];
+                          const ft = deployment.ft || 'N/A';
+                          const displayText = `Files (${filesList.length}) - ${ft}: ${filesList.join(', ')}`;
+
+                          return (
+                            <SelectItem key={deployment.id} value={deployment.id} className="text-sm truncate">
+                              {displayText}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                      {/* <SelectContent className="max-h-40">
                         {recentFileDeployments.map((deployment) => (
                           <SelectItem key={deployment.id} value={deployment.id} className="text-sm">
                             {deployment.displayName || `Deployment ${deployment.id.slice(0, 8)}...`}
                           </SelectItem>
                         ))}
-                      </SelectContent>
+                      </SelectContent> */}
                     </Select>
 
                     {isLoadingDeployments && (
