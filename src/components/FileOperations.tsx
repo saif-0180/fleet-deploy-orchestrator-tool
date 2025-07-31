@@ -437,95 +437,95 @@ const FileOperations: React.FC = () => {
 // });
 
 // Updated Validate mutation to handle multiple files
-const validateMutation = useMutation({
-  mutationFn: async () => {
-    if (!deploymentId) {
-      throw new Error('No active deployment to validate');
-    }
-    
-    const response = await fetch(`/api/deploy/${deploymentId}/validate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sudo: validateUseSudo
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Validation failed');
-    }
-    
-    return response.json();
-  },
-  onSuccess: (data) => {
-    console.log('Validation response:', data); // Debug log
-    
-    toast({
-      title: "Validation Complete",
-      description: "File validation has been completed.",
-    });
-    
-    if (data.results) {
-      data.results.forEach((result: any) => {
-        console.log('Processing result for VM:', result.vm, result); // Debug log
-        
-        // Log VM-level status
-        setFileLogs(prev => [
-          ...prev, 
-          `Validation on ${result.vm}: ${result.status} - ${result.message}`
-        ]);
-        
-        // Check if this is the new multi-file format
-        if (result.files && result.files.length > 0) {
-          result.files.forEach((fileResult: any) => {
-            console.log('Processing file result:', fileResult); // Debug log
-            
-            const checksum = fileResult.cksum && fileResult.cksum !== "File not found" && fileResult.cksum.trim() !== "" 
-              ? `Checksum=${fileResult.cksum}` 
+  const validateMutation = useMutation({
+    mutationFn: async () => {
+      if (!deploymentId) {
+        throw new Error('No active deployment to validate');
+      }
+      
+      const response = await fetch(`/api/deploy/${deploymentId}/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sudo: validateUseSudo
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Validation failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Validation response:', data); // Debug log
+      
+      toast({
+        title: "Validation Complete",
+        description: "File validation has been completed.",
+      });
+      
+      if (data.results) {
+        data.results.forEach((result: any) => {
+          console.log('Processing result for VM:', result.vm, result); // Debug log
+          
+          // Log VM-level status
+          setFileLogs(prev => [
+            ...prev, 
+            `Validation on ${result.vm}: ${result.status} - ${result.message}`
+          ]);
+          
+          // Check if this is the new multi-file format
+          if (result.files && result.files.length > 0) {
+            result.files.forEach((fileResult: any) => {
+              console.log('Processing file result:', fileResult); // Debug log
+              
+              const checksum = fileResult.cksum && fileResult.cksum !== "File not found" && fileResult.cksum.trim() !== "" 
+                ? `Checksum=${fileResult.cksum}` 
+                : 'No checksum available';
+              const permissions = fileResult.permissions && fileResult.permissions !== "N/A" && fileResult.permissions.trim() !== ""
+                ? `Permissions: ${fileResult.permissions}` 
+                : 'No permissions available';
+              
+              setFileLogs(prev => [
+                ...prev,
+                `  └─ ${fileResult.file}: ${fileResult.status}`,
+                `     ${checksum}`,
+                `     ${permissions}`
+              ]);
+            });
+          } else {
+            // Fallback for legacy single-file format or when files array is empty
+            const checksum = result.cksum && result.cksum !== "File not found" && result.cksum.trim() !== ""
+              ? `Checksum=${result.cksum}` 
               : 'No checksum available';
-            const permissions = fileResult.permissions && fileResult.permissions !== "N/A" && fileResult.permissions.trim() !== ""
-              ? `Permissions: ${fileResult.permissions}` 
+            const permissions = result.permissions && result.permissions !== "N/A" && result.permissions.trim() !== ""
+              ? `Permissions: ${result.permissions}` 
               : 'No permissions available';
             
             setFileLogs(prev => [
-              ...prev,
-              `  └─ ${fileResult.file}: ${fileResult.status}`,
+              ...prev, 
               `     ${checksum}`,
               `     ${permissions}`
             ]);
-          });
-        } else {
-          // Fallback for legacy single-file format or when files array is empty
-          const checksum = result.cksum && result.cksum !== "File not found" && result.cksum.trim() !== ""
-            ? `Checksum=${result.cksum}` 
-            : 'No checksum available';
-          const permissions = result.permissions && result.permissions !== "N/A" && result.permissions.trim() !== ""
-            ? `Permissions: ${result.permissions}` 
-            : 'No permissions available';
+          }
           
-          setFileLogs(prev => [
-            ...prev, 
-            `     ${checksum}`,
-            `     ${permissions}`
-          ]);
-        }
-        
-        // Add separator for readability
-        setFileLogs(prev => [...prev, '']);
+          // Add separator for readability
+          setFileLogs(prev => [...prev, '']);
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Validation Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred during validation",
+        variant: "destructive",
       });
-    }
-  },
-  onError: (error) => {
-    toast({
-      title: "Validation Failed",
-      description: error instanceof Error ? error.message : "An unknown error occurred during validation",
-      variant: "destructive",
-    });
-  },
-});
+    },
+  });
 
   // Run shell command mutation
   const shellCommandMutation = useMutation({
