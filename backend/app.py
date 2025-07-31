@@ -3759,6 +3759,69 @@ def get_deployment_history():
 
 # API to get logs for a specific deployment
 
+# @app.route('/api/deployments/files/recent', methods=['GET'])
+# def get_recent_file_deployments():
+#     """Get recent successful file deployments for rollback purposes"""
+#     try:
+#         logger.info("Fetching recent file deployments")
+        
+#         # Filter and sort deployments
+#         file_deployments = []
+        
+#         for deployment_id, deployment in deployments.items():
+#             # Only include successful file deployments
+#             if (deployment.get("type") == "file" and 
+#                 deployment.get("status") == "success"):
+                
+#                 # Ensure timestamp is properly formatted
+#                 timestamp = deployment.get("timestamp")
+#                 if isinstance(timestamp, (int, float)):
+#                     # Convert to ISO format for consistent frontend handling
+#                     deployment_copy = deployment.copy()
+#                     deployment_copy["timestamp"] = datetime.fromtimestamp(timestamp).isoformat()
+#                 elif isinstance(timestamp, str):
+#                     # Keep string timestamps as-is (should already be ISO format)
+#                     deployment_copy = deployment.copy()
+#                 else:
+#                     # Fallback for missing/invalid timestamps
+#                     deployment_copy = deployment.copy()
+#                     deployment_copy["timestamp"] = datetime.now(timezone.utc).isoformat()
+                
+#                 file_deployments.append(deployment_copy)
+        
+#         # Sort by timestamp (most recent first)
+#         # Convert timestamps to floats for sorting
+#         for deployment in file_deployments:
+#             timestamp_str = deployment["timestamp"]
+#             try:
+#                 if 'T' in timestamp_str:
+#                     # ISO format
+#                     dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+#                     deployment["_sort_timestamp"] = dt.timestamp()
+#                 else:
+#                     # Assume it's already a timestamp string
+#                     deployment["_sort_timestamp"] = float(timestamp_str)
+#             except (ValueError, TypeError):
+#                 # Fallback to current time for invalid timestamps
+#                 deployment["_sort_timestamp"] = time.time()
+        
+#         # Sort by the normalized timestamp
+#         file_deployments.sort(key=lambda x: x["_sort_timestamp"], reverse=True)
+        
+#         # Remove the temporary sorting field and limit to 10 most recent
+#         recent_deployments = []
+#         for deployment in file_deployments[:10]:
+#             deployment.pop("_sort_timestamp", None)
+#             recent_deployments.append(deployment)
+        
+#         logger.info(f"Found {len(recent_deployments)} recent file deployments")
+#         return jsonify(recent_deployments)
+        
+#     except Exception as e:
+#         logger.error(f"Error fetching recent file deployments: {str(e)}")
+#         return jsonify({"error": "Failed to fetch recent deployments"}), 500
+
+# API to get recent successful file deployments for rollback purposes
 @app.route('/api/deployments/files/recent', methods=['GET'])
 def get_recent_file_deployments():
     """Get recent successful file deployments for rollback purposes"""
@@ -3787,7 +3850,33 @@ def get_recent_file_deployments():
                     deployment_copy = deployment.copy()
                     deployment_copy["timestamp"] = datetime.now(timezone.utc).isoformat()
                 
-                file_deployments.append(deployment_copy)
+                # Handle both single file (legacy) and multiple files display
+                files = deployment_copy.get("files", [deployment_copy.get("file")] if deployment_copy.get("file") else [])
+                
+                if files:
+                    # Add file count and file list for frontend display
+                    deployment_copy["fileCount"] = len(files)
+                    deployment_copy["filesList"] = files
+                    
+                    # Create a display name that shows file count and names
+                    if len(files) == 1:
+                        deployment_copy["displayName"] = f"File: {files[0]}"
+                    else:
+                        # For multiple files, show count and first few file names
+                        if len(files) <= 3:
+                            deployment_copy["displayName"] = f"Files ({len(files)}): {', '.join(files)}"
+                        else:
+                            # Show first 2 files and indicate there are more
+                            first_files = ', '.join(files[:2])
+                            deployment_copy["displayName"] = f"Files ({len(files)}): {first_files} and {len(files)-2} more..."
+                    
+                    # Add summary for logs/UI
+                    deployment_copy["summary"] = f"Deployed {len(files)} file(s) to {len(deployment_copy.get('vms', []))} VM(s)"
+                    
+                    file_deployments.append(deployment_copy)
+                else:
+                    # Skip deployments with no files
+                    logger.warning(f"Skipping deployment {deployment_id} - no files found")
         
         # Sort by timestamp (most recent first)
         # Convert timestamps to floats for sorting
@@ -3815,6 +3904,12 @@ def get_recent_file_deployments():
             recent_deployments.append(deployment)
         
         logger.info(f"Found {len(recent_deployments)} recent file deployments")
+        
+        # Log summary for debugging
+        for deployment in recent_deployments[:3]:  # Log first 3 for debugging
+            files_info = f"{deployment.get('fileCount', 0)} file(s)"
+            logger.debug(f"Recent deployment: {deployment['id'][:8]}... - {files_info} - {deployment.get('displayName', 'No display name')}")
+        
         return jsonify(recent_deployments)
         
     except Exception as e:
@@ -4013,6 +4108,190 @@ def get_command_logs(command_id):
             return jsonify({"error": "Command not found"}), 404
 
 # Add a rollback endpoint
+# @app.route('/api/deploy/<deployment_id>/rollback', methods=['POST'])
+# def rollback_deployment(deployment_id):
+#     logger.info(f"Rolling back deployment with ID: {deployment_id}")
+
+#     # Get current authenticated user
+#     current_user = get_current_user()
+#     if not current_user:
+#         return jsonify({"error": "Authentication required"}), 401 
+    
+#     if deployment_id not in deployments:
+#         logger.error(f"Deployment not found with ID: {deployment_id}")
+#         return jsonify({"error": "Deployment not found"}), 404
+    
+#     deployment = deployments[deployment_id]
+    
+#     if deployment["type"] != "file":
+#         logger.error(f"Cannot rollback non-file deployment type: {deployment['type']}")
+#         return jsonify({"error": "Only file deployments can be rolled back"}), 400
+    
+#     # Generate a new deployment ID for the rollback operation
+#     rollback_id = str(uuid.uuid4())
+    
+#     # Create a rollback deployment record
+#     deployments[rollback_id] = {
+#         "id": rollback_id,
+#         "type": "rollback",
+#         "original_deployment": deployment_id,
+#         "ft": deployment.get("ft"),
+#         "file": deployment.get("file"),
+#         "target_path": deployment.get("target_path"),
+#         "logged_in_user": current_user['username'],  # User who initiated the deployment
+#         "user_role": current_user['role'],  # Role of the user who initiated
+#         "vms": deployment.get("vms"),
+#         "user": deployment.get("user"),
+#         "sudo": deployment.get("sudo", False),
+#         "status": "running",
+#         "timestamp": time.time(),
+#         "logs": []
+#     }
+    
+#     # Save deployment history
+#     save_deployment_history()
+    
+#     # Start rollback in a separate thread
+#     threading.Thread(target=process_rollback, args=(rollback_id,)).start()
+    
+#     logger.info(f"Rollback initiated with ID: {rollback_id}")
+#     return jsonify({"deploymentId": rollback_id})
+
+    
+# def process_rollback(rollback_id):
+#     rollback = deployments[rollback_id]
+#     try:
+#         original_id = rollback["original_deployment"]
+#         vms = rollback["vms"]
+#         logged_in_user = rollback["logged_in_user"]  # User who initiated
+#         target_path = os.path.join(rollback["target_path"], rollback["file"])
+#         user = rollback["user"]
+#         sudo = rollback["sudo"]
+        
+#         log_message(rollback_id, f"Starting rollback for deployment {original_id}")
+        
+#         # Get current timestamp for backup naming
+#         timestamp = int(time.time())
+        
+#         # Track overall rollback success
+#         overall_success = True
+#         failed_vms = []
+        
+#         # Process rollback for each VM
+#         for vm_name in vms:
+#             vm = next((v for v in inventory["vms"] if v["name"] == vm_name), None)
+#             if not vm:
+#                 log_message(rollback_id, f"ERROR: VM {vm_name} not found in inventory")
+#                 failed_vms.append(vm_name)
+#                 overall_success = False
+#                 continue
+            
+#             # Generate rollback playbook
+#             playbook_file = f"/tmp/rollback_{rollback_id}_{vm_name}.yml"
+#             with open(playbook_file, 'w') as f:
+#                 f.write(f"""---
+# - name: Rollback file deployment (backup and remove)
+#   hosts: {vm_name}
+#   gather_facts: false
+#   become: {"true" if sudo else "false"}
+#   become_user: {user}
+#   tasks:
+#     - name: Test connection
+#       ping:
+    
+#     - name: Check if target file exists
+#       ansible.builtin.stat:
+#         path: "{target_path}"
+#       register: target_file_stat
+    
+#     - name: Create backup of current file
+#       ansible.builtin.copy:
+#         src: "{target_path}"
+#         dest: "{target_path}_{timestamp}"
+#         remote_src: yes
+#         backup: no
+#       when: target_file_stat.stat.exists
+#       register: backup_result
+    
+#     - name: Log backup creation
+#       ansible.builtin.debug:
+#         msg: "Created backup: {target_path}_{timestamp}"
+#       when: target_file_stat.stat.exists and backup_result.changed
+    
+#     - name: Remove original file (rollback)
+#       ansible.builtin.file:
+#         path: "{target_path}"
+#         state: absent
+#       when: target_file_stat.stat.exists
+#       register: remove_result
+    
+#     - name: Log file removal
+#       ansible.builtin.debug:
+#         msg: "Removed original file: {target_path}"
+#       when: target_file_stat.stat.exists and remove_result.changed
+    
+#     - name: File not found
+#       ansible.builtin.debug:
+#         msg: "Target file {target_path} does not exist - nothing to rollback"
+#       when: not target_file_stat.stat.exists
+# """)
+            
+#             # Generate inventory file
+#             inventory_file = f"/tmp/rollback_inventory_{rollback_id}_{vm_name}"
+#             with open(inventory_file, 'w') as f:
+#                 f.write(f"{vm_name} ansible_host={vm['ip']} ansible_user=infadm ansible_ssh_private_key_file=/home/users/infadm/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=/tmp/ansible-ssh/%h-%p-%r -o ControlPersist=60s'")
+            
+#             # Run ansible playbook
+#             cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
+#             log_message(rollback_id, f"Running rollback on {vm_name}: backup and remove {target_path}")
+            
+#             env_vars = os.environ.copy()
+#             env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
+#             env_vars["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+#             env_vars["ANSIBLE_SSH_CONTROL_PATH"] = "/tmp/ansible-ssh/%h-%p-%r"
+#             env_vars["ANSIBLE_SSH_CONTROL_PATH_DIR"] = "/tmp/ansible-ssh"
+            
+#             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env_vars)
+            
+#             for line in process.stdout:
+#                 log_message(rollback_id, line.strip())
+            
+#             process.wait()
+            
+#             if process.returncode == 0:
+#                 log_message(rollback_id, f"Rollback completed successfully on {vm_name}")
+#                 log_message(rollback_id, f"File backed up as: {target_path}_{timestamp}")
+#             else:
+#                 log_message(rollback_id, f"FAILED: Rollback failed on {vm_name} (exit code: {process.returncode})")
+#                 failed_vms.append(vm_name)
+#                 overall_success = False
+            
+#             # Cleanup temporary files
+#             try:
+#                 os.remove(playbook_file)
+#                 os.remove(inventory_file)
+#             except Exception as cleanup_error:
+#                 log_message(rollback_id, f"Warning: Could not cleanup temp files: {str(cleanup_error)}")
+        
+#         # Update rollback status based on overall success
+#         if overall_success:
+#             deployments[rollback_id]["status"] = "success"
+#             deployments[rollback_id]["backup_timestamp"] = timestamp
+#             log_message(rollback_id, f"Rollback operation completed successfully on all VMs(initiated by {logged_in_user}) . Files backed up with timestamp: {timestamp}")
+#         else:
+#             deployments[rollback_id]["status"] = "failed"
+#             if failed_vms:
+#                 log_message(rollback_id, f"Rollback FAILED on VMs: {', '.join(failed_vms)} (initiated by {logged_in_user})")
+#             log_message(rollback_id, "Rollback operation completed with failures")
+        
+#         save_deployment_history()
+        
+#     except Exception as e:
+#         log_message(rollback_id, f"ERROR: Exception during rollback: {str(e)} (initiated by {logged_in_user})")
+#         deployments[rollback_id]["status"] = "failed"
+#         logger.exception(f"Exception in rollback {rollback_id}: {str(e)}")
+#         save_deployment_history()
+
 @app.route('/api/deploy/<deployment_id>/rollback', methods=['POST'])
 def rollback_deployment(deployment_id):
     logger.info(f"Rolling back deployment with ID: {deployment_id}")
@@ -4035,16 +4314,24 @@ def rollback_deployment(deployment_id):
     # Generate a new deployment ID for the rollback operation
     rollback_id = str(uuid.uuid4())
     
+    # Handle both single file (legacy) and multiple files
+    files = deployment.get("files", [deployment.get("file")] if deployment.get("file") else [])
+    
+    if not files:
+        logger.error(f"No files found in deployment {deployment_id} for rollback")
+        return jsonify({"error": "No files to rollback"}), 400
+    
     # Create a rollback deployment record
     deployments[rollback_id] = {
         "id": rollback_id,
         "type": "rollback",
         "original_deployment": deployment_id,
         "ft": deployment.get("ft"),
-        "file": deployment.get("file"),
+        "files": files,  # Store files array for rollback tracking
+        "file": deployment.get("file"),  # Keep for backward compatibility
         "target_path": deployment.get("target_path"),
-        "logged_in_user": current_user['username'],  # User who initiated the deployment
-        "user_role": current_user['role'],  # Role of the user who initiated
+        "logged_in_user": current_user['username'],
+        "user_role": current_user['role'],
         "vms": deployment.get("vms"),
         "user": deployment.get("user"),
         "sudo": deployment.get("sudo", False),
@@ -4059,8 +4346,11 @@ def rollback_deployment(deployment_id):
     # Start rollback in a separate thread
     threading.Thread(target=process_rollback, args=(rollback_id,)).start()
     
-    logger.info(f"Rollback initiated with ID: {rollback_id}")
-    return jsonify({"deploymentId": rollback_id})
+    logger.info(f"Rollback initiated with ID: {rollback_id} for {len(files)} file(s)")
+    return jsonify({
+        "deploymentId": rollback_id,
+        "fileCount": len(files)
+    })
 
     
 def process_rollback(rollback_id):
@@ -4068,12 +4358,22 @@ def process_rollback(rollback_id):
     try:
         original_id = rollback["original_deployment"]
         vms = rollback["vms"]
-        logged_in_user = rollback["logged_in_user"]  # User who initiated
-        target_path = os.path.join(rollback["target_path"], rollback["file"])
+        logged_in_user = rollback["logged_in_user"]
+        target_path = rollback["target_path"]
         user = rollback["user"]
         sudo = rollback["sudo"]
         
-        log_message(rollback_id, f"Starting rollback for deployment {original_id}")
+        # Handle both single file (legacy) and multiple files
+        files = rollback.get("files", [rollback.get("file")] if rollback.get("file") else [])
+        
+        if not files:
+            log_message(rollback_id, f"ERROR: No files found for rollback")
+            deployments[rollback_id]["status"] = "failed"
+            save_deployment_history()
+            return
+        
+        log_message(rollback_id, f"Starting rollback for deployment {original_id} - {len(files)} file(s)")
+        log_message(rollback_id, f"Files to rollback: {', '.join(files)}")
         
         # Get current timestamp for backup naming
         timestamp = int(time.time())
@@ -4091,11 +4391,11 @@ def process_rollback(rollback_id):
                 overall_success = False
                 continue
             
-            # Generate rollback playbook
+            # Generate rollback playbook for multiple files
             playbook_file = f"/tmp/rollback_{rollback_id}_{vm_name}.yml"
             with open(playbook_file, 'w') as f:
                 f.write(f"""---
-- name: Rollback file deployment (backup and remove)
+- name: Rollback multiple file deployment (backup and remove)
   hosts: {vm_name}
   gather_facts: false
   become: {"true" if sudo else "false"}
@@ -4103,42 +4403,47 @@ def process_rollback(rollback_id):
   tasks:
     - name: Test connection
       ping:
-    
-    - name: Check if target file exists
+""")
+                
+                # Add tasks for each file
+                for i, file_name in enumerate(files):
+                    target_file_path = os.path.join(target_path, file_name)
+                    f.write(f"""
+    - name: Check if {file_name} exists
       ansible.builtin.stat:
-        path: "{target_path}"
-      register: target_file_stat
+        path: "{target_file_path}"
+      register: target_file_stat_{i}
     
-    - name: Create backup of current file
+    - name: Create backup of {file_name}
       ansible.builtin.copy:
-        src: "{target_path}"
-        dest: "{target_path}_{timestamp}"
+        src: "{target_file_path}"
+        dest: "{target_file_path}_{timestamp}"
         remote_src: yes
         backup: no
-      when: target_file_stat.stat.exists
-      register: backup_result
+      when: target_file_stat_{i}.stat.exists
+      register: backup_result_{i}
     
-    - name: Log backup creation
+    - name: Log backup creation for {file_name}
       ansible.builtin.debug:
-        msg: "Created backup: {target_path}_{timestamp}"
-      when: target_file_stat.stat.exists and backup_result.changed
+        msg: "Created backup: {target_file_path}_{timestamp}"
+      when: target_file_stat_{i}.stat.exists and backup_result_{i}.changed
     
-    - name: Remove original file (rollback)
+    - name: Remove {file_name} (rollback)
       ansible.builtin.file:
-        path: "{target_path}"
+        path: "{target_file_path}"
         state: absent
-      when: target_file_stat.stat.exists
-      register: remove_result
+      when: target_file_stat_{i}.stat.exists
+      register: remove_result_{i}
     
-    - name: Log file removal
+    - name: Log file removal for {file_name}
       ansible.builtin.debug:
-        msg: "Removed original file: {target_path}"
-      when: target_file_stat.stat.exists and remove_result.changed
+        msg: "Removed original file: {target_file_path}"
+      when: target_file_stat_{i}.stat.exists and remove_result_{i}.changed
     
-    - name: File not found
+    - name: File {file_name} not found
       ansible.builtin.debug:
-        msg: "Target file {target_path} does not exist - nothing to rollback"
-      when: not target_file_stat.stat.exists
+        msg: "Target file {target_file_path} does not exist - nothing to rollback"
+      when: not target_file_stat_{i}.stat.exists
 """)
             
             # Generate inventory file
@@ -4148,7 +4453,7 @@ def process_rollback(rollback_id):
             
             # Run ansible playbook
             cmd = ["ansible-playbook", "-i", inventory_file, playbook_file, "-v"]
-            log_message(rollback_id, f"Running rollback on {vm_name}: backup and remove {target_path}")
+            log_message(rollback_id, f"Running rollback on {vm_name}: backup and remove {len(files)} file(s)")
             
             env_vars = os.environ.copy()
             env_vars["ANSIBLE_CONFIG"] = "/etc/ansible/ansible.cfg"
@@ -4165,7 +4470,11 @@ def process_rollback(rollback_id):
             
             if process.returncode == 0:
                 log_message(rollback_id, f"Rollback completed successfully on {vm_name}")
-                log_message(rollback_id, f"File backed up as: {target_path}_{timestamp}")
+                log_message(rollback_id, f"Files backed up with timestamp: {timestamp}")
+                # Log each file that was backed up
+                for file_name in files:
+                    target_file_path = os.path.join(target_path, file_name)
+                    log_message(rollback_id, f"  - {file_name} backed up as: {target_file_path}_{timestamp}")
             else:
                 log_message(rollback_id, f"FAILED: Rollback failed on {vm_name} (exit code: {process.returncode})")
                 failed_vms.append(vm_name)
@@ -4182,7 +4491,7 @@ def process_rollback(rollback_id):
         if overall_success:
             deployments[rollback_id]["status"] = "success"
             deployments[rollback_id]["backup_timestamp"] = timestamp
-            log_message(rollback_id, f"Rollback operation completed successfully on all VMs(initiated by {logged_in_user}) . Files backed up with timestamp: {timestamp}")
+            log_message(rollback_id, f"Rollback operation completed successfully on all VMs (initiated by {logged_in_user}). {len(files)} file(s) backed up with timestamp: {timestamp}")
         else:
             deployments[rollback_id]["status"] = "failed"
             if failed_vms:
