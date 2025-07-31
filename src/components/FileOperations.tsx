@@ -1116,16 +1116,18 @@ const rollbackMutation = useMutation({
                         id="rollback-select" 
                         className="bg-[#2A4759] text-[#EEEEEE] border-[#EEEEEE]/30 pr-8"
                       >
-                        <SelectValue 
-                          placeholder={
-                            isLoadingDeployments 
+                        {/* Custom display inside dropdown */}
+                        <div className="truncate text-left w-full">
+                          {selectedDeploymentDetails
+                            ? `Files (${selectedDeploymentDetails.filesList?.length || 0}) - ${selectedDeploymentDetails.ft || 'N/A'}: ${selectedDeploymentDetails.filesList?.join(', ') || 'N/A'}`
+                            : isLoadingDeployments 
                               ? "Loading deployments..." 
                               : recentFileDeployments.length === 0 
                                 ? "No deployments available" 
-                                : "Select a deployment"
-                          } 
-                        />
+                                : "Select a deployment"}
+                        </div>
                       </SelectTrigger>
+
                       <SelectContent className="max-h-40">
                         {recentFileDeployments.map((deployment) => (
                           <SelectItem key={deployment.id} value={deployment.id} className="text-sm">
@@ -1134,11 +1136,13 @@ const rollbackMutation = useMutation({
                         ))}
                       </SelectContent>
                     </Select>
+
                     {isLoadingDeployments && (
                       <RefreshCcw className="absolute right-8 top-1/2 transform -translate-y-1/2 h-3 w-3 animate-spin text-[#EEEEEE]" />
                     )}
                   </div>
                 </div>
+
                 {/* Selected deployment details */}
                 {selectedDeploymentDetails && (
                   <div className="mt-2 p-2 bg-blue-900/20 border border-blue-500/50 rounded text-xs text-blue-300">
