@@ -2,7 +2,6 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app
 COPY package*.json ./
-RUN pip install gpt4all>=2.5.0
 RUN npm install && npm install -g vite
 #RUN npm config set strict-ssl false && \
 #    npm config set registry https://registry.npmjs.org/ && \
@@ -19,6 +18,7 @@ FROM python:3.10-slim AS backend-build
 WORKDIR /app/backend
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Final Stage
 FROM python:3.10-slim
@@ -44,6 +44,7 @@ COPY --from=frontend-build /app/dist /app/frontend/dist
 COPY --from=backend-build /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY backend /app/backend
 
+
 # Install ansible, SSH dependencies, and PostgreSQL client
 RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && \
     apt-get install -y \
@@ -56,6 +57,17 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=fa
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Create models directory
+RUN mkdir -p /app/models
+
+# Download models during build (replace with your required models)
+RUN echo "Downloading GPT4All models..." && \
+    wget -O /app/models/Meta-Llama-3-8B-Instruct.Q4_0.gguf \
+    "https://gpt4all.io/models/gguf/Meta-Llama-3-8B-Instruct.Q4_0.gguf" && \
+    wget -O /app/models/orca-mini-3b-gguf2-q4_0.gguf \
+    "https://gpt4all.io/models/gguf/orca-mini-3b-gguf2-q4_0.gguf" && \
+    echo "Models downloaded successfully"
 
 # Create necessary directories with proper ownership
 RUN mkdir -p /home/users/$USERNAME/.ssh \
@@ -84,6 +96,10 @@ ENV HOME=/home/users/$USERNAME
 
 # Expose ports
 EXPOSE 5000
+
+# Set environment variables to use local models
+ENV GPT4ALL_MODEL_PATH="/app/models"
+ENV GPT4ALL_MODEL="orca-mini-3b-gguf2-q4_0.gguf"
 
 # Set environment variables
 ENV FLASK_APP=backend/app.py
