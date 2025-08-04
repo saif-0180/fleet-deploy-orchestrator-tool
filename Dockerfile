@@ -1,5 +1,5 @@
 # Dockerfile - Application image built on top of base
-FROM your-registry/fleet-orchestrator-base:latest
+FROM fix-deployment-orchestrator:base_image
 
 WORKDIR /app
 
@@ -15,12 +15,12 @@ COPY . .
 RUN vite build
 
 # Back to main application build
-FROM your-registry/fleet-orchestrator-base:latest
+FROM fix-deployment-orchestrator:base_image
 WORKDIR /app
 
 # Switch to root temporarily for copying files
-USER root
 
+USER root
 # Copy frontend build
 COPY --from=frontend-build /app/dist /app/frontend/dist
 
