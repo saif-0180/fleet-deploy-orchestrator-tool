@@ -7,29 +7,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # GPT4All Model Download Stage
 FROM python:3.10-slim AS model-download
 WORKDIR /app
+COPY download_models.py .
 RUN pip install gpt4all>=2.5.0
-# Pre-download models during build
-RUN python3 -c "
-from gpt4all import GPT4All
-import os
-
-# Create models directory
-os.makedirs('/app/models', exist_ok=True)
-
-# Download models
-print('Downloading orca-mini-3b model...')
-model1 = GPT4All('orca-mini-3b-gguf2-q4_0.gguf', model_path='/app/models')
-print('orca-mini-3b downloaded successfully')
-
-print('Downloading Meta-Llama-3-8B model...')
-model2 = GPT4All('Meta-Llama-3-8B-Instruct.Q4_0.gguf', model_path='/app/models')
-print('Meta-Llama-3-8B downloaded successfully')
-
-# Verify models are downloaded
-import glob
-models = glob.glob('/app/models/*.gguf')
-print(f'Downloaded models: {models}')
-"
+RUN python3 download_models.py
 
 # Final Stage
 FROM python:3.10-slim
