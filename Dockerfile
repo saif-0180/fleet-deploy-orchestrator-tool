@@ -1,24 +1,35 @@
-# Frontend Build Stage
-FROM node:18-alpine AS frontend-build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install && npm install -g vite
-#RUN npm config set strict-ssl false && \
-#    npm config set registry https://registry.npmjs.org/ && \
-#    npm install --no-optional --no-audit --no-fund
-#RUN npm config set strict-ssl false && \
-#    npm install -g vite
-COPY . .
-#RUN npm config set strict-ssl false && \
-#    npx vite build
-RUN vite build
-
 # Backend Build Stage
 FROM python:3.10-slim AS backend-build
 WORKDIR /app/backend
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# GPT4All Model Download Stage
+FROM python:3.10-slim AS model-download
+WORKDIR /app
+RUN pip install gpt4all>=2.5.0
+# Pre-download models during build
+RUN python3 -c "
+from gpt4all import GPT4All
+import os
+
+# Create models directory
+os.makedirs('/app/models', exist_ok=True)
+
+# Download models
+print('Downloading orca-mini-3b model...')
+model1 = GPT4All('orca-mini-3b-gguf2-q4_0.gguf', model_path='/app/models')
+print('orca-mini-3b downloaded successfully')
+
+print('Downloading Meta-Llama-3-8B model...')
+model2 = GPT4All('Meta-Llama-3-8B-Instruct.Q4_0.gguf', model_path='/app/models')
+print('Meta-Llama-3-8B downloaded successfully')
+
+# Verify models are downloaded
+import glob
+models = glob.glob('/app/models/*.gguf')
+print(f'Downloaded models: {models}')
+"
 
 # Final Stage
 FROM python:3.10-slim
@@ -30,10 +41,6 @@ ARG GROUP_ID=1002
 ARG USERNAME=infadm
 ARG GROUP_NAME=aimsys
 
-# Create group and user with specific IDs
-#RUN groupadd -g $GROUP_ID $USERNAME && \
-#    useradd -u $USER_ID -g $GROUP_ID -m -s /bin/bash $USERNAME
-
 RUN groupadd -g $GROUP_ID $GROUP_NAME && \
     useradd -u $USER_ID -g $GROUP_NAME -m -s /bin/bash $USERNAME
 
@@ -44,8 +51,10 @@ COPY --from=frontend-build /app/dist /app/frontend/dist
 COPY --from=backend-build /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY backend /app/backend
 
+# Copy pre-downloaded models
+COPY --from=model-download /app/models /app/models
 
-# Install ansible, SSH dependencies, and PostgreSQL client
+# Install system dependencies
 RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && \
     apt-get install -y \
         ansible \
@@ -57,17 +66,6 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=fa
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Create models directory
-RUN mkdir -p /app/models
-
-# Download models during build (replace with your required models)
-RUN echo "Downloading GPT4All models..." && \
-    wget -O /app/models/Meta-Llama-3-8B-Instruct.Q4_0.gguf \
-    "https://gpt4all.io/models/gguf/Meta-Llama-3-8B-Instruct.Q4_0.gguf" && \
-    wget -O /app/models/orca-mini-3b-gguf2-q4_0.gguf \
-    "https://gpt4all.io/models/gguf/orca-mini-3b-gguf2-q4_0.gguf" && \
-    echo "Models downloaded successfully"
 
 # Create necessary directories with proper ownership
 RUN mkdir -p /home/users/$USERNAME/.ssh \
@@ -85,23 +83,14 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     chown $USERNAME:$GROUP_NAME /entrypoint.sh
 
-# Give sudo access to infadm user (if needed for ansible)
+# Give sudo access to infadm user
 RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Switch to the infadm user
 USER $USERNAME
 
-# Set HOME environment variable
-ENV HOME=/home/users/$USERNAME
-
-# Expose ports
-EXPOSE 5000
-
-# Set environment variables to use local models
-ENV GPT4ALL_MODEL_PATH="/app/models"
-ENV GPT4ALL_MODEL="orca-mini-3b-gguf2-q4_0.gguf"
-
 # Set environment variables
+ENV HOME=/home/users/$USERNAME
 ENV FLASK_APP=backend/app.py
 ENV FLASK_ENV=production
 ENV ANSIBLE_HOST_KEY_CHECKING=False
@@ -110,9 +99,13 @@ ENV ANSIBLE_SSH_CONTROL_PATH_DIR=/tmp/ansible-ssh
 ENV PYTHONUNBUFFERED=1
 ENV LOG_FILE_PATH=/app/logs/application.log
 ENV DEPLOYMENT_LOGS_DIR=/app/logs
+# GPT4All configuration
+ENV GPT4ALL_MODEL_PATH=/app/models
+ENV GPT4ALL_MODEL=orca-mini-3b-gguf2-q4_0.gguf
+
+# Expose ports
+EXPOSE 5000
 
 # Start with entrypoint script
 ENTRYPOINT ["/entrypoint.sh"]
-
-# CMD to run the Flask server
 CMD ["python", "backend/app.py"]

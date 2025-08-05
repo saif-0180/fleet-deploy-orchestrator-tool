@@ -3,9 +3,27 @@ import re
 from typing import Dict, List, Any
 from gpt4all import GPT4All
 
+# class GPT4AllLogAnalyzer:
+#     def __init__(self, model_name="Meta-Llama-3-8B-Instruct.Q4_0.gguf"):
+#         self.model = GPT4All(model_name)
+
 class GPT4AllLogAnalyzer:
-    def __init__(self, model_name="Meta-Llama-3-8B-Instruct.Q4_0.gguf"):
-        self.model = GPT4All(model_name)
+    def __init__(self, model_name=None, model_path=None):
+        self.model_path = model_path or GPT4ALL_CONFIG['model_path']
+        self.model_name = model_name or GPT4ALL_CONFIG['model_name']
+        
+        # Verify model exists locally
+        model_file_path = os.path.join(self.model_path, self.model_name)
+        if not os.path.exists(model_file_path):
+            available_models = [f for f in os.listdir(self.model_path) if f.endswith('.gguf')]
+            if available_models:
+                print(f"Model {self.model_name} not found, using {available_models[0]}")
+                self.model_name = available_models[0]
+            else:
+                raise FileNotFoundError(f"No models found in {self.model_path}")
+        
+        print(f"Initializing GPT4All with model: {self.model_name} from {self.model_path}")
+        self.model = GPT4All(self.model_name, model_path=self.model_path)
         
     def analyze_logs(self, logs: List[str], deployment_id: str = None) -> Dict[str, Any]:
         """
