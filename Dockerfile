@@ -2,6 +2,7 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app
 COPY package*.json ./
+RUN pip install gpt4all>=2.5.0
 RUN npm install && npm install -g vite
 #RUN npm config set strict-ssl false && \
 #    npm config set registry https://registry.npmjs.org/ && \
