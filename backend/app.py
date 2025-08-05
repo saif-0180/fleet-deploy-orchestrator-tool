@@ -18,6 +18,7 @@ from werkzeug.utils import secure_filename
 from routes.auth_routes import auth_bp
 from datetime import datetime, timedelta, timezone
 from routes.auth_routes import get_current_user
+from services.gpt4all_service import GPT4AllLogAnalyzer
 #from routes.db_routes import db_routes
 # Import DB routes
 from routes.db_routes import db_routes
@@ -597,52 +598,91 @@ class ComplexLogSummarizer:
         return 'application'
 
 
-# Initialize summarizer
-log_summarizer = ComplexLogSummarizer()
+# # Initialize summarizer
+# log_summarizer = ComplexLogSummarizer()
+
+# @app.route('/api/logs/summarize', methods=['POST'])
+# def summarize_logs():
+#     """Summarize deployment logs"""
+#     try:
+#         data = request.get_json()
+        
+#         if not data:
+#             return jsonify({'error': 'No JSON data provided'}), 400
+            
+#         logs = data.get('logs', [])
+#         deployment_id = data.get('deployment_id', '')
+#         print("Received logs:", logs[:2])
+        
+#         if not logs:
+#             return jsonify({'error': 'No logs provided'}), 400
+        
+#         if not isinstance(logs, list):
+#             return jsonify({'error': 'Logs must be an array'}), 400
+        
+#         print(f"Received logs for analysis: {len(logs)} entries")
+#         print(f"Sample log: {logs[0][:200] if logs else 'No logs'}")
+        
+#         # Analyze logs using the summarizer
+#         analysis = log_summarizer.summarize(logs)
+        
+#         # Add deployment context if provided
+#         if deployment_id:
+#             analysis['context']['deployment'] = deployment_id
+        
+#         print(f"Analysis result: {analysis['summary']}")
+        
+#         return jsonify({
+#             'success': True,
+#             'analysis': analysis,
+#             'deployment_id': deployment_id,
+#             'analyzed_at': datetime.utcnow().isoformat()
+#         })
+        
+#     except Exception as e:
+#         print(f"Error summarizing logs: {str(e)}")
+#         return jsonify({
+#             'success': False,
+#             'error': str(e)
+#         }), 500
+
+
+# Initialize GPT4All analyzer (singleton)
+log_analyzer = None
+
+def get_log_analyzer():
+    global log_analyzer
+    if log_analyzer is None:
+        log_analyzer = GPT4AllLogAnalyzer()
+    return log_analyzer
 
 @app.route('/api/logs/summarize', methods=['POST'])
 def summarize_logs():
-    """Summarize deployment logs"""
     try:
         data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'No JSON data provided'}), 400
-            
         logs = data.get('logs', [])
-        deployment_id = data.get('deployment_id', '')
-        print("Received logs:", logs[:2])
+        deployment_id = data.get('deployment_id')
         
         if not logs:
-            return jsonify({'error': 'No logs provided'}), 400
+            return jsonify({'success': False, 'error': 'No logs provided'}), 400
         
-        if not isinstance(logs, list):
-            return jsonify({'error': 'Logs must be an array'}), 400
+        # Get GPT4All analyzer
+        analyzer = get_log_analyzer()
         
-        print(f"Received logs for analysis: {len(logs)} entries")
-        print(f"Sample log: {logs[0][:200] if logs else 'No logs'}")
-        
-        # Analyze logs using the summarizer
-        analysis = log_summarizer.summarize(logs)
-        
-        # Add deployment context if provided
-        if deployment_id:
-            analysis['context']['deployment'] = deployment_id
-        
-        print(f"Analysis result: {analysis['summary']}")
+        # Analyze logs
+        analysis = analyzer.analyze_logs(logs, deployment_id)
         
         return jsonify({
             'success': True,
             'analysis': analysis,
-            'deployment_id': deployment_id,
-            'analyzed_at': datetime.utcnow().isoformat()
+            'model': 'GPT4All-Local',
+            'processed_logs': len(logs)
         })
         
     except Exception as e:
-        print(f"Error summarizing logs: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Analysis failed: {str(e)}'
         }), 500
 
 
