@@ -62,7 +62,7 @@ ENV PYTHONUNBUFFERED=1
 ENV LOG_FILE_PATH=/app/logs/application.log
 ENV DEPLOYMENT_LOGS_DIR=/app/logs
 ENV GPT4ALL_MODEL_PATH=/app/models
-ENV GPT4ALL_MODEL=orca-mini-3b-gguf2-q4_0.gguf
+ENV GPT4ALL_MODEL=Meta-Llama-3-8B-Instruct.Q4_0.gguf
 
 # Switch to the infadm user
 USER $USERNAME
