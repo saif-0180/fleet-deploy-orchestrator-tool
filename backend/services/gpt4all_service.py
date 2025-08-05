@@ -85,7 +85,7 @@ Please provide analysis in this exact JSON format:
 {{
     "summary": "Brief summary of main issues found",
     "shortSummary": "One-line summary of the problem",
-    "category": "deployment|database|network|security|filesystem|memory|application",
+    "category": "which category to which it belongs deployment|database|network|security|filesystem|memory|application",
     "severity": "critical|high|medium|low",
     "errorType": "Main error type identified",
     "rootCause": {{
