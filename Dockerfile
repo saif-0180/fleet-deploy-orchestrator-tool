@@ -1,3 +1,11 @@
+# Frontend Build Stage
+FROM node:18-alpine AS frontend-build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install && npm install -g vite
+COPY . .
+RUN vite build
+
 # Backend Build Stage
 FROM python:3.10-slim AS backend-build
 WORKDIR /app/backend
