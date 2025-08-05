@@ -89,16 +89,16 @@ Please provide analysis in this exact JSON format:
     "severity": "critical|high|medium|low",
     "errorType": "Main error type identified",
     "rootCause": {{
-        "cause": "Primary cause of the issue",
-        "description": "Detailed description of the root cause",
-        "confidence": "high|medium|low"
+        "cause": "Summarized root cause",
+        "description": "Explanation of what caused the issue based on logs",
+        "confidence": "Model confidence in this diagnosis: high|medium|low"
     }},
-    "recommendations": ["Action 1", "Action 2", "Action 3"],
+    "recommendations": ["Suggested remediation steps based on log context, e.g., restart service, update config, free memory"],
     "urgency": "critical|high|medium|low",
     "context": {{
         "deployment": "{deployment_id}",
-        "environment": "detected environment",
-        "service": "detected service name"
+        "environment": "inferred from logs or 'unknown'",
+        "service": "inferred from logs it could be file copy, sql operation, systemctl service , helm etc or 'unknown'"
     }}
 }}
 
