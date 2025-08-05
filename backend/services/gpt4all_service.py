@@ -1,11 +1,10 @@
+
 import json
 import re
+import os
 from typing import Dict, List, Any
 from gpt4all import GPT4All
-
-# class GPT4AllLogAnalyzer:
-#     def __init__(self, model_name="Meta-Llama-3-8B-Instruct.Q4_0.gguf"):
-#         self.model = GPT4All(model_name)
+from backend.config.gpt4all_config import GPT4ALL_CONFIG
 
 class GPT4AllLogAnalyzer:
     def __init__(self, model_name=None, model_path=None):
