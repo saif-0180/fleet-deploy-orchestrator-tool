@@ -1,75 +1,36 @@
+
 import os
 
 GPT4ALL_CONFIG = {
     'model_path': os.getenv('GPT4ALL_MODEL_PATH', '/app/models'),
-    # AI is now disabled by default - pattern analysis only
-    'model_name': os.getenv('GPT4ALL_MODEL', 'disabled'),
+    # Use faster model by default for quicker responses
+    'model_name': os.getenv('GPT4ALL_MODEL', 'orca-mini-3b-gguf2-q4_0.gguf'),
     
-    # Pattern-only analysis settings
+    # Optimized settings for speed
     'use_ai_analysis': os.getenv('USE_AI_ANALYSIS', 'false').lower() == 'true',
-    'pattern_analysis_only': True,  # Force pattern analysis only
-    'max_logs_per_analysis': int(os.getenv('MAX_LOGS_ANALYSIS', '1000')),  # Can handle more logs now
+    'pattern_analysis_only': False,  # Allow AI for unclear cases only
+    'max_logs_per_analysis': int(os.getenv('MAX_LOGS_ANALYSIS', '100')),  # Reduced for speed
     
     'available_models': [
-        'orca-mini-3b-gguf2-q4_0.gguf',       # Fastest if AI needed
-        'Meta-Llama-3-8B-Instruct.Q4_0.gguf'  # More accurate if AI needed
+        'orca-mini-3b-gguf2-q4_0.gguf',       # Fastest model (2GB, ~5-15 sec)
+        'Meta-Llama-3-8B-Instruct.Q4_0.gguf'  # Better quality (4GB, ~15-30 sec)
     ],
     
-    # Pattern analysis is now primary method
+    # Enhanced pattern detection
     'enable_comprehensive_patterns': True,
-    'pattern_confidence_threshold': 0.7,
-    'success_detection_strict': True,
+    'pattern_confidence_threshold': 0.8,
+    'success_detection_strict': False,  # More lenient for better accuracy
     
-    # Success detection patterns
-    'success_patterns': {
-        'systemctl_patterns': [
-            r'systemctl.*started.*successfully',
-            r'systemctl.*enabled.*successfully', 
-            r'systemctl.*restarted.*successfully',
-            r'service.*started.*successfully',
-            r'unit.*started.*successfully'
-        ],
-        'general_success_patterns': [
-            r'successfully\s+completed',
-            r'completed\s+successfully',
-            r'operation\s+successful',
-            r'deployment\s+successful'
-        ],
-        'validation_patterns': [
-            r'validation\s+passed',
-            r'checksum\s+verified',
-            r'integrity\s+check\s+passed',
-            r'all\s+tests\s+passed'
-        ]
-    },
+    # Deployment type detection
+    'deployment_type_detection': True,
+    'auto_categorization': True,
     
-    # Failure detection patterns
-    'failure_patterns': {
-        'service_failures': [
-            r'failed\s+to\s+start',
-            r'service\s+failed',
-            r'systemctl.*failed',
-            r'unit\s+failed'
-        ],
-        'network_failures': [
-            r'connection\s+refused',
-            r'connection\s+failed', 
-            r'connection\s+timeout',
-            r'network\s+unreachable'
-        ],
-        'system_failures': [
-            r'permission\s+denied',
-            r'command\s+not\s+found',
-            r'file\s+not\s+found',
-            r'fatal\s+error'
-        ]
-    },
-    
-    # Performance settings (for if AI is enabled)
+    # Performance settings optimized for speed
     'ai_settings': {
-        'max_tokens': 200,
-        'temperature': 0.05,
-        'timeout_seconds': 10,
-        'enable_timeout': True
+        'max_tokens': 150,      # Reduced for faster response
+        'temperature': 0.1,     # Lower for consistent results
+        'timeout_seconds': 30,  # Reduced timeout
+        'enable_timeout': True,
+        'use_ai_only_when_unclear': True  # AI only as fallback
     }
 }
