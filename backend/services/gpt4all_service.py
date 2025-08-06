@@ -1,9 +1,8 @@
 import json
 import re
 import os
-import inspect
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Tuple
 from gpt4all import GPT4All
 from backend.config.gpt4all_config import GPT4ALL_CONFIG
 
@@ -12,564 +11,513 @@ class GPT4AllLogAnalyzer:
         self.model_path = model_path or GPT4ALL_CONFIG['model_path']
         self.model_name = model_name or GPT4ALL_CONFIG['model_name']
         
-        # Verify model exists locally
-        model_file_path = os.path.join(self.model_path, self.model_name)
-        if not os.path.exists(model_file_path):
-            available_models = [f for f in os.listdir(self.model_path) if f.endswith('.gguf')]
-            if available_models:
-                # Prefer fastest model for performance
-                orca_models = [m for m in available_models if 'orca' in m.lower()]
-                if orca_models:
-                    self.model_name = orca_models[0]
-                else:
-                    self.model_name = available_models[0]
-                print(f"Model not found, using {self.model_name}")
-            else:
-                raise FileNotFoundError(f"No models found in {self.model_path}")
+        # Initialize model only if needed (lazy loading)
+        self.model = None
+        self.model_initialized = False
         
-        print(f"Initializing GPT4All with model: {self.model_name} from {self.model_path}")
+        print(f"GPT4All analyzer initialized (model will load on demand)")
         
-        try:
-            self.model = GPT4All(self.model_name, model_path=self.model_path)
-            print("Model initialization successful")
-            
-        except Exception as e:
-            print(f"Model initialization failed: {e}")
-            raise
+        # Compile all regex patterns for performance
+        self._compile_comprehensive_patterns()
         
-        # Ultra-fast settings for maximum speed
-        self.supported_params = self._get_ultra_fast_params()
-        print(f"Using ultra-fast parameters: {list(self.supported_params.keys())}")
+    def _compile_comprehensive_patterns(self):
+        """Compile comprehensive regex patterns for accurate detection"""
         
-        # Precompiled regex patterns for better performance
-        self._compile_patterns()
-        
-    def _get_ultra_fast_params(self) -> Dict[str, Any]:
-        """Ultra-fast parameters for maximum speed"""
-        try:
-            sig = inspect.signature(self.model.generate)
-            params = sig.parameters
-            
-            # Minimal settings for maximum speed
-            optimized = {
-                'max_tokens': 200,      # Very short responses
-                'temp': 0.05,           # Very low temperature for consistency
-                'top_p': 0.5,           # Very focused output
-                'repeat_penalty': 1.0,  # No penalty for speed
-                'top_k': 10             # Very limited choices for speed
-            }
-            
-            # Only include supported parameters
-            supported = {}
-            for param_name, value in optimized.items():
-                if param_name in params:
-                    supported[param_name] = value
-                    
-            return supported
-            
-        except Exception as e:
-            print(f"Parameter detection failed: {e}")
-            return {'max_tokens': 200, 'temp': 0.05}
-    
-    def _compile_patterns(self):
-        """Precompile regex patterns for better performance"""
-        # Strong success indicators - comprehensive patterns
+        # SUCCESS PATTERNS - Very specific and comprehensive
         self.success_patterns = [
+            # Direct success statements
             re.compile(r'successfully\s+completed', re.IGNORECASE),
-            re.compile(r'operation\s+completed\s+successfully', re.IGNORECASE),
-            re.compile(r'deployment\s+completed\s+successfully', re.IGNORECASE),
-            re.compile(r'rollback\s+completed\s+successfully', re.IGNORECASE),
-            re.compile(r'backup\s+completed\s+successfully', re.IGNORECASE),
+            re.compile(r'completed\s+successfully', re.IGNORECASE),
+            re.compile(r'operation\s+successful', re.IGNORECASE),
             re.compile(r'task\s+completed\s+successfully', re.IGNORECASE),
-            re.compile(r'validation\s+completed\s+successfully', re.IGNORECASE),
-            re.compile(r'checksum\s+validation\s+passed', re.IGNORECASE),
-            re.compile(r'file\s+permissions\s+validated', re.IGNORECASE),
-            re.compile(r'all\s+checks\s+passed', re.IGNORECASE),
-            re.compile(r'status:\s*success', re.IGNORECASE),
-            re.compile(r'result:\s*success', re.IGNORECASE),
-            re.compile(r'files\s+backed\s+up\s+successfully', re.IGNORECASE),
-            re.compile(r'play\s+recap.*ok=\d+.*changed=\d+.*unreachable=0.*failed=0', re.IGNORECASE),
-            re.compile(r'batch\d+.*ok=\d+.*changed=\d+.*failed=0', re.IGNORECASE),
-            # Additional success patterns for validation logs
-            re.compile(r'validation:\s*passed', re.IGNORECASE),
-            re.compile(r'check:\s*ok', re.IGNORECASE),
-            re.compile(r'verification:\s*successful', re.IGNORECASE),
+            re.compile(r'deployment\s+successful', re.IGNORECASE),
+            
+            # Systemctl specific success
+            re.compile(r'systemctl.*started.*successfully', re.IGNORECASE),
+            re.compile(r'systemctl.*enabled.*successfully', re.IGNORECASE),
+            re.compile(r'systemctl.*restarted.*successfully', re.IGNORECASE),
+            re.compile(r'service.*started.*successfully', re.IGNORECASE),
+            re.compile(r'unit.*started.*successfully', re.IGNORECASE),
+            
+            # Status indicators
+            re.compile(r'status:\s*(success|ok|completed)', re.IGNORECASE),
+            re.compile(r'result:\s*(success|ok|completed)', re.IGNORECASE),
+            re.compile(r'state:\s*(running|active|started)', re.IGNORECASE),
+            
+            # Validation and verification success
+            re.compile(r'validation\s+passed', re.IGNORECASE),
+            re.compile(r'checksum\s+verified', re.IGNORECASE),
             re.compile(r'integrity\s+check\s+passed', re.IGNORECASE),
+            re.compile(r'all\s+tests\s+passed', re.IGNORECASE),
+            
+            # Ansible specific success
+            re.compile(r'play\s+recap.*failed=0', re.IGNORECASE),
+            re.compile(r'ok=\d+.*changed=\d+.*unreachable=0.*failed=0', re.IGNORECASE),
+            
+            # Generic positive completions
+            re.compile(r'backup\s+completed', re.IGNORECASE),
+            re.compile(r'rollback\s+completed', re.IGNORECASE),
+            re.compile(r'installation\s+completed', re.IGNORECASE),
+            re.compile(r'configuration\s+applied', re.IGNORECASE),
         ]
         
-        # Failure indicators - be more specific to avoid false positives
+        # STRONG FAILURE PATTERNS - Clear failures only
         self.failure_patterns = [
-            re.compile(r'error(?!\s*(log|message):\s*$)(?!.*successfully)', re.IGNORECASE),
-            re.compile(r'failed(?!\s*=\s*0)(?!\s*(to\s+)?log)', re.IGNORECASE),
-            re.compile(r'exception(?!.*handled)', re.IGNORECASE),
-            re.compile(r'fatal(?!\s*log)', re.IGNORECASE),
-            re.compile(r'connection\s+(refused|failed|timeout)', re.IGNORECASE),
-            re.compile(r'timeout(?!\s*set)', re.IGNORECASE),
+            # Service failures
+            re.compile(r'failed\s+to\s+start', re.IGNORECASE),
+            re.compile(r'service\s+failed', re.IGNORECASE),
+            re.compile(r'systemctl.*failed', re.IGNORECASE),
+            re.compile(r'unit\s+failed', re.IGNORECASE),
+            
+            # Connection failures
+            re.compile(r'connection\s+refused', re.IGNORECASE),
+            re.compile(r'connection\s+failed', re.IGNORECASE),
+            re.compile(r'connection\s+timeout', re.IGNORECASE),
+            re.compile(r'network\s+unreachable', re.IGNORECASE),
+            
+            # File system failures
+            re.compile(r'no\s+such\s+file\s+or\s+directory', re.IGNORECASE),
             re.compile(r'permission\s+denied', re.IGNORECASE),
-            re.compile(r'no\s+such\s+file', re.IGNORECASE),
-            re.compile(r'unreachable=[1-9]\d*', re.IGNORECASE),
-            re.compile(r'failed=[1-9]\d*', re.IGNORECASE),
-            re.compile(r'exit\s+code:\s*[1-9]', re.IGNORECASE),
+            re.compile(r'access\s+denied', re.IGNORECASE),
+            re.compile(r'file\s+not\s+found', re.IGNORECASE),
+            
+            # Process failures
             re.compile(r'command\s+not\s+found', re.IGNORECASE),
-            re.compile(r'syntax\s+error', re.IGNORECASE),
-            re.compile(r'connection\s+lost', re.IGNORECASE),
+            re.compile(r'execution\s+failed', re.IGNORECASE),
+            re.compile(r'process\s+failed', re.IGNORECASE),
+            re.compile(r'fatal\s+error', re.IGNORECASE),
+            
+            # Ansible failures
+            re.compile(r'failed=[1-9]\d*', re.IGNORECASE),
+            re.compile(r'unreachable=[1-9]\d*', re.IGNORECASE),
+            re.compile(r'task\s+failed', re.IGNORECASE),
+            
+            # Generic serious errors
+            re.compile(r'critical\s+error', re.IGNORECASE),
+            re.compile(r'exception.*occurred', re.IGNORECASE),
+            re.compile(r'stack\s+trace', re.IGNORECASE),
         ]
         
-        # Neutral/informational patterns that shouldn't trigger failure
-        self.neutral_patterns = [
-            re.compile(r'error\s*log', re.IGNORECASE),
-            re.compile(r'failed\s*log', re.IGNORECASE),
-            re.compile(r'debug', re.IGNORECASE),
-            re.compile(r'info', re.IGNORECASE),
-            re.compile(r'warning(?!\s*(:|.*critical))', re.IGNORECASE),
+        # WARNING PATTERNS - Not failures but concerns
+        self.warning_patterns = [
+            re.compile(r'warning(?!.*critical)', re.IGNORECASE),
+            re.compile(r'deprecated', re.IGNORECASE),
+            re.compile(r'skipping', re.IGNORECASE),
+            re.compile(r'retrying', re.IGNORECASE),
+        ]
+        
+        # INFORMATIONAL PATTERNS - Should not count as failures
+        self.info_patterns = [
+            re.compile(r'info:', re.IGNORECASE),
+            re.compile(r'debug:', re.IGNORECASE),
+            re.compile(r'notice:', re.IGNORECASE),
+            re.compile(r'log\s+level', re.IGNORECASE),
+            re.compile(r'starting.*process', re.IGNORECASE),
+            re.compile(r'loading.*configuration', re.IGNORECASE),
+        ]
+        
+        # COMPLETION INDICATORS - Suggest operation finished
+        self.completion_patterns = [
+            re.compile(r'finished', re.IGNORECASE),
+            re.compile(r'completed', re.IGNORECASE),
+            re.compile(r'done', re.IGNORECASE),
+            re.compile(r'ended', re.IGNORECASE),
         ]
     
     def analyze_logs(self, logs: List[str], deployment_id: str = None) -> Dict[str, Any]:
-        """Ultra-fast log analysis with improved success/failure detection"""
+        """Fast pattern-based log analysis with minimal AI usage"""
         
         start_time = time.time()
         
-        # Join logs for analysis - more context-aware
-        log_text = "\n".join(logs)
+        # Combine logs for better context
+        full_log_text = "\n".join(logs)
         
-        # Enhanced success/failure detection
-        is_success, confidence = self._enhanced_success_detection(log_text)
+        print(f"Analyzing {len(logs)} log lines...")
         
-        if is_success and confidence > 0.8:
-            print(f"High confidence success detected ({confidence:.2f}) - using fast path")
-            analysis = self._create_success_analysis(logs, deployment_id, log_text)
-            print(f"Analysis completed in {time.time() - start_time:.2f} seconds")
-            return analysis
+        # Enhanced pattern-based analysis
+        analysis_result = self._comprehensive_pattern_analysis(full_log_text, deployment_id)
         
-        # For potential failures or low confidence, use pattern-based analysis first
-        if confidence < 0.6:
-            print(f"Low confidence ({confidence:.2f}) - using pattern analysis")
-            pattern_analysis = self._create_enhanced_pattern_analysis(log_text, deployment_id)
-            
-            # Only use AI if pattern analysis is inconclusive
-            if pattern_analysis['severity'] == 'high':
-                print(f"Pattern analysis found high severity issue - skipping AI")
-                print(f"Analysis completed in {time.time() - start_time:.2f} seconds")
-                return pattern_analysis
+        elapsed = time.time() - start_time
+        print(f"Pattern analysis completed in {elapsed:.2f} seconds")
         
-        # Last resort - AI analysis with timeout
-        print("Using AI analysis with timeout")
-        return self._ai_analysis_with_timeout(logs, deployment_id, start_time, timeout=15)
+        # Add analysis metadata
+        analysis_result["context"]["analysis_duration"] = f"{elapsed:.2f}s"
+        analysis_result["context"]["analysis_method"] = "pattern_based"
+        analysis_result["context"]["log_lines_analyzed"] = len(logs)
+        
+        return analysis_result
     
-    def _enhanced_success_detection(self, log_text: str) -> tuple[bool, float]:
-        """Enhanced success detection with confidence scoring"""
+    def _comprehensive_pattern_analysis(self, log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Comprehensive pattern-based analysis"""
         
-        # Count matches for different patterns
-        success_score = 0
-        failure_score = 0
-        neutral_score = 0
+        # Count different types of patterns
+        success_matches = []
+        failure_matches = []
+        warning_matches = []
+        info_matches = []
+        completion_matches = []
         
-        # Success pattern matching
+        # Find all pattern matches with context
         for pattern in self.success_patterns:
-            matches = pattern.findall(log_text)
-            success_score += len(matches) * 2  # Weight success higher
+            matches = pattern.finditer(log_text)
+            for match in matches:
+                success_matches.append({
+                    'pattern': pattern.pattern,
+                    'match': match.group(),
+                    'context': self._extract_context(log_text, match.start(), match.end())
+                })
         
-        # Failure pattern matching
         for pattern in self.failure_patterns:
-            matches = pattern.findall(log_text)
-            failure_score += len(matches)
+            matches = pattern.finditer(log_text)
+            for match in matches:
+                failure_matches.append({
+                    'pattern': pattern.pattern,
+                    'match': match.group(),
+                    'context': self._extract_context(log_text, match.start(), match.end())
+                })
         
-        # Neutral pattern matching (reduces failure score)
-        for pattern in self.neutral_patterns:
-            matches = pattern.findall(log_text)
-            neutral_score += len(matches)
+        for pattern in self.warning_patterns:
+            matches = pattern.finditer(log_text)
+            warning_matches.extend([match.group() for match in matches])
         
-        # Adjust failure score for neutral patterns
-        adjusted_failure_score = max(0, failure_score - neutral_score * 0.5)
+        for pattern in self.info_patterns:
+            matches = pattern.finditer(log_text)
+            info_matches.extend([match.group() for match in matches])
         
-        # Special checks for validation logs
-        if self._is_validation_log(log_text):
-            validation_success = self._check_validation_success(log_text)
-            if validation_success:
-                success_score += 3  # Strong boost for validation success
+        for pattern in self.completion_patterns:
+            matches = pattern.finditer(log_text)
+            completion_matches.extend([match.group() for match in matches])
         
-        # Calculate confidence and decision
-        total_score = success_score + adjusted_failure_score
+        # Debug output
+        print(f"Pattern matches - Success: {len(success_matches)}, Failures: {len(failure_matches)}, Warnings: {len(warning_matches)}")
         
-        if total_score == 0:
-            # No clear indicators - look for implicit success
-            implicit_success = self._check_implicit_success(log_text)
-            return implicit_success, 0.5
-        
-        success_ratio = success_score / total_score
-        is_success = success_ratio > 0.6
-        confidence = abs(success_ratio - 0.5) * 2  # Convert to 0-1 scale
-        
-        print(f"Success detection: success_score={success_score}, failure_score={adjusted_failure_score}, ratio={success_ratio:.2f}, confidence={confidence:.2f}")
-        
-        return is_success, min(confidence, 1.0)
+        # Determine overall result
+        return self._determine_final_result(
+            log_text, success_matches, failure_matches, warning_matches, 
+            completion_matches, deployment_id
+        )
     
-    def _is_validation_log(self, log_text: str) -> bool:
-        """Check if this is a validation/checksum log"""
-        validation_indicators = [
-            'checksum', 'validation', 'verify', 'integrity', 'permissions', 
-            'file check', 'md5', 'sha', 'hash'
+    def _extract_context(self, text: str, start: int, end: int, context_length: int = 100) -> str:
+        """Extract context around a match"""
+        context_start = max(0, start - context_length)
+        context_end = min(len(text), end + context_length)
+        return text[context_start:context_end].strip()
+    
+    def _determine_final_result(self, log_text: str, success_matches: List[Dict], 
+                               failure_matches: List[Dict], warning_matches: List[str],
+                               completion_matches: List[str], deployment_id: str) -> Dict[str, Any]:
+        """Determine final analysis result with improved logic"""
+        
+        success_count = len(success_matches)
+        failure_count = len(failure_matches)
+        warning_count = len(warning_matches)
+        completion_count = len(completion_matches)
+        
+        log_lower = log_text.lower()
+        
+        print(f"Analysis scores - Success: {success_count}, Failure: {failure_count}, Warnings: {warning_count}, Completions: {completion_count}")
+        
+        # RULE 1: Strong success indicators override everything
+        if success_count > 0:
+            # Check if there are any real failures that contradict success
+            real_failures = [f for f in failure_matches if not self._is_false_positive_failure(f, log_text)]
+            
+            if len(real_failures) == 0 or success_count > len(real_failures):
+                print(f"SUCCESS: {success_count} success patterns, {len(real_failures)} real failures")
+                return self._create_success_result(success_matches, log_text, deployment_id)
+        
+        # RULE 2: Clear failures with no success indicators
+        if failure_count > 0 and success_count == 0:
+            print(f"FAILURE: {failure_count} failure patterns, no success patterns")
+            return self._create_failure_result(failure_matches, log_text, deployment_id)
+        
+        # RULE 3: Mixed signals - analyze context
+        if success_count > 0 and failure_count > 0:
+            # Check if failures are actually informational
+            real_failures = [f for f in failure_matches if not self._is_false_positive_failure(f, log_text)]
+            
+            if len(real_failures) == 0:
+                print(f"SUCCESS: Success patterns present, failures are false positives")
+                return self._create_success_result(success_matches, log_text, deployment_id)
+            elif success_count >= len(real_failures):
+                print(f"SUCCESS: More success indicators ({success_count}) than real failures ({len(real_failures)})")
+                return self._create_success_result(success_matches, log_text, deployment_id)
+            else:
+                print(f"FAILURE: More real failures ({len(real_failures)}) than success indicators ({success_count})")
+                return self._create_failure_result(real_failures, log_text, deployment_id)
+        
+        # RULE 4: No clear success/failure patterns - check completion
+        if success_count == 0 and failure_count == 0:
+            if completion_count > 0 and warning_count == 0:
+                print(f"SUCCESS: Operation completed without errors")
+                return self._create_neutral_success_result(log_text, deployment_id)
+            elif warning_count > 0:
+                print(f"WARNING: Operation completed with warnings")
+                return self._create_warning_result(warning_matches, log_text, deployment_id)
+            else:
+                print(f"UNCLEAR: No clear indicators")
+                return self._create_unclear_result(log_text, deployment_id)
+        
+        # Default fallback
+        print(f"DEFAULT: Defaulting to unclear status")
+        return self._create_unclear_result(log_text, deployment_id)
+    
+    def _is_false_positive_failure(self, failure_match: Dict, log_text: str) -> bool:
+        """Check if a failure match is actually a false positive"""
+        context = failure_match['context'].lower()
+        match_text = failure_match['match'].lower()
+        
+        # Check if the failure is mentioned in a success context
+        false_positive_contexts = [
+            'successfully',
+            'completed',
+            'recovered',
+            'fixed',
+            'resolved',
+            'handled',
+            'ignored',
+            'skipped'
         ]
-        log_lower = log_text.lower()
-        return any(indicator in log_lower for indicator in validation_indicators)
+        
+        return any(fp_context in context for fp_context in false_positive_contexts)
     
-    def _check_validation_success(self, log_text: str) -> bool:
-        """Specific validation success checks"""
-        validation_success_patterns = [
-            r'checksum.*(?:ok|passed|valid|correct|match)',
-            r'validation.*(?:passed|successful|ok)',
-            r'permissions.*(?:ok|valid|correct)',
-            r'integrity.*(?:check.*passed|ok)',
-            r'verify.*(?:successful|passed|ok)',
-            r'all.*checks.*passed',
-            r'hash.*(?:match|valid|correct)'
-        ]
+    def _create_success_result(self, success_matches: List[Dict], log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Create success analysis result"""
         
-        for pattern in validation_success_patterns:
-            if re.search(pattern, log_text, re.IGNORECASE):
-                return True
-        return False
-    
-    def _check_implicit_success(self, log_text: str) -> bool:
-        """Check for implicit success indicators"""
-        log_lower = log_text.lower()
+        # Determine operation type from success matches
+        operation_type = "operation"
+        if any('systemctl' in match['match'].lower() for match in success_matches):
+            operation_type = "service_management"
+        elif any('deployment' in match['match'].lower() for match in success_matches):
+            operation_type = "deployment"
+        elif any('backup' in match['match'].lower() for match in success_matches):
+            operation_type = "backup"
+        elif any('validation' in match['match'].lower() for match in success_matches):
+            operation_type = "validation"
         
-        # No errors but has completion indicators
-        has_completion = any(word in log_lower for word in ['completed', 'finished', 'done'])
-        has_errors = any(word in log_lower for word in ['error', 'failed', 'exception'])
-        
-        if has_completion and not has_errors:
-            return True
-        
-        # Check for positive ending
-        lines = log_text.strip().split('\n')
-        if lines:
-            last_line = lines[-1].lower()
-            positive_endings = ['ok', 'success', 'complete', 'done', 'passed']
-            if any(ending in last_line for ending in positive_endings):
-                return True
-        
-        return False
-    
-    def _create_success_analysis(self, logs: List[str], deployment_id: str, log_text: str) -> Dict[str, Any]:
-        """Enhanced success analysis with better categorization"""
-        
-        log_lower = log_text.lower()
-        
-        # Determine operation type and extract metrics
-        operation_type, summary, metrics = self._analyze_successful_operation(log_lower)
+        # Extract specific success details
+        success_details = []
+        for match in success_matches[:3]:  # Top 3 success indicators
+            success_details.append(match['match'])
         
         return {
-            "summary": f"{summary}. {metrics}",
-            "shortSummary": f"Successful {operation_type}",
-            "category": self._categorize_operation(operation_type, log_lower),
+            "summary": f"{operation_type.replace('_', ' ').title()} completed successfully. Key indicators: {', '.join(success_details)}",
+            "shortSummary": f"Successful {operation_type.replace('_', ' ')}",
+            "category": self._determine_category(operation_type, log_text),
             "severity": "low",
             "errorType": "Success",
             "rootCause": {
                 "cause": f"Successful {operation_type}",
-                "description": f"The {operation_type} operation completed without errors",
+                "description": f"Operation completed successfully with {len(success_matches)} positive indicators",
                 "confidence": "high"
             },
             "recommendations": [
                 "No action required - operation successful",
-                "Monitor system for any post-operation effects",
-                "Document successful configuration for future reference"
+                "Monitor system for expected changes",
+                "Document successful configuration"
             ],
             "urgency": "low",
             "context": {
                 "deployment": deployment_id or "unknown",
                 "environment": "production",
                 "service": operation_type,
-                "metrics": metrics,
-                "analysis_type": "fast_success_detection"
+                "success_indicators": len(success_matches),
+                "operation_type": operation_type
             }
         }
     
-    def _analyze_successful_operation(self, log_text: str) -> tuple[str, str, str]:
-        """Analyze what type of successful operation occurred"""
+    def _create_failure_result(self, failure_matches: List[Dict], log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Create failure analysis result"""
         
-        metrics = []
+        # Determine primary failure type
+        failure_types = []
+        for match in failure_matches:
+            match_lower = match['match'].lower()
+            if 'service' in match_lower or 'systemctl' in match_lower:
+                failure_types.append("service_failure")
+            elif 'connection' in match_lower or 'network' in match_lower:
+                failure_types.append("network_failure")
+            elif 'file' in match_lower or 'permission' in match_lower:
+                failure_types.append("filesystem_failure")
+            elif 'command' in match_lower or 'execution' in match_lower:
+                failure_types.append("execution_failure")
+            else:
+                failure_types.append("general_failure")
         
-        # Extract Ansible metrics
-        ok_match = re.search(r'ok=(\d+)', log_text)
-        changed_match = re.search(r'changed=(\d+)', log_text)
-        failed_match = re.search(r'failed=(\d+)', log_text)
+        primary_failure = max(set(failure_types), key=failure_types.count) if failure_types else "general_failure"
         
-        if ok_match:
-            metrics.append(f"{ok_match.group(1)} tasks OK")
-        if changed_match:
-            metrics.append(f"{changed_match.group(1)} changes")
-        if failed_match and failed_match.group(1) == '0':
-            metrics.append("0 failures")
+        # Generate specific recommendations based on failure type
+        recommendations = self._get_failure_recommendations(primary_failure, failure_matches)
         
-        metrics_text = ", ".join(metrics) if metrics else "Operation completed successfully"
+        # Extract key failure details
+        failure_details = []
+        for match in failure_matches[:3]:  # Top 3 failure indicators
+            failure_details.append(match['match'])
         
-        # Determine operation type
-        if 'rollback' in log_text:
-            return "rollback", "Rollback operation completed successfully", metrics_text
-        elif 'backup' in log_text:
-            return "backup", "Backup operation completed successfully", metrics_text
-        elif 'deployment' in log_text or 'deploy' in log_text:
-            return "deployment", "Deployment completed successfully", metrics_text
-        elif 'validation' in log_text or 'checksum' in log_text:
-            return "validation", "Validation completed successfully", metrics_text
-        elif 'playbook' in log_text or 'ansible' in log_text:
-            return "playbook", "Ansible playbook executed successfully", metrics_text
-        else:
-            return "operation", "Operation completed successfully", metrics_text
-    
-    def _categorize_operation(self, operation_type: str, log_text: str) -> str:
-        """Categorize the operation type"""
-        if operation_type in ['backup', 'rollback']:
-            return 'maintenance'
-        elif operation_type in ['validation', 'checksum']:
-            return 'verification'
-        elif operation_type in ['deployment', 'playbook']:
-            return 'deployment'
-        elif 'database' in log_text or 'postgres' in log_text or 'mysql' in log_text:
-            return 'database'
-        elif 'network' in log_text or 'connection' in log_text:
-            return 'network'
-        else:
-            return 'application'
-    
-    def _create_enhanced_pattern_analysis(self, log_text: str, deployment_id: str) -> Dict[str, Any]:
-        """Enhanced pattern analysis with better accuracy"""
-        
-        log_lower = log_text.lower()
-        
-        # Priority-based pattern matching
-        analyses = []
-        
-        # Database issues (high priority)
-        if re.search(r'postgresql|postgres', log_lower):
-            if re.search(r'failed.*start|connection.*refused|could not connect', log_lower):
-                analyses.append({
-                    "summary": "PostgreSQL service failure - unable to start or accept connections",
-                    "shortSummary": "PostgreSQL service down",
-                    "category": "database",
-                    "severity": "critical",
-                    "errorType": "PostgreSQLServiceFailure",
-                    "recommendations": [
-                        "Check PostgreSQL service: sudo systemctl status postgresql",
-                        "Verify configuration: check /etc/postgresql/*/main/postgresql.conf",
-                        "Check port availability: netstat -tlnp | grep 5432",
-                        "Review PostgreSQL logs: tail -f /var/log/postgresql/*.log"
-                    ],
-                    "priority": 10
-                })
-        
-        # Network issues (high priority)
-        if re.search(r'connection\s+(refused|failed|timeout)|network.*unreachable', log_lower):
-            analyses.append({
-                "summary": "Network connectivity failure - target hosts unreachable or refusing connections",
-                "shortSummary": "Network connectivity failure",
-                "category": "network",
-                "severity": "high",
-                "errorType": "NetworkConnectivityFailure",
-                "recommendations": [
-                    "Test connectivity: ping <target_host>",
-                    "Check firewall rules: iptables -L",
-                    "Verify DNS resolution: nslookup <target_host>",
-                    "Test specific ports: telnet <host> <port>"
-                ],
-                "priority": 9
-            })
-        
-        # Ansible deployment failures
-        if re.search(r'ansible.*failed|playbook.*failed|task.*failed.*fatal', log_lower):
-            analyses.append({
-                "summary": "Ansible playbook execution failed - one or more tasks could not complete",
-                "shortSummary": "Ansible deployment failed",
-                "category": "deployment", 
-                "severity": "high",
-                "errorType": "AnsibleDeploymentFailure",
-                "recommendations": [
-                    "Run with verbose output: ansible-playbook -vvv",
-                    "Check target host connectivity and SSH access",
-                    "Verify inventory file and host configuration",
-                    "Review playbook syntax and task definitions"
-                ],
-                "priority": 8
-            })
-        
-        # File system issues
-        if re.search(r'no such file|file not found|permission denied|disk.*full', log_lower):
-            analyses.append({
-                "summary": "File system issue detected - missing files, permission problems, or disk space",
-                "shortSummary": "File system issue",
-                "category": "filesystem",
-                "severity": "medium",
-                "errorType": "FileSystemError",
-                "recommendations": [
-                    "Check file existence and paths",
-                    "Verify permissions: ls -la <file_path>", 
-                    "Check disk space: df -h",
-                    "Review directory structure and ownership"
-                ],
-                "priority": 6
-            })
-        
-        # Memory issues
-        if re.search(r'out of memory|oom|memory.*error|killed.*process', log_lower):
-            analyses.append({
-                "summary": "System memory exhaustion - processes being killed due to insufficient memory",
-                "shortSummary": "Out of memory",
-                "category": "system",
-                "severity": "critical",
-                "errorType": "OutOfMemoryError",
-                "recommendations": [
-                    "Check memory usage: free -h && top",
-                    "Identify memory-intensive processes",
-                    "Consider increasing system memory",
-                    "Review application memory limits"
-                ],
-                "priority": 10
-            })
-        
-        # Generic error detection
-        error_patterns = re.findall(r'error|failed|exception|fatal', log_lower)
-        if error_patterns and not analyses:
-            error_count = len(error_patterns)
-            severity = "high" if error_count > 3 else "medium"
-            
-            analyses.append({
-                "summary": f"Multiple error indicators detected ({error_count} errors found) - requires investigation",
-                "shortSummary": f"{error_count} errors detected",
-                "category": "application",
-                "severity": severity,
-                "errorType": "MultipleErrors",
-                "recommendations": [
-                    "Review complete logs for specific error details",
-                    "Check system resources and service status",
-                    "Verify configuration files",
-                    "Consider restarting affected services"
-                ],
-                "priority": 5
-            })
-        
-        # Select highest priority analysis or default
-        if analyses:
-            best_analysis = max(analyses, key=lambda x: x.get('priority', 0))
-            best_analysis.pop('priority', None)  # Remove priority from final result
-        else:
-            # Default analysis for unclear logs
-            best_analysis = {
-                "summary": "Log analysis completed - no clear errors detected but requires manual review",
-                "shortSummary": "Manual review required",
-                "category": "application",
-                "severity": "low",
-                "errorType": "UnclearStatus",
-                "recommendations": [
-                    "Manually review complete logs",
-                    "Verify expected operation completed",
-                    "Check system status and metrics"
-                ]
-            }
-        
-        # Add standard fields
-        best_analysis.update({
+        return {
+            "summary": f"{primary_failure.replace('_', ' ').title()} detected. Key issues: {', '.join(failure_details)}",
+            "shortSummary": f"{primary_failure.replace('_', ' ').title()}",
+            "category": self._map_failure_to_category(primary_failure),
+            "severity": "high",
+            "errorType": primary_failure.replace('_', '').title(),
             "rootCause": {
-                "cause": best_analysis["errorType"],
-                "description": best_analysis["summary"],
-                "confidence": "high" if analyses else "low"
+                "cause": primary_failure.replace('_', ' '),
+                "description": f"Multiple failure indicators detected: {len(failure_matches)} issues found",
+                "confidence": "high"
             },
-            "urgency": best_analysis["severity"],
+            "recommendations": recommendations,
+            "urgency": "high",
             "context": {
                 "deployment": deployment_id or "unknown",
                 "environment": "production", 
-                "service": best_analysis["category"],
-                "analysis_type": "enhanced_pattern_matching"
+                "service": primary_failure,
+                "failure_count": len(failure_matches),
+                "primary_failure_type": primary_failure
             }
-        })
-        
-        return best_analysis
+        }
     
-    def _ai_analysis_with_timeout(self, logs: List[str], deployment_id: str, start_time: float, timeout: int = 15) -> Dict[str, Any]:
-        """AI analysis with strict timeout and fallback"""
-        
-        log_sample = self._prepare_logs_minimal(logs)
-        prompt = self._create_minimal_prompt(log_sample)
-        
-        try:
-            print(f"Starting AI analysis with {timeout}s timeout...")
-            
-            ai_start = time.time()
-            generate_params = {'prompt': prompt}
-            generate_params.update(self.supported_params)
-            
-            response = self.model.generate(**generate_params)
-            ai_duration = time.time() - ai_start
-            
-            print(f"AI response received in {ai_duration:.2f} seconds")
-            
-            if ai_duration > timeout:
-                print(f"AI analysis exceeded timeout ({timeout}s), using fallback")
-                return self._create_enhanced_pattern_analysis("\n".join(logs), deployment_id)
-            
-            analysis = self._parse_minimal_response(response, log_sample)
-            print(f"Total analysis time: {time.time() - start_time:.2f} seconds")
-            return analysis
-            
-        except Exception as e:
-            print(f"AI analysis failed: {str(e)}, using pattern fallback")
-            return self._create_enhanced_pattern_analysis("\n".join(logs), deployment_id)
-    
-    def _prepare_logs_minimal(self, logs: List[str], max_logs: int = 3, max_length: int = 60) -> str:
-        """Minimal log preparation for fastest AI processing"""
-        sample_logs = logs[:max_logs]
-        
-        cleaned = []
-        for log in sample_logs:
-            clean = re.sub(r'\s+', ' ', log.strip())
-            if len(clean) > max_length:
-                clean = clean[:max_length] + "..."
-            cleaned.append(clean)
-        
-        return "\n".join(cleaned)
-    
-    def _create_minimal_prompt(self, logs: str) -> str:
-        """Minimal prompt for fastest AI processing"""
-        return f"""Logs: {logs}
-
-JSON only: {{"summary": "brief issue", "severity": "high", "errorType": "Type"}}"""
-    
-    def _parse_minimal_response(self, response: str, original_logs: str) -> Dict[str, Any]:
-        """Minimal response parsing with pattern fallback"""
-        try:
-            # Quick JSON extraction
-            json_match = re.search(r'\{.*?\}', response, re.DOTALL)
-            if json_match:
-                analysis = json.loads(json_match.group())
-                return self._expand_minimal_analysis(analysis, original_logs)
-        except:
-            pass
-        
-        # Fallback to pattern analysis
-        return self._create_enhanced_pattern_analysis(original_logs, "unknown")
-    
-    def _expand_minimal_analysis(self, minimal: Dict[str, Any], logs: str) -> Dict[str, Any]:
-        """Expand minimal AI analysis to full format"""
+    def _create_neutral_success_result(self, log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Create result for operations that completed without clear success/failure indicators"""
         return {
-            "summary": minimal.get("summary", "Analysis completed"),
-            "shortSummary": minimal.get("summary", "Analysis completed")[:50],
+            "summary": "Operation completed without errors detected",
+            "shortSummary": "Operation completed",
             "category": "application",
-            "severity": minimal.get("severity", "medium"),
-            "errorType": minimal.get("errorType", "Unknown"),
+            "severity": "low",
+            "errorType": "Completed",
             "rootCause": {
-                "cause": minimal.get("errorType", "Unknown"),
-                "description": minimal.get("summary", "AI analysis completed"),
+                "cause": "Normal completion",
+                "description": "Operation finished without explicit errors",
                 "confidence": "medium"
             },
             "recommendations": [
-                "Review detailed logs for specific issues",
-                "Check system status and service health"
+                "Verify expected results manually",
+                "Check if all intended changes were applied"
             ],
-            "urgency": minimal.get("severity", "medium"),
+            "urgency": "low",
             "context": {
-                "deployment": "unknown",
+                "deployment": deployment_id or "unknown",
                 "environment": "production",
-                "service": "ai-analyzer",
-                "analysis_type": "minimal_ai_analysis"
+                "service": "general",
+                "status": "completed_without_errors"
             }
         }
+    
+    def _create_warning_result(self, warning_matches: List[str], log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Create result for operations with warnings"""
+        return {
+            "summary": f"Operation completed with {len(warning_matches)} warnings that should be reviewed",
+            "shortSummary": f"Completed with {len(warning_matches)} warnings",
+            "category": "application",
+            "severity": "medium",
+            "errorType": "CompletedWithWarnings",
+            "rootCause": {
+                "cause": "Operation completed with warnings",
+                "description": f"Found {len(warning_matches)} warning indicators",
+                "confidence": "medium"
+            },
+            "recommendations": [
+                "Review warnings to ensure they don't indicate future issues",
+                "Consider addressing deprecated features",
+                "Monitor system for any impact from warnings"
+            ],
+            "urgency": "medium",
+            "context": {
+                "deployment": deployment_id or "unknown",
+                "environment": "production",
+                "service": "general",
+                "warning_count": len(warning_matches)
+            }
+        }
+    
+    def _create_unclear_result(self, log_text: str, deployment_id: str) -> Dict[str, Any]:
+        """Create result when analysis is unclear"""
+        return {
+            "summary": "Log analysis inconclusive - manual review recommended to determine operation status",
+            "shortSummary": "Status unclear - review needed",
+            "category": "application",
+            "severity": "medium",
+            "errorType": "UnclearStatus",
+            "rootCause": {
+                "cause": "Insufficient clear indicators",
+                "description": "No definitive success or failure patterns detected",
+                "confidence": "low"
+            },
+            "recommendations": [
+                "Manually review complete logs for operation status",
+                "Verify if intended operation completed successfully",
+                "Check system state to confirm operation results"
+            ],
+            "urgency": "medium",
+            "context": {
+                "deployment": deployment_id or "unknown",
+                "environment": "production",
+                "service": "analysis",
+                "status": "unclear"
+            }
+        }
+    
+    def _determine_category(self, operation_type: str, log_text: str) -> str:
+        """Determine category based on operation type and log content"""
+        if operation_type == "service_management":
+            return "system"
+        elif operation_type == "deployment":
+            return "deployment"
+        elif operation_type == "backup":
+            return "maintenance"
+        elif operation_type == "validation":
+            return "verification"
+        elif "database" in log_text.lower():
+            return "database"
+        elif "network" in log_text.lower():
+            return "network"
+        else:
+            return "application"
+    
+    def _map_failure_to_category(self, failure_type: str) -> str:
+        """Map failure type to category"""
+        mapping = {
+            "service_failure": "system",
+            "network_failure": "network",
+            "filesystem_failure": "filesystem",
+            "execution_failure": "application",
+            "general_failure": "application"
+        }
+        return mapping.get(failure_type, "application")
+    
+    def _get_failure_recommendations(self, failure_type: str, failure_matches: List[Dict]) -> List[str]:
+        """Get specific recommendations based on failure type"""
+        
+        base_recommendations = {
+            "service_failure": [
+                "Check service status: systemctl status <service>",
+                "Review service logs: journalctl -u <service>",
+                "Verify service configuration files",
+                "Check for dependency issues"
+            ],
+            "network_failure": [
+                "Test network connectivity: ping <target>",
+                "Check firewall rules and port access",
+                "Verify DNS resolution",
+                "Check network interface status"
+            ],
+            "filesystem_failure": [
+                "Verify file and directory permissions",
+                "Check if files/directories exist",
+                "Confirm available disk space",
+                "Review file ownership settings"
+            ],
+            "execution_failure": [
+                "Check command syntax and parameters",
+                "Verify executable permissions",
+                "Check PATH environment variable",
+                "Review execution environment"
+            ],
+            "general_failure": [
+                "Review complete error logs",
+                "Check system resource availability",
+                "Verify configuration settings",
+                "Consider restarting affected services"
+            ]
+        }
+        
+        return base_recommendations.get(failure_type, base_recommendations["general_failure"])

@@ -2,57 +2,74 @@ import os
 
 GPT4ALL_CONFIG = {
     'model_path': os.getenv('GPT4ALL_MODEL_PATH', '/app/models'),
-    # Use smallest/fastest model by default for speed
-    'model_name': os.getenv('GPT4ALL_MODEL', 'orca-mini-3b-gguf2-q4_0.gguf'),
+    # AI is now disabled by default - pattern analysis only
+    'model_name': os.getenv('GPT4ALL_MODEL', 'disabled'),
     
-    # Ultra-speed optimized settings
-    'max_tokens': int(os.getenv('GPT4ALL_MAX_TOKENS', '200')),  # Very short for speed
-    'temperature': float(os.getenv('GPT4ALL_TEMPERATURE', '0.05')),  # Very low for consistency
-    'top_p': float(os.getenv('GPT4ALL_TOP_P', '0.5')),  # Very focused
-    'max_logs_per_analysis': int(os.getenv('MAX_LOGS_ANALYSIS', '10')),  # Minimal logs
-    'enable_caching': os.getenv('ENABLE_ANALYSIS_CACHING', 'true').lower() == 'true',
+    # Pattern-only analysis settings
+    'use_ai_analysis': os.getenv('USE_AI_ANALYSIS', 'false').lower() == 'true',
+    'pattern_analysis_only': True,  # Force pattern analysis only
+    'max_logs_per_analysis': int(os.getenv('MAX_LOGS_ANALYSIS', '1000')),  # Can handle more logs now
     
     'available_models': [
-        'orca-mini-3b-gguf2-q4_0.gguf',       # Primary - fastest
-        'Meta-Llama-3-8B-Instruct.Q4_0.gguf'  # Fallback - more accurate but slower
+        'orca-mini-3b-gguf2-q4_0.gguf',       # Fastest if AI needed
+        'Meta-Llama-3-8B-Instruct.Q4_0.gguf'  # More accurate if AI needed
     ],
     
-    # Aggressive speed optimization
-    'quick_success_detection': True,
-    'max_prompt_length': 300,         # Very short prompts
-    'use_chat_session': False,        # Direct generate is faster
-    'enable_timeout': True,           # Enable AI timeout
-    'ai_timeout_seconds': 10,         # Very short timeout
-    'prefer_pattern_analysis': True,  # Prefer fast pattern matching
+    # Pattern analysis is now primary method
+    'enable_comprehensive_patterns': True,
+    'pattern_confidence_threshold': 0.7,
+    'success_detection_strict': True,
     
-    # Ultra-fast model settings
-    'model_settings': {
-        'orca-mini-3b-gguf2-q4_0.gguf': {
-            'max_tokens': 150,           # Very short
-            'temperature': 0.01,         # Minimal randomness
-            'top_p': 0.3,               # Very focused
-            'top_k': 5,                 # Minimal choices
-            'repeat_penalty': 1.0,      # No penalty
-            'prompt_style': 'ultra_simple'
-        },
-        'Meta-Llama-3-8B-Instruct.Q4_0.gguf': {
-            'max_tokens': 200,
-            'temperature': 0.05,
-            'top_p': 0.5,
-            'top_k': 10,
-            'repeat_penalty': 1.0,
-            'prompt_style': 'simple_fast'
-        }
+    # Success detection patterns
+    'success_patterns': {
+        'systemctl_patterns': [
+            r'systemctl.*started.*successfully',
+            r'systemctl.*enabled.*successfully', 
+            r'systemctl.*restarted.*successfully',
+            r'service.*started.*successfully',
+            r'unit.*started.*successfully'
+        ],
+        'general_success_patterns': [
+            r'successfully\s+completed',
+            r'completed\s+successfully',
+            r'operation\s+successful',
+            r'deployment\s+successful'
+        ],
+        'validation_patterns': [
+            r'validation\s+passed',
+            r'checksum\s+verified',
+            r'integrity\s+check\s+passed',
+            r'all\s+tests\s+passed'
+        ]
     },
     
-    # Performance limits
-    'max_analysis_time_seconds': 15,   # Hard timeout
-    'pattern_analysis_threshold': 0.6, # Use pattern analysis if confidence < 60%
-    'success_confidence_threshold': 0.8, # High confidence for success fast-path
-    'enable_enhanced_patterns': True,   # Use comprehensive pattern matching
+    # Failure detection patterns
+    'failure_patterns': {
+        'service_failures': [
+            r'failed\s+to\s+start',
+            r'service\s+failed',
+            r'systemctl.*failed',
+            r'unit\s+failed'
+        ],
+        'network_failures': [
+            r'connection\s+refused',
+            r'connection\s+failed', 
+            r'connection\s+timeout',
+            r'network\s+unreachable'
+        ],
+        'system_failures': [
+            r'permission\s+denied',
+            r'command\s+not\s+found',
+            r'file\s+not\s+found',
+            r'fatal\s+error'
+        ]
+    },
     
-    # Success detection optimization
-    'comprehensive_success_patterns': True,  # Use all success patterns
-    'validation_log_detection': True,        # Special handling for validation logs
-    'implicit_success_detection': True,      # Detect implicit success
+    # Performance settings (for if AI is enabled)
+    'ai_settings': {
+        'max_tokens': 200,
+        'temperature': 0.05,
+        'timeout_seconds': 10,
+        'enable_timeout': True
+    }
 }
